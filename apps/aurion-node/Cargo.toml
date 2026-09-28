@@ -1,0 +1,20 @@
+[package]
+name = "aurion-node"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aurion-criptografi = { path = "../../crates/aurion-criptografi" }
+aurion-core = { path = "../../crates/aurion-core" }
+aurion-consensus = { path = "../../crates/aurion-consensus" }
+aurion-ledger = { path = "../../crates/aurion-ledger" }
+aurion-mempool = { path = "../../crates/aurion-mempool" }
+aurion-network = { path = "../../crates/aurion-network" }
+
+tokio = { version = "1.38", features = ["full"] }
+clap = { version = "4.5", features = ["derive"] }
+futures-util = "0.3"
+blake3 = "1.5"
+
+[lints]
+workspace = true

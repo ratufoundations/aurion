@@ -1,0 +1,37 @@
+# deny.toml - Kebijakan kepatuhan audit supply chain Aurion
+
+[advisories]
+# Periksa database RustSec untuk celah keamanan yang diketahui
+vulnerability = "deny"
+unmaintained = "warn"
+yanked = "deny"
+ignore = []
+
+[licenses]
+# Hanya izinkan lisensi open-source standar industri
+confidence-threshold = 0.8
+allow = [
+    "Apache-2.0",
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+]
+
+[bans]
+# Blokir duplikasi dependensi versi ganda dan crate berisiko
+multiple-versions = "warn"
+wildcards = "deny"
+deny = [
+    # Larang crate float alternatif jika ada percobaan impor terselubung
+    { name = "half" },
+    { name = "twox-hash" },
+]
+
+[sources]
+# Hanya izinkan unduhan crate dari crates.io resmi dan path workspace lokal
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

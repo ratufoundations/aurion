@@ -1,0 +1,13 @@
+[package]
+name = "aurion-mempool"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aurion-criptografi = { path = "../aurion-criptografi" }
+aurion-core = { path = "../aurion-core" }
+blake3 = "1.5"
+thiserror = "1.0"
+
+[lints]
+workspace = true

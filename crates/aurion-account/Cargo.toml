@@ -1,0 +1,13 @@
+[package]
+name = "aurion-account"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aurion-criptografi = { path = "../aurion-criptografi" }
+aurion-core = { path = "../aurion-core" }
+aurion-wallet = { path = "../aurion-wallet" }
+thiserror = "1.0"
+
+[lints]
+workspace = true

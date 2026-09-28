@@ -1,0 +1,21 @@
+[package]
+name = "aurion-network"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aurion-criptografi = { path = "../aurion-criptografi" }
+aurion-core = { path = "../aurion-core" }
+aurion-consensus = { path = "../aurion-consensus" }
+aurion-ledger = { path = "../aurion-ledger" }
+tokio = { version = "1.38", features = ["net", "sync", "rt", "macros", "io-util", "time"] }
+tokio-util = { version = "0.7", features = ["codec"] }
+bytes = "1.6"
+futures-util = { version = "0.3", features = ["sink"] }
+thiserror = "1.0"
+
+[dev-dependencies]
+tokio = { version = "1.38", features = ["full"] }
+
+[lints]
+workspace = true

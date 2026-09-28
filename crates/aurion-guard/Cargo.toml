@@ -1,0 +1,14 @@
+[package]
+name = "aurion-guard"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aurion-criptografi = { path = "../aurion-criptografi" }
+aurion-core = { path = "../aurion-core" }
+aurion-consensus = { path = "../aurion-consensus" }
+blake3 = "1.5"
+thiserror = "1.0"
+
+[lints]
+workspace = true

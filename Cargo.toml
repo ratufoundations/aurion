@@ -1,0 +1,47 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/aurion-criptografi",
+    "crates/aurion-core",
+    "crates/aurion-consensus",
+    "crates/aurion-ledger",
+    "crates/aurion-mempool",
+    "crates/aurion-network",
+    "crates/aurion-contract",
+    "crates/aurion-wallet",
+    "crates/aurion-account",
+    "crates/aurion-genesis",
+    "crates/aurion-guard",
+    "crates/aurion-validator",
+    "crates/aurion-gateway",
+    "apps/aurion-node",
+    "apps/aurion-explorer",
+]
+
+[workspace.lints.rust]
+# Larangan mutlak operasi unsafe di seluruh codebase
+unsafe_code = "forbid"
+unsafe_op_in_unsafe_fn = "forbid"
+
+# Standar visibilitas dan kelengkapan tipe
+unreachable_pub = "warn"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+# Larangan mutlak floating-point (non-deterministik lintas arsitektur CPU)
+float_arithmetic = "deny"
+float_cmp = "deny"
+float_cmp_const = "deny"
+suboptimal_flops = "deny"
+imprecise_flops = "deny"
+disallowed_types = "deny"
+
+# Larangan unwrap tanpa penanganan di jalur kritis & mitigasi pemotongan angka
+unwrap_used = "deny"
+expect_used = "warn"
+cast_possible_truncation = "deny"
+cast_sign_loss = "deny"
+pedantic = { level = "warn", priority = -1 }
+
+
+

@@ -1,0 +1,5 @@
+# clippy.toml - Aturan larangan tipe spesifik Aurion Engine
+disallowed-types = [
+    { path = "f32", reason = "Tipe f32 dilarang: floating point non-deterministik antar-CPU dan berisiko memecah consensus state root. Gunakan u64 (satuan Quanta)." },
+    { path = "f64", reason = "Tipe f64 dilarang: floating point non-deterministik antar-CPU dan berisiko memecah consensus state root. Gunakan u64 (satuan Quanta)." },
+]

@@ -1,0 +1,16 @@
+[package]
+name = "aurion-ledger"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+aurion-criptografi = { path = "../aurion-criptografi" }
+aurion-core = { path = "../aurion-core" }
+redb = "2.1"
+thiserror = "1.0"
+
+[dev-dependencies]
+tempfile = "3.10"
+
+[lints]
+workspace = true

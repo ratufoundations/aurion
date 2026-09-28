@@ -1,0 +1,29 @@
+aurion/
+├── apps/                          # [KOSONG] rencana binary / node / CLI
+├── config/                        # [KOSONG] rencana config TOML/YAML
+├── crates/
+│   ├── aurion-consesus/           # [KOSONG] !!! typo, seharusnya `consensus`
+│   ├── aurion-core/               # [KOSONG] rencana tipe inti: Block, Tx, State
+│   └── aurion-criptografi/        # [AKTIF] satu-satunya crate terdaftar di workspace
+│       ├── Cargo.toml             # deps: blake3, ed25519-dalek, rayon, zeroize, subtle, rand_core, thiserror
+│       └── src/
+│           ├── lib.rs             # #![forbid(unsafe_code)], pub mod hash/signature, type Hash256/PubKey/Sig/PrivKey
+│           ├── hash.rs            # struct Hasher::{digest, digest_parallel(rayon), combine(Merkle)}
+│           └── signature/
+│               ├── mod.rs         # re-export error/keypair/verifier
+│               ├── error.rs       # enum CryptoError::{InvalidPublicKey, InvalidSignature, VerificationFailed, BatchMismatch}
+│               ├── keypair.rs     # struct Keypair{signing_key, verifying_key} + ZeroizeOnDrop, generate/from_bytes/sign
+│               └── verifier.rs    # struct SignatureVerifier::{verify_single, verify_batch(rayon)}
+├── docs/
+│   └── task-register/
+│       └── TASK-002-crypto-testing-standards.md  # Spec C0-C7 Verification Framework v1.0.0, status DRAFT
+├── tests/
+│   └── aurion-criptografi-tests/  # [KOSONG] dir integration test terpisah (belum ada file)
+├── logs/                          # [KOSONG] output log runtime
+├── tools/                         # [KOSONG] skrip bantu / fuzz / bench
+├── Cargo.toml                     # [workspace] resolver=3, members=["crates/aurion-criptografi"]
+├── Cargo.lock                     # lockfile 13KB
+└── target/                        # [GENERATED] build artifacts cargo, jangan di-commit
+    ├── debug/deps/                # .d + bin aurion_criptografi-*
+    ├── debug/.fingerprint/        # blake3, curve25519-dalek, ed25519, rayon, dll
+    └── debug/build/               # output cc/assembly blake3 (avx2/avx512/sse2/sse41)
