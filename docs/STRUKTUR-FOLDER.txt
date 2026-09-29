@@ -18,6 +18,7 @@ aurion/
 │   ├── aurion-ledger/             # [AKTIF] redb LedgerStore, codec, module KV, append-only commits, read snapshots; tes L0–L5
 │   ├── aurion-mempool/            # [AKTIF] Mempool, signature/fee/nonce/solvency, deterministic selection and bounded eviction; M0–M5 tests
 │   ├── aurion-network/            # [AKTIF] facade NetworkService + AurionBehaviour (libp2p gossipsub/noise/identify/yamux/tcp), wire codec, handshake gate, metrik u64; tes N0-N5
+│   ├── aurion-projection/         # [AKTIF] CQRS Read Model, delta ingestion, address indexing, snapshot consistency, pruning, cold rebuild; tes P0–P5
 │   ├── aurion-validator/          # [AKTIF] gerbang penerimaan validator (PoP/stake/peran), pipeline probation, rotasi epoch deterministik, auto-jail liveness, endorsement anti-Sybil, skoring BPS nir-pecahan; tes V0–V5
 │   └── aurion-wallet/            # [AKTIF] AurionWallet, domain separation wallet-level, delegation
 ├── docs/
@@ -32,6 +33,7 @@ aurion/
 │       ├── TASK-aurion-gateway.md              # CQRS boundary, ingress sanitasi, rate limiting, fault isolation; GW0–GW5 (COMPLETED)
 │       ├── TASK-aurion-guard.md                 # security engine, slashing, tombstoning, council governance G0–G5 (COMPLETED)
 │       ├── TASK-aurion-network.md               # P2P wire & swarm boundary N0–N5 (ACTIVE, fondasi libp2p 0.56)
+│       ├── TASK-aurion-projection.md            # CQRS read model, delta ingestion, address indexing, pruning, cold rebuild; P0–P5 (ACTIVE)
 │       ├── TASK-aurion-ledger.md                # invarian persistensi L0–L5 (COMPLETED)
 │       ├── TASK-aurion-mempool.md               # invarian admission M0–M5 (COMPLETED)
 │       ├── TASK-aurion-validator.md             # siklus hidup validator V0–V5 (COMPLETED)

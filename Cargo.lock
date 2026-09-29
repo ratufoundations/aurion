@@ -498,6 +498,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurion-projection"
+version = "0.1.0"
+dependencies = [
+ "aurion-core",
+ "aurion-criptografi",
+ "aurion-execution",
+ "aurion-ledger",
+ "blake3",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tracing",
+]
+
+[[package]]
 name = "aurion-validator"
 version = "0.1.0"
 dependencies = [

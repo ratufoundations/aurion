@@ -16,6 +16,7 @@ members = [
     "crates/aurion-validator",
     "crates/aurion-execution",
     "crates/aurion-gateway",
+    "crates/aurion-projection",
     "apps/aurion-node",
     "apps/aurion-explorer",
     "apps/aurion-cli",

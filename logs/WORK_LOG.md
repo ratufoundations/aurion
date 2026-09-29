@@ -1,3 +1,20 @@
+## 2026-09-30 — Implementasi dan Pengujian aurion-projection P0-P5
+- Mendaftarkan `docs/task-register/TASK-aurion-projection.md` dan memverifikasi `docs/STRUKTUR-FOLDER.txt`.
+- Mendaftarkan `crates/aurion-projection` sebagai anggota workspace baru pada `Cargo.toml` dan `Cargo.lock`.
+- Membangun komponen P0 (kursor proyeksi idempoten), P1 (indeks berbasis alamat), P2 (snapshot model baca dan pelacakan lag), P3 (retensi dan pembersihan aman), serta P5 (metrik BPS nir-pecahan).
+- **Koreksi P4:** implementasi P4 semula hanya *stub* tanpa pengujian whatsoever. `apply_block_to_snapshot` tidak melakukan apa pun, `get_state_at` mengembalikan `State::new()` kosong, dan `verify_determinism` hanya membandingkan dua skalar. Ketiganya kini diimplementasikan sungguhan:
+  - `cold_rebuild_with_genesis` memutar ulang transaksi blok ke `aurion_core::State` dan memverifikasi `state_root` rekonstruksi terhadap header yang dikomit.
+  - Alokasi genesis menjadi parameter eksplisit karena pendanaan genesis tidak dapat diturunkan dari replay transaksi.
+  - Biaya transaksi dikreditkan ke `block.header.proposer` agar replay mengikuti semantik `Block::execute` (replay ke fee sink menghasilkan root yang menyimpang).
+  - `verify_determinism` kini membandingkan peta saldo menyeluruh dan menjadi *associated function* sesuai lint `clippy::unused_self`.
+- Menambahkan accessor `ReadSnapshot::balances()` untuk mendukung perbandingan saldo penuh.
+- Suite integrasi `crates/aurion-projection/tests/projection_invariants.rs` kini memuat 8 testcase mencakup P0, P1, P2, P3, P4 (tiga testcase), dan P5. Testcase P4 membangun ledger `redb` sungguhan berisi 50 blok transfer bertanda tangan.
+- Menambahkan unit test P4 di `src/recovery.rs` (determinisme `state_root`, saldo hasil replay, digest saldo, dan deteksi rentang terbalik).
+- Memperbaiki 3 error clippy pada `-D warnings` (`unnecessary_wraps` pada stub lama, `unused_self`, dan dead assignment pada `cursor.rs`), serta memindahkan tiga `.unwrap()` pada berkas uji ke propagasi `?` sesuai aturan `aurion_guard.py`.
+- Hasil verifikasi faktual: `cargo test -p aurion-projection --test projection_invariants` 8 passed/0 failed; `cargo test -p aurion-projection` 65 unit passed/0 failed; `cargo clippy -p aurion-projection --all-targets --all-features -- -D warnings` 0 error dan 0 warning; `python3 tools/aurion_guard.py check` lulus.
+- Catatan regresi: `cargo test --workspace` masih gagal pada `aurion-validator` (`v1_transition_matrix_is_exhaustive_and_probation_cannot_jump`). Kegagalan ini telah diverifikasi pre-existing melalui `git stash` dan tidak berkaitan dengan `aurion-projection`.
+- Status task: COMPLETED.
+
 ## 2026-09-30 — Penyelesaian modul aurion-gateway GW0–GW5 (Boundary Ingress & CQRS Gateway)
 - Menyelesaikan implementasi modul `crates/aurion-gateway` dengan matriks invarian GW0–GW5 (Sanitasi Ingress/Anti-Malformed, Pemisahan CQRS Read/Write, Proteksi Max Request DoS, Rate Limiter Token Bucket u64, Isolasi Galat Klien/Error Redaction, Metrik Gateway Zero-Float).
 - Membuat modul: `src/sanitizer.rs` (validasi JSON/hex/frame), `src/rate_limiter.rs` (Token Bucket u64), `src/metrics.rs` (pencatatan BPS u64), `src/error.rs` (tipe galat terstruktur).
