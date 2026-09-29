@@ -37,18 +37,19 @@ impl Codec {
     }
 
     // ==========================================
-    // TRANSACTION CODEC (144 Bytes Fixed)
+    // TRANSACTION CODEC (152 Bytes Fixed)
     // ==========================================
-    pub const TX_SIZE: usize = 144;
+    pub const TX_SIZE: usize = 152;
 
     #[must_use]
     pub fn encode_tx(tx: &Transaction) -> [u8; Self::TX_SIZE] {
         let mut buf = [0u8; Self::TX_SIZE];
-        buf[0..32].copy_from_slice(&tx.sender);
-        buf[32..64].copy_from_slice(&tx.recipient);
-        buf[64..72].copy_from_slice(&tx.amount.to_le_bytes());
-        buf[72..80].copy_from_slice(&tx.nonce.to_le_bytes());
-        buf[80..144].copy_from_slice(&tx.signature);
+        buf[0..8].copy_from_slice(&tx.nonce.to_le_bytes());
+        buf[8..40].copy_from_slice(&tx.sender);
+        buf[40..72].copy_from_slice(&tx.recipient);
+        buf[72..80].copy_from_slice(&tx.amount.to_le_bytes());
+        buf[80..88].copy_from_slice(&tx.fee.to_le_bytes());
+        buf[88..152].copy_from_slice(&tx.signature);
         buf
     }
 
@@ -63,21 +64,22 @@ impl Codec {
                 got: slice.len(),
             });
         }
-        let sender = read_array(&slice[0..32])?;
-        let recipient = read_array(&slice[32..64])?;
-        let amount = u64::from_le_bytes(read_array(&slice[64..72])?);
-        let nonce = u64::from_le_bytes(read_array(&slice[72..80])?);
-        let signature = read_array(&slice[80..144])?;
+        let nonce = u64::from_le_bytes(read_array(&slice[0..8])?);
+        let sender = read_array(&slice[8..40])?;
+        let recipient = read_array(&slice[40..72])?;
+        let amount = u64::from_le_bytes(read_array(&slice[72..80])?);
+        let fee = u64::from_le_bytes(read_array(&slice[80..88])?);
+        let signature = read_array(&slice[88..152])?;
 
         Ok(Transaction::new(
-            sender, recipient, amount, nonce, signature,
+            sender, recipient, amount, nonce, fee, signature,
         ))
     }
 
     // ==========================================
-    // BLOCK CODEC (76 Bytes Header + N * 144 Bytes TX)
+    // BLOCK CODEC (116 Bytes Header + N * 152 Bytes TX)
     // ==========================================
-    pub const HEADER_SIZE: usize = 76;
+    pub const HEADER_SIZE: usize = 116;
 
     #[must_use]
     pub fn encode_block(block: &Block) -> Vec<u8> {
@@ -89,6 +91,8 @@ impl Codec {
         out.extend_from_slice(&block.header.prev_hash);
         out.extend_from_slice(&block.header.state_root);
         out.extend_from_slice(&block.header.tx_count.to_le_bytes());
+        out.extend_from_slice(&block.header.timestamp.to_le_bytes());
+        out.extend_from_slice(&block.header.proposer);
 
         // Transactions
         for tx in &block.transactions {
@@ -111,6 +115,8 @@ impl Codec {
         let prev_hash = read_array(&bytes[8..40])?;
         let state_root = read_array(&bytes[40..72])?;
         let tx_count = u32::from_le_bytes(read_array(&bytes[72..76])?);
+        let timestamp = u64::from_le_bytes(read_array(&bytes[76..84])?);
+        let proposer = read_array(&bytes[84..116])?;
 
         let expected_total_len = Self::HEADER_SIZE + (tx_count as usize * Self::TX_SIZE);
         if bytes.len() != expected_total_len {
@@ -132,6 +138,8 @@ impl Codec {
                 prev_hash,
                 state_root,
                 tx_count,
+                timestamp,
+                proposer,
             },
             transactions,
         })

@@ -13,5 +13,5 @@ pub use error::ExecutionError;
 pub use module::{
     AurionModule, DispatchError, ExecutionContext, ModuleDispatcher, StateReader, StateWriter,
 };
-pub use state::State;
+pub use state::{State, PROTOCOL_FEE_SINK};
 pub use transaction::Transaction;

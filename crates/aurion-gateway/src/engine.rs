@@ -121,7 +121,7 @@ impl AurionGateway {
                             let mut mp = mempool_for_tx.lock().await;
                             let dummy_state = State::new();
 
-                            match mp.insert(tx, 0, &dummy_state) {
+                            match mp.insert(tx, &dummy_state) {
                                 Ok(()) => {
                                     tracing::info!(tx_hash = %tx_hash, "Transaksi gateway diterima mempool");
                                     serde_json::json!({

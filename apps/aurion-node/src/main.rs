@@ -4,7 +4,7 @@ use std::fs;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::OwnedSemaphorePermit;
 
 use clap::Parser;
@@ -244,16 +244,16 @@ async fn run_node(
                 let sender: PublicKeyBytes = alice_kp.public_key_bytes();
                 let amount = 25_000u64;
                 let fee = 10u64;
-                let payload = Transaction::payload_bytes(&sender, &bob_pubkey, amount, nonce);
+                let payload = Transaction::payload_bytes(&sender, &bob_pubkey, amount, nonce, fee);
                 let mut hasher = blake3::Hasher::new();
                 hasher.update(b"AURION_TX_CANONICAL_V1");
                 hasher.update(&payload);
                 let digest: Hash256 = *hasher.finalize().as_bytes();
                 let sig = alice_kp.sign(&digest);
-                let tx = Transaction::new(sender, bob_pubkey, amount, nonce, sig);
+                let tx = Transaction::new(sender, bob_pubkey, amount, nonce, fee, sig);
                 let state_guard = demo_ctx.state.lock().await;
                 let mut mempool_guard = demo_ctx.mempool.lock().await;
-                match mempool_guard.insert(tx.clone(), fee, &state_guard) {
+                match mempool_guard.insert(tx.clone(), &state_guard) {
                     Ok(()) => {
                         tracing::info!("\n[MEMPOOL] Transaksi Demo Masuk -> Kirim {} Quanta ke Bob (Nonce: {})", amount, nonce);
                         nonce += 1;
@@ -282,10 +282,11 @@ async fn run_node(
         }
         let current_height = engine_ctx.ledger.get_latest_height().unwrap_or(0);
         let next_height = current_height + 1;
+        let proposer = engine_ctx.validator_keypair.public_key_bytes();
         let mut shadow_state = state_guard.clone();
         let mut executed_txs = Vec::new();
         for tx in txs_to_mine {
-            match shadow_state.apply_transaction(&tx) {
+            match shadow_state.apply_transaction_with_proposer(&tx, proposer) {
                 Ok(()) => executed_txs.push(tx),
                 Err(e) => tracing::error!("[EXECUTION SKIP] Tx dilewati karena error FSM: {}", e),
             }
@@ -298,12 +299,15 @@ async fn run_node(
             Ok(Some(prev_block)) => prev_block.header.hash(),
             _ => [0u8; 32],
         };
+        let timestamp = u64::try_from(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis())?;
         let candidate_block = Block {
             header: BlockHeader {
                 height: next_height,
                 prev_hash,
                 state_root,
                 tx_count: u32::try_from(executed_txs.len())?,
+                timestamp,
+                proposer,
             },
             transactions: executed_txs,
         };
@@ -416,7 +420,7 @@ async fn handle_peer_inbound(
             NetworkMessage::Transaction(tx) => {
                 let state_guard = ctx.state.lock().await;
                 let mut mempool_guard = ctx.mempool.lock().await;
-                let _ = mempool_guard.insert(tx, 0, &state_guard);
+                let _ = mempool_guard.insert(tx, &state_guard);
             }
             NetworkMessage::Ping(nonce) => {
                 let _ = peer.send_message(NetworkMessage::Pong(nonce)).await;

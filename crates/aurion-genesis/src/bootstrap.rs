@@ -35,6 +35,8 @@ impl GenesisBootstrap {
                 prev_hash: [0u8; 32],
                 state_root: genesis_state_root,
                 tx_count: 0,
+                timestamp: spec.timestamp,
+                proposer: [0; 32],
             },
             transactions: Vec::new(),
         };

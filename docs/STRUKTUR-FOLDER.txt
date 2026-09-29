@@ -9,7 +9,7 @@ aurion/
 │   ├── aurion-account/            # [AKTIF] SovereignAccount, role, policy
 │   ├── aurion-consensus/          # [AKTIF] ValidatorSet, RoundState, signed votes/QC, equivocation evidence, timeout/view change; tes B0–B5
 │   ├── aurion-contract/           # [AKTIF] VM eksperimental (baseline penelitian, BUKAN keputusan final)
-│   ├── aurion-core/               # [AKTIF] tipe inti: Account, Transaction, Block, State
+│   ├── aurion-core/               # [AKTIF] Account, Transaction, Block, State; ST0–ST3 dan ST5 linkage tests; fee/timestamp protocol pending
 │   ├── aurion-criptografi/        # [AKTIF] hash BLAKE3 + Ed25519; tes integrasi invarian C0–C7 di crates/aurion-criptografi/tests/
 │   ├── aurion-gateway/            # [AKTIF] GatewayRoutes + AurionGateway (Zenoh boundary)
 │   ├── aurion-genesis/            # [AKTIF] GenesisSpec, bootstrap blok 0 (QUANTA_PER_AUR = 1_000_000 — nilai eksplorasi, BUKAN kebijakan moneter terkunci)
@@ -25,6 +25,7 @@ aurion/
 │   └── task-register/
 │       ├── TASK-aurion-criptografi.md           # invarian kriptografi C0–C7 (COMPLETE)
 │       ├── TASK-aurion-consensus.md             # invarian konsensus B0–B5 (COMPLETED)
+│       ├── TASK-aurion-core.md                  # state transition ST0–ST5 (IN PROGRESS: fee/timestamp policy)
 │       ├── TASK-aurion-ledger.md                # invarian persistensi L0–L5 (COMPLETED)
 │       ├── TASK-aurion-mempool.md               # invarian admission M0–M5 (COMPLETED)
 │       ├── TASK-002-crypto-testing-standards.md  # kerangka C0–C7, status DRAFT

@@ -7,6 +7,7 @@ pub struct Transaction {
     pub recipient: PublicKeyBytes,
     pub amount: u64,
     pub nonce: u64,
+    pub fee: u64,
     pub signature: SignatureBytes,
 }
 
@@ -17,6 +18,7 @@ impl Transaction {
         recipient: PublicKeyBytes,
         amount: u64,
         nonce: u64,
+        fee: u64,
         signature: SignatureBytes,
     ) -> Self {
         Self {
@@ -24,43 +26,51 @@ impl Transaction {
             recipient,
             amount,
             nonce,
+            fee,
             signature,
         }
     }
 
-    /// Serialisasi kanonikal payload transaksi sebelum di-hash
+    /// Canonical signed preimage: nonce || sender || recipient || amount || fee.
     #[must_use]
     pub fn payload_bytes(
         sender: &PublicKeyBytes,
         recipient: &PublicKeyBytes,
         amount: u64,
         nonce: u64,
-    ) -> [u8; 80] {
-        let mut bytes = [0u8; 80];
-        bytes[0..32].copy_from_slice(sender);
-        bytes[32..64].copy_from_slice(recipient);
-        bytes[64..72].copy_from_slice(&amount.to_le_bytes());
-        bytes[72..80].copy_from_slice(&nonce.to_le_bytes());
+        fee: u64,
+    ) -> [u8; 88] {
+        let mut bytes = [0u8; 88];
+        bytes[0..8].copy_from_slice(&nonce.to_le_bytes());
+        bytes[8..40].copy_from_slice(sender);
+        bytes[40..72].copy_from_slice(recipient);
+        bytes[72..80].copy_from_slice(&amount.to_le_bytes());
+        bytes[80..88].copy_from_slice(&fee.to_le_bytes());
         bytes
     }
 
-    /// Hash identitas transaksi dengan domain separation
+    /// Hash canonical transaction fields with domain separation.
     #[must_use]
     pub fn digest(&self) -> Hash256 {
-        let payload = Self::payload_bytes(&self.sender, &self.recipient, self.amount, self.nonce);
+        let payload = Self::payload_bytes(
+            &self.sender,
+            &self.recipient,
+            self.amount,
+            self.nonce,
+            self.fee,
+        );
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"AURION_TX_CANONICAL_V1");
         hasher.update(&payload);
         *hasher.finalize().as_bytes()
     }
 
-    /// Validasi kriptografi tanda tangan transaksi.
+    /// Validate the sender's cryptographic signature.
     ///
     /// # Errors
-    /// Mengembalikan error bila tanda tangan pengirim tidak sah.
+    /// Returns an error when the signature does not cover the transaction fields.
     pub fn verify_signature(&self) -> Result<(), ExecutionError> {
-        let digest = self.digest();
-        SignatureVerifier::verify_single(&self.sender, &digest, &self.signature)
+        SignatureVerifier::verify_single(&self.sender, &self.digest(), &self.signature)
             .map_err(|_| ExecutionError::InvalidSignature)
     }
 }

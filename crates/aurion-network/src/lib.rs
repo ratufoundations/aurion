@@ -56,6 +56,7 @@ mod tests {
             bob.public_key_bytes(),
             50_000,
             1,
+            2,
             [0x77; 64],
         );
         let msg = NetworkMessage::Transaction(tx.clone());
@@ -73,6 +74,7 @@ mod tests {
                 assert_eq!(decoded_tx.sender, tx.sender);
                 assert_eq!(decoded_tx.recipient, tx.recipient);
                 assert_eq!(decoded_tx.amount, 50_000);
+                assert_eq!(decoded_tx.fee, 2);
                 assert_eq!(decoded_tx.nonce, 1);
             }
             _ => panic!("Tipe pesan hasil decode salah"),

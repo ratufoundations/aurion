@@ -51,7 +51,7 @@ mod tests {
             alice_wallet.public_key(),
             aurion_core::Account::new(500_000, 0),
         );
-        let tx = alice_wallet.build_transaction(bob_pubkey, 120_000, 0);
+        let tx = alice_wallet.build_transaction(bob_pubkey, 120_000, 0, 1);
         state
             .apply_transaction(&tx)
             .expect("Transaksi dari wallet harus sah");
@@ -61,8 +61,14 @@ mod tests {
         let bob_acc = state
             .get_account(&bob_pubkey)
             .expect("test operation should succeed");
-        assert_eq!(alice_acc.balance, 380_000);
+        assert_eq!(alice_acc.balance, 379_999);
         assert_eq!(alice_acc.nonce, 1);
         assert_eq!(bob_acc.balance, 120_000);
+        assert_eq!(
+            state
+                .get_account(&aurion_core::PROTOCOL_FEE_SINK)
+                .map(|account| account.balance),
+            Some(1)
+        );
     }
 }

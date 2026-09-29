@@ -22,13 +22,13 @@ impl Domain {
     }
 }
 
-/// Hash payload transaksi 80 bita dengan domain `AURION_TX_CANONICAL_V1`.
+/// Hash payload transaksi 88 bita dengan domain `AURION_TX_CANONICAL_V1`.
 /// Setara byte-per-byte dengan `Transaction::digest()` di aurion-core
 /// (BLAKE3 streaming: update(domain) + update(payload)).
 #[must_use]
-pub fn hash_transaction_payload(payload_80b: &[u8; 80]) -> Hash256 {
+pub fn hash_transaction_payload(payload_88b: &[u8; 88]) -> Hash256 {
     let mut hasher = blake3::Hasher::new();
     hasher.update(DOMAIN_TRANSACTION_SIGNING);
-    hasher.update(payload_80b);
+    hasher.update(payload_88b);
     *hasher.finalize().as_bytes()
 }

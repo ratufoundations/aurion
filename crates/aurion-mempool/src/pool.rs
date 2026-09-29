@@ -24,7 +24,6 @@ impl Default for MempoolConfig {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PooledTransaction {
     pub tx: Transaction,
-    pub fee: u64,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -79,7 +78,6 @@ impl Mempool {
     fn validate_admission(
         &self,
         tx: &Transaction,
-        fee: u64,
         confirmed_state: &State,
     ) -> Result<(), MempoolError> {
         tx.verify_signature()
@@ -90,9 +88,9 @@ impl Mempool {
         if tx.amount == 0 {
             return Err(MempoolError::ZeroAmount);
         }
-        if fee < self.config.minimum_fee {
+        if tx.fee < self.config.minimum_fee {
             return Err(MempoolError::FeeTooLow {
-                fee,
+                fee: tx.fee,
                 minimum: self.config.minimum_fee,
             });
         }
@@ -139,14 +137,14 @@ impl Mempool {
                     let spend = pooled
                         .tx
                         .amount
-                        .checked_add(pooled.fee)
+                        .checked_add(pooled.tx.fee)
                         .ok_or(MempoolError::ArithmeticOverflow)?;
                     sum.checked_add(spend)
                         .ok_or(MempoolError::ArithmeticOverflow)
                 })?;
         let new_spend = tx
             .amount
-            .checked_add(fee)
+            .checked_add(tx.fee)
             .ok_or(MempoolError::ArithmeticOverflow)?;
         let total_required = pending_spend
             .checked_add(new_spend)
@@ -167,13 +165,8 @@ impl Mempool {
     ///
     /// # Errors
     /// Returns a typed error for invalid transactions, insufficient funds, or capacity limits.
-    pub fn insert(
-        &mut self,
-        tx: Transaction,
-        fee: u64,
-        confirmed_state: &State,
-    ) -> Result<(), MempoolError> {
-        Self::validate_admission(self, &tx, fee, confirmed_state)?;
+    pub fn insert(&mut self, tx: Transaction, confirmed_state: &State) -> Result<(), MempoolError> {
+        Self::validate_admission(self, &tx, confirmed_state)?;
         let eviction = if self.total_tx_count >= self.config.max_total_transactions {
             let lowest = self
                 .by_sender
@@ -181,7 +174,7 @@ impl Mempool {
                 .flat_map(|(sender, queue)| {
                     queue
                         .iter()
-                        .map(move |(nonce, pooled)| (pooled.fee, *sender, *nonce))
+                        .map(move |(nonce, pooled)| (pooled.tx.fee, *sender, *nonce))
                 })
                 .min_by(|left, right| {
                     left.0
@@ -190,7 +183,7 @@ impl Mempool {
                         .then_with(|| right.2.cmp(&left.2))
                 });
             match lowest {
-                Some((lowest_fee, sender, nonce)) if fee > lowest_fee => Some((sender, nonce)),
+                Some((lowest_fee, sender, nonce)) if tx.fee > lowest_fee => Some((sender, nonce)),
                 _ => return Err(MempoolError::PoolFull),
             }
         } else {
@@ -206,11 +199,11 @@ impl Mempool {
             }
             self.total_tx_count -= 1;
         }
-        tracing::debug!(tx_hash = ?tx.digest(), fee, "Tx masuk antrean mempool");
+        tracing::debug!(tx_hash = ?tx.digest(), fee = tx.fee, "Tx masuk antrean mempool");
         self.by_sender
             .entry(tx.sender)
             .or_default()
-            .insert(tx.nonce, PooledTransaction { tx, fee });
+            .insert(tx.nonce, PooledTransaction { tx });
         self.total_tx_count += 1;
         Ok(())
     }
@@ -232,7 +225,7 @@ impl Mempool {
                 .map_or(0, |account| account.nonce);
             if let Some(candidate) = queue.get(&nonce) {
                 heap.push(CandidateKey {
-                    fee: candidate.fee,
+                    fee: candidate.tx.fee,
                     sender: *sender,
                     nonce,
                 });
@@ -254,7 +247,7 @@ impl Mempool {
             };
             if let Some(next_tx) = queue.get(&next_nonce) {
                 heap.push(CandidateKey {
-                    fee: next_tx.fee,
+                    fee: next_tx.tx.fee,
                     sender: top.sender,
                     nonce: next_nonce,
                 });
@@ -293,15 +286,16 @@ mod tests {
         recipient: PublicKeyBytes,
         amount: u64,
         nonce: u64,
+        fee: u64,
     ) -> Transaction {
         let sender = keypair.public_key_bytes();
-        let payload = Transaction::payload_bytes(&sender, &recipient, amount, nonce);
+        let payload = Transaction::payload_bytes(&sender, &recipient, amount, nonce, fee);
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"AURION_TX_CANONICAL_V1");
         hasher.update(&payload);
         let digest = *hasher.finalize().as_bytes();
         let sig = keypair.sign(&digest);
-        Transaction::new(sender, recipient, amount, nonce, sig)
+        Transaction::new(sender, recipient, amount, nonce, fee, sig)
     }
     #[test]
     fn test_fee_prioritization_with_nonce_dependency() {
@@ -315,17 +309,17 @@ mod tests {
         state.insert_account(alice_pk, Account::new(1_000_000, 0));
         state.insert_account(bob_pk, Account::new(1_000_000, 0));
         let mut mempool = Mempool::new(MempoolConfig::default());
-        let alice_tx0 = make_tx(&alice, charlie_pk, 1000, 0);
-        let alice_tx1 = make_tx(&alice, charlie_pk, 1000, 1);
-        let bob_tx0 = make_tx(&bob, charlie_pk, 2000, 0);
+        let alice_tx0 = make_tx(&alice, charlie_pk, 1000, 0, 10);
+        let alice_tx1 = make_tx(&alice, charlie_pk, 1000, 1, 100);
+        let bob_tx0 = make_tx(&bob, charlie_pk, 2000, 0, 50);
         mempool
-            .insert(alice_tx0.clone(), 10, &state)
+            .insert(alice_tx0.clone(), &state)
             .expect("test operation should succeed");
         mempool
-            .insert(alice_tx1.clone(), 100, &state)
+            .insert(alice_tx1.clone(), &state)
             .expect("test operation should succeed");
         mempool
-            .insert(bob_tx0.clone(), 50, &state)
+            .insert(bob_tx0.clone(), &state)
             .expect("test operation should succeed");
         assert_eq!(mempool.total_count(), 3);
         let block_txs = mempool.select_transactions_for_block(&state, 3);
@@ -346,8 +340,8 @@ mod tests {
         let bob_pk = bob.public_key_bytes();
         state.insert_account(alice_pk, Account::new(500, 2));
         let mut mempool = Mempool::new(MempoolConfig::default());
-        let tx_low_nonce = make_tx(&alice, bob_pk, 100, 1);
-        let err = mempool.insert(tx_low_nonce, 10, &state).unwrap_err();
+        let tx_low_nonce = make_tx(&alice, bob_pk, 100, 1, 10);
+        let err = mempool.insert(tx_low_nonce, &state).unwrap_err();
         assert_eq!(
             err,
             MempoolError::NonceTooLow {
@@ -355,8 +349,8 @@ mod tests {
                 got: 1
             }
         );
-        let tx_overspend = make_tx(&alice, bob_pk, 500, 2);
-        let err = mempool.insert(tx_overspend, 10, &state).unwrap_err();
+        let tx_overspend = make_tx(&alice, bob_pk, 500, 2, 10);
+        let err = mempool.insert(tx_overspend, &state).unwrap_err();
         assert_eq!(
             err,
             MempoolError::InsufficientBalance {

@@ -17,6 +17,8 @@ fn empty_block(height: u64, prev_hash: Hash256, state_root: Hash256) -> Block {
             prev_hash,
             state_root,
             tx_count: 0,
+            timestamp: height * 1_000,
+            proposer: [0; 32],
         },
         transactions: Vec::new(),
     }
@@ -37,6 +39,7 @@ fn signed_transfer(
         recipient,
         amount,
         nonce,
+        1,
         [0; 64],
     );
     Transaction::new(
@@ -44,6 +47,7 @@ fn signed_transfer(
         unsigned.recipient,
         amount,
         nonce,
+        1,
         keypair.sign(&unsigned.digest()),
     )
 }
@@ -78,7 +82,7 @@ fn l0_codec_round_trips_core_values_and_rejects_truncated_or_trailing_bytes(
     let encoded_account = Codec::encode_account(&account);
     assert_eq!(Codec::decode_account(&encoded_account), account);
 
-    let transaction = Transaction::new([0x11; 32], [0x22; 32], u64::MAX - 12, 17, [0xa5; 64]);
+    let transaction = Transaction::new([0x11; 32], [0x22; 32], u64::MAX - 12, 17, 9, [0xa5; 64]);
     let encoded_transaction = Codec::encode_tx(&transaction);
     assert_eq!(Codec::decode_tx(&encoded_transaction)?, transaction);
     assert!(matches!(
@@ -98,6 +102,8 @@ fn l0_codec_round_trips_core_values_and_rejects_truncated_or_trailing_bytes(
             prev_hash: [0x33; 32],
             state_root: [0x44; 32],
             tx_count: 1,
+            timestamp: 9_000,
+            proposer: [0x55; 32],
         },
         transactions: vec![transaction],
     };
@@ -362,6 +368,8 @@ fn l4_read_snapshot_survives_concurrent_commit_and_fresh_reads_see_new_state(
             prev_hash: previous_hash,
             state_root: expected_state.compute_state_root(),
             tx_count: 1,
+            timestamp: 6_000,
+            proposer: [0; 32],
         },
         transactions: vec![transaction],
     };
@@ -402,7 +410,7 @@ fn l4_read_snapshot_survives_concurrent_commit_and_fresh_reads_see_new_state(
         fresh_snapshot
             .get_account(&sender_key)?
             .map(|account| account.balance),
-        Some(9_000)
+        Some(8_999)
     );
     assert_eq!(
         fresh_snapshot

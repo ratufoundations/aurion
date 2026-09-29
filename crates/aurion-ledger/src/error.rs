@@ -47,6 +47,9 @@ pub enum LedgerError {
     #[error("Hash parent blok pada tinggi {0} tidak cocok dengan tip ledger")]
     PreviousHashMismatch(u64),
 
+    #[error("Timestamp blok tidak monotonik terhadap parent")]
+    TimestampNotMonotonic,
+
     #[error("Eksekusi blok gagal: {0}")]
     ExecutionFailed(#[from] aurion_core::ExecutionError),
 }

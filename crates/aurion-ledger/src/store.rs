@@ -3,7 +3,7 @@ use crate::{
     error::LedgerError,
     schema::{ACCOUNTS_TABLE, BLOCKS_TABLE, BLOCK_INDEX_TABLE, METADATA_TABLE, MODULE_KV_TABLE},
 };
-use aurion_core::{Account, Block, State};
+use aurion_core::{Account, Block, State, PROTOCOL_FEE_SINK};
 use aurion_criptografi::{Hash256, PublicKeyBytes};
 use redb::{Database, ReadTransaction, ReadableTable, Table};
 use std::{path::Path, sync::Arc};
@@ -141,17 +141,18 @@ impl LedgerStore {
                 }
             } else {
                 for tx in &block.transactions {
-                    if let Some(sender_account) = next_state.get_account(&tx.sender) {
-                        let encoded = Codec::encode_account(sender_account);
-                        accounts_table
-                            .insert(&tx.sender, &encoded)
-                            .map_err(|e| LedgerError::StorageError(e.to_string()))?;
-                    }
-                    if let Some(recipient_account) = next_state.get_account(&tx.recipient) {
-                        let encoded = Codec::encode_account(recipient_account);
-                        accounts_table
-                            .insert(&tx.recipient, &encoded)
-                            .map_err(|e| LedgerError::StorageError(e.to_string()))?;
+                    let fee_recipient = if block.header.proposer == PROTOCOL_FEE_SINK {
+                        PROTOCOL_FEE_SINK
+                    } else {
+                        block.header.proposer
+                    };
+                    for pubkey in [tx.sender, tx.recipient, fee_recipient] {
+                        if let Some(account) = next_state.get_account(&pubkey) {
+                            let encoded = Codec::encode_account(account);
+                            accounts_table
+                                .insert(&pubkey, &encoded)
+                                .map_err(|e| LedgerError::StorageError(e.to_string()))?;
+                        }
                     }
                 }
             }
@@ -293,7 +294,11 @@ fn validate_block_position(
             .get(previous_height)
             .map_err(|e| LedgerError::StorageError(e.to_string()))?
             .ok_or(LedgerError::BlockNotFound(previous_height))?;
-        Codec::decode_block(previous_block.value())?.header.hash()
+        let previous_header = Codec::decode_block(previous_block.value())?.header;
+        if block.header.timestamp <= previous_header.timestamp {
+            return Err(LedgerError::TimestampNotMonotonic);
+        }
+        previous_header.hash()
     };
     if block.header.prev_hash != expected_prev_hash {
         return Err(LedgerError::PreviousHashMismatch(block.header.height));
@@ -330,15 +335,17 @@ mod tests {
                 prev_hash: [0; 32],
                 state_root: state.compute_state_root(),
                 tx_count: 0,
+                timestamp: 0,
+                proposer: [0; 32],
             },
             transactions: Vec::new(),
         };
         store
             .commit_block(&genesis, &mut state)
             .expect("test operation should succeed");
-        let unsigned = Transaction::new(alice_pk, bob_pk, 200_000, 0, [0u8; 64]);
+        let unsigned = Transaction::new(alice_pk, bob_pk, 200_000, 0, 1, [0u8; 64]);
         let sig = alice.sign(&unsigned.digest());
-        let tx = Transaction::new(alice_pk, bob_pk, 200_000, 0, sig);
+        let tx = Transaction::new(alice_pk, bob_pk, 200_000, 0, 1, sig);
         let mut shadow = state.clone();
         shadow
             .apply_transaction(&tx)
@@ -350,6 +357,8 @@ mod tests {
                 prev_hash: genesis.header.hash(),
                 state_root: expected_root,
                 tx_count: 1,
+                timestamp: 1_000,
+                proposer: [0; 32],
             },
             transactions: vec![tx],
         };
@@ -364,7 +373,7 @@ mod tests {
             .get_account(&bob_pk)
             .expect("test operation should succeed")
             .expect("test operation should succeed");
-        assert_eq!(alice_disk.balance, 800_000);
+        assert_eq!(alice_disk.balance, 799_999);
         assert_eq!(alice_disk.nonce, 1);
         assert_eq!(bob_disk.balance, 200_000);
         assert_eq!(

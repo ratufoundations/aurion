@@ -5,6 +5,8 @@ use crate::{
     transaction::Transaction,
 };
 use aurion_criptografi::{Hash256, PublicKeyBytes};
+
+pub const PROTOCOL_FEE_SINK: PublicKeyBytes = [0; 32];
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -37,80 +39,114 @@ impl State {
         &self.accounts
     }
 
-    /// Transisi status atomik: `S(t+1) = f(S_t, Tx)`.
+    /// Apply one transaction and route its fee to the protocol sink.
     ///
     /// # Errors
-    /// Mengembalikan error bila tanda tangan, nonce, saldo, atau aritmatika tidak valid.
+    /// Returns a typed error if signature, nonce, fee, solvency, or arithmetic is invalid.
     pub fn apply_transaction(&mut self, tx: &Transaction) -> Result<(), ExecutionError> {
+        self.apply_transaction_with_proposer(tx, PROTOCOL_FEE_SINK)
+    }
+
+    /// Apply one transaction and credit its fee to the proposer (or the protocol sink).
+    ///
+    /// # Errors
+    /// Returns a typed error if signature, nonce, fee, solvency, or arithmetic is invalid.
+    pub fn apply_transaction_with_proposer(
+        &mut self,
+        tx: &Transaction,
+        proposer: PublicKeyBytes,
+    ) -> Result<(), ExecutionError> {
         if tx.sender == tx.recipient {
             tracing::error!(account = ?tx.sender, "Percobaan transfer ke akun sendiri");
             return Err(ExecutionError::SelfTransferForbidden);
         }
-
-        // 1. Verifikasi tanda tangan digital
-        if let Err(error) = tx.verify_signature() {
-            tracing::error!(account = ?tx.sender, error = %error, "Tanda tangan transaksi ditolak");
-            return Err(error);
+        tx.verify_signature()?;
+        if tx.fee == 0 {
+            return Err(ExecutionError::FeeTooLow);
         }
 
-        // 2. Baca status sender
         let sender_acc = self
             .accounts
             .get(&tx.sender)
             .copied()
             .ok_or(ExecutionError::AccountNotFound(tx.sender))?;
-
-        // 3. Validasi Nonce
         if tx.nonce != sender_acc.nonce {
             return Err(ExecutionError::InvalidNonce {
                 expected: sender_acc.nonce,
                 got: tx.nonce,
             });
         }
-
-        // 4. Validasi Saldo Sender
-        if sender_acc.balance < tx.amount {
-            tracing::error!(account = ?tx.sender, available = sender_acc.balance, required = tx.amount, "Percobaan double-spend / saldo tidak mencukupi");
+        let total_outflow = tx
+            .amount
+            .checked_add(tx.fee)
+            .ok_or(ExecutionError::ArithmeticOverflow)?;
+        if sender_acc.balance < total_outflow {
             return Err(ExecutionError::InsufficientBalance {
                 available: sender_acc.balance,
-                required: tx.amount,
+                required: total_outflow,
             });
         }
 
-        // 5. Baca status recipient (buat baru jika belum terdaftar di state)
+        let fee_recipient = if proposer == PROTOCOL_FEE_SINK {
+            PROTOCOL_FEE_SINK
+        } else {
+            proposer
+        };
         let recipient_acc = self
             .accounts
             .get(&tx.recipient)
             .copied()
             .unwrap_or(Account::new(0, 0));
-
-        // 6. Hitung saldo baru dengan pengecekan overflow
-        let new_sender_balance = sender_acc
+        let fee_acc = self
+            .accounts
+            .get(&fee_recipient)
+            .copied()
+            .unwrap_or(Account::new(0, 0));
+        let mut sender_balance = sender_acc
             .balance
-            .checked_sub(tx.amount)
+            .checked_sub(total_outflow)
             .ok_or(ExecutionError::ArithmeticOverflow)?;
-
-        let new_sender_nonce = sender_acc
+        let sender_nonce = sender_acc
             .nonce
             .checked_add(1)
             .ok_or(ExecutionError::ArithmeticOverflow)?;
-
-        let new_recipient_balance = recipient_acc
+        let mut recipient_balance = recipient_acc
             .balance
             .checked_add(tx.amount)
             .ok_or(ExecutionError::ArithmeticOverflow)?;
+        let fee_balance = if fee_recipient != tx.sender && fee_recipient != tx.recipient {
+            Some(
+                fee_acc
+                    .balance
+                    .checked_add(tx.fee)
+                    .ok_or(ExecutionError::ArithmeticOverflow)?,
+            )
+        } else {
+            None
+        };
 
-        // 7. Commit pembaruan ke in-memory state
-        self.accounts.insert(
-            tx.sender,
-            Account::new(new_sender_balance, new_sender_nonce),
-        );
+        if fee_recipient == tx.sender {
+            sender_balance = sender_balance
+                .checked_add(tx.fee)
+                .ok_or(ExecutionError::ArithmeticOverflow)?;
+        } else if fee_recipient == tx.recipient {
+            recipient_balance = recipient_balance
+                .checked_add(tx.fee)
+                .ok_or(ExecutionError::ArithmeticOverflow)?;
+        }
+
+        // All validation and checked arithmetic has completed before mutating the state.
+        self.accounts
+            .insert(tx.sender, Account::new(sender_balance, sender_nonce));
         self.accounts.insert(
             tx.recipient,
-            Account::new(new_recipient_balance, recipient_acc.nonce),
+            Account::new(recipient_balance, recipient_acc.nonce),
         );
-        tracing::debug!(account = ?tx.sender, new_balance = new_sender_balance, "State akun dimutasi");
-
+        if let Some(balance) = fee_balance {
+            self.accounts
+                .insert(fee_recipient, Account::new(balance, fee_acc.nonce));
+        }
+        tracing::debug!(account = ?tx.sender, new_balance = sender_balance, fee = tx.fee, "Transaksi dan fee diterapkan");
         Ok(())
     }
 

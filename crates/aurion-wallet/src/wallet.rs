@@ -58,13 +58,14 @@ impl AurionWallet {
         recipient: PublicKeyBytes,
         amount: u64,
         nonce: u64,
+        fee: u64,
     ) -> Transaction {
         let sender = self.identity.public_key_bytes();
-        let payload = Transaction::payload_bytes(&sender, &recipient, amount, nonce);
+        let payload = Transaction::payload_bytes(&sender, &recipient, amount, nonce, fee);
         let digest = hash_transaction_payload(&payload);
         let signature = self.identity.sign(&digest);
-        tracing::debug!(addr = ?sender, amount, nonce, "Transaksi berhasil ditandatangani oleh dompet");
-        Transaction::new(sender, recipient, amount, nonce, signature)
+        tracing::debug!(addr = ?sender, amount, nonce, fee, "Transaksi berhasil ditandatangani oleh dompet");
+        Transaction::new(sender, recipient, amount, nonce, fee, signature)
     }
 }
 
