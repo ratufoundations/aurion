@@ -95,3 +95,11 @@
 ## 2026-09-29 — Buat rulebook agen
 - Membuat `Agents.md` di root repositori berisi aturan keamanan, struktur workspace, mode logging, alur kerja, dan invarian protokol dari instruksi pengguna.
 - Verifikasi: membaca kembali berkas setelah penulisan.
+
+## 2026-09-29 — Pengujian invarian aurion-mempool M0–M5
+- Mendaftarkan `docs/task-register/TASK-aurion-mempool.md` dan menambahkan suite integrasi `crates/aurion-mempool/tests/mempool_invariants.rs` untuk signature/tamper, nonce dan replay, duplikasi, solvency/overflow/minimum fee, seleksi 100 transaksi deterministik, eviction kapasitas, dan pruning setelah commit.
+- Memperkuat admission agar signature diverifikasi sebelum mutasi antrean; deteksi hash identik dan konflik nonce bertipe; perhitungan pengeluaran memakai `checked_add`; minimum fee dikonfigurasi; pool penuh menolak fee rendah dan hanya menggusur fee terendah saat fee baru lebih tinggi. Tie-breaker seleksi stabil berdasarkan fee, nonce, lalu public key; kenaikan nonce seleksi menggunakan checked arithmetic.
+- Semantik nonce diselaraskan dengan `aurion-core`: `Account.nonce` adalah nonce berikutnya yang sah (`N`), bukan nonce terakhir yang telah dipakai. Karena itu `N` diterima, `<N` ditolak, dan nonce berikutnya dapat menunggu predecessor dalam antrean. Ini menjaga agar transaksi yang diterima mempool dapat dieksekusi oleh `State.apply_transaction`.
+- Indeks `docs/STRUKTUR-FOLDER.txt` kini mendaftarkan task dan cakupan M0–M5.
+- Verifikasi: `cargo test -p aurion-mempool --test mempool_invariants` lulus (6 tes M0–M5); `cargo test -p aurion-mempool` lulus (2 unit + 6 integration); strict Clippy `cargo clippy -p aurion-mempool --all-targets --all-features -- -D warnings`, guard, `cargo fmt --all --check`, dan `git diff --check` lulus.
+- Status task register: COMPLETED setelah verifikasi penuh.

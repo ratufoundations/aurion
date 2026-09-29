@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BinaryHeap, HashMap};
 pub struct MempoolConfig {
     pub max_total_transactions: usize,
     pub max_txs_per_account: usize,
+    pub minimum_fee: u64,
 }
 
 impl Default for MempoolConfig {
@@ -15,6 +16,7 @@ impl Default for MempoolConfig {
         Self {
             max_total_transactions: 10_000,
             max_txs_per_account: 64,
+            minimum_fee: 1,
         }
     }
 }
@@ -37,6 +39,7 @@ impl Ord for CandidateKey {
         self.fee
             .cmp(&other.fee)
             .then_with(|| other.nonce.cmp(&self.nonce))
+            .then_with(|| other.sender.cmp(&self.sender))
     }
 }
 
@@ -62,50 +65,38 @@ impl Mempool {
             total_tx_count: 0,
         }
     }
+
     #[must_use]
     pub fn total_count(&self) -> usize {
         self.total_tx_count
     }
+
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.total_tx_count == 0
     }
-    /// Memvalidasi dan menambahkan transaksi ke antrean sender.
-    ///
-    /// # Errors
-    /// Mengembalikan error bila transaksi tidak valid, kapasitas habis, atau nonce bentrok.
-    pub fn insert(
-        &mut self,
-        tx: Transaction,
+
+    fn validate_admission(
+        &self,
+        tx: &Transaction,
         fee: u64,
         confirmed_state: &State,
     ) -> Result<(), MempoolError> {
+        tx.verify_signature()
+            .map_err(|_| MempoolError::InvalidSignature)?;
         if tx.sender == tx.recipient {
             return Err(MempoolError::SelfTransfer);
         }
         if tx.amount == 0 {
             return Err(MempoolError::ZeroAmount);
         }
-        if self.total_tx_count >= self.config.max_total_transactions {
-            return Err(MempoolError::PoolCapacityReached {
-                capacity: self.config.max_total_transactions,
+        if fee < self.config.minimum_fee {
+            return Err(MempoolError::FeeTooLow {
+                fee,
+                minimum: self.config.minimum_fee,
             });
         }
-        let sender_queue = self.by_sender.entry(tx.sender).or_default();
-        if sender_queue.len() >= self.config.max_txs_per_account {
-            return Err(MempoolError::AccountQueueLimitExceeded(
-                tx.sender,
-                self.config.max_txs_per_account,
-            ));
-        }
-        if sender_queue.contains_key(&tx.nonce) {
-            return Err(MempoolError::DuplicateNonce {
-                sender: tx.sender,
-                nonce: tx.nonce,
-            });
-        }
-        tx.verify_signature()
-            .map_err(|_| MempoolError::InvalidSignature)?;
+
         let confirmed_acc = confirmed_state
             .get_account(&tx.sender)
             .copied()
@@ -117,11 +108,49 @@ impl Mempool {
                 got: tx.nonce,
             });
         }
-        let total_pending_spend: u64 = sender_queue
-            .values()
-            .map(|p| p.tx.amount.saturating_add(p.fee))
-            .sum();
-        let total_required = total_pending_spend.saturating_add(tx.amount.saturating_add(fee));
+
+        let sender_queue = self.by_sender.get(&tx.sender);
+        if let Some(queue) = sender_queue {
+            if queue
+                .values()
+                .any(|pooled| pooled.tx.digest() == tx.digest())
+            {
+                return Err(MempoolError::DuplicateTransaction);
+            }
+            if queue.contains_key(&tx.nonce) {
+                return Err(MempoolError::DuplicateNonce {
+                    sender: tx.sender,
+                    nonce: tx.nonce,
+                });
+            }
+            if queue.len() >= self.config.max_txs_per_account {
+                return Err(MempoolError::AccountQueueLimitExceeded(
+                    tx.sender,
+                    self.config.max_txs_per_account,
+                ));
+            }
+        }
+
+        let pending_spend =
+            sender_queue
+                .into_iter()
+                .flat_map(|q| q.values())
+                .try_fold(0_u64, |sum, pooled| {
+                    let spend = pooled
+                        .tx
+                        .amount
+                        .checked_add(pooled.fee)
+                        .ok_or(MempoolError::ArithmeticOverflow)?;
+                    sum.checked_add(spend)
+                        .ok_or(MempoolError::ArithmeticOverflow)
+                })?;
+        let new_spend = tx
+            .amount
+            .checked_add(fee)
+            .ok_or(MempoolError::ArithmeticOverflow)?;
+        let total_required = pending_spend
+            .checked_add(new_spend)
+            .ok_or(MempoolError::ArithmeticOverflow)?;
         if confirmed_acc.balance < total_required {
             tracing::warn!(tx_hash = ?tx.digest(), reason = "saldo kurang", "Tx ditolak dari mempool");
             return Err(MempoolError::InsufficientBalance {
@@ -129,11 +158,63 @@ impl Mempool {
                 required: total_required,
             });
         }
+
+        Ok(())
+    }
+
+    /// Validate and add a transaction to the sender queue. If the pool is full,
+    /// a strictly higher fee transaction may replace the deterministic lowest-fee entry.
+    ///
+    /// # Errors
+    /// Returns a typed error for invalid transactions, insufficient funds, or capacity limits.
+    pub fn insert(
+        &mut self,
+        tx: Transaction,
+        fee: u64,
+        confirmed_state: &State,
+    ) -> Result<(), MempoolError> {
+        Self::validate_admission(self, &tx, fee, confirmed_state)?;
+        let eviction = if self.total_tx_count >= self.config.max_total_transactions {
+            let lowest = self
+                .by_sender
+                .iter()
+                .flat_map(|(sender, queue)| {
+                    queue
+                        .iter()
+                        .map(move |(nonce, pooled)| (pooled.fee, *sender, *nonce))
+                })
+                .min_by(|left, right| {
+                    left.0
+                        .cmp(&right.0)
+                        .then_with(|| right.1.cmp(&left.1))
+                        .then_with(|| right.2.cmp(&left.2))
+                });
+            match lowest {
+                Some((lowest_fee, sender, nonce)) if fee > lowest_fee => Some((sender, nonce)),
+                _ => return Err(MempoolError::PoolFull),
+            }
+        } else {
+            None
+        };
+
+        if let Some((sender, nonce)) = eviction {
+            if let Some(queue) = self.by_sender.get_mut(&sender) {
+                queue.remove(&nonce);
+                if queue.is_empty() {
+                    self.by_sender.remove(&sender);
+                }
+            }
+            self.total_tx_count -= 1;
+        }
         tracing::debug!(tx_hash = ?tx.digest(), fee, "Tx masuk antrean mempool");
-        sender_queue.insert(tx.nonce, PooledTransaction { tx, fee });
+        self.by_sender
+            .entry(tx.sender)
+            .or_default()
+            .insert(tx.nonce, PooledTransaction { tx, fee });
         self.total_tx_count += 1;
         Ok(())
     }
+
     #[must_use]
     pub fn select_transactions_for_block(
         &self,
@@ -143,55 +224,60 @@ impl Mempool {
         if max_txs == 0 || self.total_tx_count == 0 {
             return Vec::new();
         }
-        let mut selected = Vec::with_capacity(max_txs);
+        let mut selected = Vec::with_capacity(max_txs.min(self.total_tx_count));
         let mut heap = BinaryHeap::new();
-        let mut virtual_nonces: HashMap<PublicKeyBytes, u64> = HashMap::new();
         for (sender, queue) in &self.by_sender {
-            let confirmed_nonce = confirmed_state.get_account(sender).map_or(0, |a| a.nonce);
-            virtual_nonces.insert(*sender, confirmed_nonce);
-            if let Some(candidate) = queue.get(&confirmed_nonce) {
+            let nonce = confirmed_state
+                .get_account(sender)
+                .map_or(0, |account| account.nonce);
+            if let Some(candidate) = queue.get(&nonce) {
                 heap.push(CandidateKey {
                     fee: candidate.fee,
                     sender: *sender,
-                    nonce: confirmed_nonce,
+                    nonce,
                 });
             }
         }
-        while let Some(top) = heap.pop() {
-            if selected.len() >= max_txs {
+        while selected.len() < max_txs {
+            let Some(top) = heap.pop() else {
                 break;
-            }
-            if let Some(queue) = self.by_sender.get(&top.sender) {
-                if let Some(pooled) = queue.get(&top.nonce) {
-                    selected.push(pooled.tx.clone());
-                    let next_nonce = top.nonce + 1;
-                    virtual_nonces.insert(top.sender, next_nonce);
-                    if let Some(next_tx) = queue.get(&next_nonce) {
-                        heap.push(CandidateKey {
-                            fee: next_tx.fee,
-                            sender: top.sender,
-                            nonce: next_nonce,
-                        });
-                    }
-                }
+            };
+            let Some(queue) = self.by_sender.get(&top.sender) else {
+                continue;
+            };
+            let Some(pooled) = queue.get(&top.nonce) else {
+                continue;
+            };
+            selected.push(pooled.tx.clone());
+            let Some(next_nonce) = top.nonce.checked_add(1) else {
+                continue;
+            };
+            if let Some(next_tx) = queue.get(&next_nonce) {
+                heap.push(CandidateKey {
+                    fee: next_tx.fee,
+                    sender: top.sender,
+                    nonce: next_nonce,
+                });
             }
         }
         selected
     }
+
     pub fn prune_committed(&mut self, block: &Block, confirmed_state: &State) {
         for tx in &block.transactions {
             if let Some(queue) = self.by_sender.get_mut(&tx.sender) {
                 if queue.remove(&tx.nonce).is_some() {
-                    self.total_tx_count = self.total_tx_count.saturating_sub(1);
+                    self.total_tx_count -= 1;
                 }
             }
         }
         self.by_sender.retain(|sender, queue| {
-            let confirmed_nonce = confirmed_state.get_account(sender).map_or(0, |a| a.nonce);
-            let before_len = queue.len();
+            let confirmed_nonce = confirmed_state
+                .get_account(sender)
+                .map_or(0, |account| account.nonce);
+            let before = queue.len();
             queue.retain(|nonce, _| *nonce >= confirmed_nonce);
-            let removed = before_len - queue.len();
-            self.total_tx_count = self.total_tx_count.saturating_sub(removed);
+            self.total_tx_count -= before - queue.len();
             !queue.is_empty()
         });
     }
