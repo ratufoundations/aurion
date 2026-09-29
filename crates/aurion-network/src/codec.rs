@@ -20,6 +20,27 @@ pub struct AurionWireCodec;
 
 impl AurionWireCodec {
     pub const HEADER_LEN: usize = 8;
+
+    /// Tafsirkan sisa buffer saat stream mencapai EOF.
+    ///
+    /// Buffer kosong berarti tidak ada pesan tertunda; buffer parsial yang
+    /// tidak membentuk satu frame utuh berarti aliran terpotong.
+    ///
+    /// # Errors
+    /// Mengembalikan `UnexpectedEof` bila sisa buffer tidak kosong tetapi
+    /// tidak membentuk satu frame utuh, atau error decode lain bila frame
+    /// lengkap namun payload-nya korup.
+    pub fn decode_at_eof(src: &[u8]) -> Result<Option<NetworkMessage>, NetworkError> {
+        if src.is_empty() {
+            return Ok(None);
+        }
+        let mut buf = BytesMut::from(src);
+        let mut codec = Self;
+        match codec.decode(&mut buf)? {
+            Some(msg) => Ok(Some(msg)),
+            None => Err(NetworkError::UnexpectedEof),
+        }
+    }
 }
 
 impl Encoder<NetworkMessage> for AurionWireCodec {
@@ -29,9 +50,10 @@ impl Encoder<NetworkMessage> for AurionWireCodec {
         let type_id = item.message_type_id();
         let payload = match item {
             NetworkMessage::Handshake(hs) => {
-                let mut buf = Vec::with_capacity(42);
+                let mut buf = Vec::with_capacity(44);
                 buf.extend_from_slice(&hs.node_id);
                 buf.extend_from_slice(&hs.chain_id.to_le_bytes());
+                buf.extend_from_slice(&hs.protocol_version.to_le_bytes());
                 buf.extend_from_slice(&hs.listen_port.to_le_bytes());
                 buf
             }
@@ -46,7 +68,7 @@ impl Encoder<NetworkMessage> for AurionWireCodec {
         if frame_payload_len > MAX_FRAME_SIZE {
             return Err(NetworkError::FrameTooLarge {
                 size: frame_payload_len,
-                limit: MAX_FRAME_SIZE,
+                max_allowed: MAX_FRAME_SIZE,
             });
         }
         dst.reserve(Self::HEADER_LEN + frame_payload_len);
@@ -54,7 +76,7 @@ impl Encoder<NetworkMessage> for AurionWireCodec {
         let frame_payload_len =
             u32::try_from(frame_payload_len).map_err(|_| NetworkError::FrameTooLarge {
                 size: payload.len() + 1,
-                limit: MAX_FRAME_SIZE,
+                max_allowed: MAX_FRAME_SIZE,
             })?;
         dst.put_u32(frame_payload_len);
         dst.put_u8(type_id);
@@ -73,7 +95,7 @@ impl Decoder for AurionWireCodec {
         }
         let magic = u32::from_be_bytes(read_array(&src[0..4])?);
         if magic != AURION_NET_MAGIC {
-            return Err(NetworkError::InvalidMagic {
+            return Err(NetworkError::InvalidMagicBytes {
                 expected: AURION_NET_MAGIC,
                 got: magic,
             });
@@ -85,7 +107,7 @@ impl Decoder for AurionWireCodec {
         if payload_len > MAX_FRAME_SIZE {
             return Err(NetworkError::FrameTooLarge {
                 size: payload_len,
-                limit: MAX_FRAME_SIZE,
+                max_allowed: MAX_FRAME_SIZE,
             });
         }
         if src.len() < Self::HEADER_LEN + payload_len {
@@ -102,15 +124,17 @@ impl Decoder for AurionWireCodec {
         let body = src.split_to(body_len);
         match type_id {
             0x01 => {
-                if body.len() != 42 {
+                if body.len() != 44 {
                     return Err(NetworkError::MalformedPayload);
                 }
                 let node_id = read_array(&body[0..32])?;
                 let chain_id = u64::from_le_bytes(read_array(&body[32..40])?);
-                let listen_port = u16::from_le_bytes(read_array(&body[40..42])?);
+                let protocol_version = u16::from_le_bytes(read_array(&body[40..42])?);
+                let listen_port = u16::from_le_bytes(read_array(&body[42..44])?);
                 Ok(Some(NetworkMessage::Handshake(Handshake {
                     node_id,
                     chain_id,
+                    protocol_version,
                     listen_port,
                 })))
             }

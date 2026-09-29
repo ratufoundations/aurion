@@ -14,6 +14,16 @@ tokio-util = { version = "0.7", features = ["codec"] }
 bytes = "1.6"
 futures-util = { version = "0.3", features = ["sink"] }
 thiserror = "1.0"
+# Fondasi P2P: dipin ke versi cache lokal, feature minimal (tanpa "full").
+libp2p = { version = "0.56", default-features = false, features = [
+    "tokio",
+    "tcp",
+    "noise",
+    "yamux",
+    "gossipsub",
+    "identify",
+    "macros",
+] }
 
 [dev-dependencies]
 tokio = { version = "1.38", features = ["full"] }

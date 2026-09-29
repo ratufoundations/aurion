@@ -1,4 +1,8 @@
-use crate::{codec::AurionWireCodec, error::NetworkError, message::NetworkMessage};
+use crate::{
+    codec::AurionWireCodec,
+    error::NetworkError,
+    message::{HandshakeStatus, NetworkMessage},
+};
 use futures_util::{SinkExt, StreamExt};
 use std::net::SocketAddr;
 use tokio::net::TcpStream;
@@ -46,6 +50,58 @@ impl PeerConnection {
             None => {
                 tracing::warn!(peer = ?self.peer_addr, "Koneksi peer terputus");
                 Ok(None)
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PeerStatus {
+    Connected,
+    Disconnected,
+}
+
+/// Gerbang autentikasi per koneksi: pesan pertama wajib handshake yang valid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AuthenticatedGate {
+    expected_chain_id: u64,
+    authenticated: bool,
+}
+
+impl AuthenticatedGate {
+    #[must_use]
+    pub const fn new(expected_chain_id: u64) -> Self {
+        Self {
+            expected_chain_id,
+            authenticated: false,
+        }
+    }
+
+    #[must_use]
+    pub const fn is_authenticated(&self) -> bool {
+        self.authenticated
+    }
+
+    /// Terima satu pesan masuk; handshake valid membuka gerbang.
+    ///
+    /// # Errors
+    /// Mengembalikan `ChainIdMismatch` / `IncompatibleProtocolVersion` bila
+    /// handshake tidak valid, atau `UnauthenticatedMessage` bila pesan
+    /// non-handshake tiba sebelum autentikasi.
+    pub fn admit(&mut self, msg: &NetworkMessage) -> Result<Option<HandshakeStatus>, NetworkError> {
+        match msg {
+            NetworkMessage::Handshake(handshake) => {
+                let status = handshake.validate(self.expected_chain_id)?;
+                self.authenticated = true;
+                tracing::info!(chain_id = handshake.chain_id, "Handshake peer tervalidasi");
+                Ok(Some(status))
+            }
+            _ => {
+                if self.authenticated {
+                    Ok(None)
+                } else {
+                    Err(NetworkError::UnauthenticatedMessage)
+                }
             }
         }
     }

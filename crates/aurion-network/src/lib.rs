@@ -1,14 +1,31 @@
 #![forbid(unsafe_code)]
 
+pub mod behaviour;
 pub mod codec;
 pub mod error;
 pub mod message;
+pub mod metrics;
 pub mod peer;
+pub mod service;
 
+pub use behaviour::{
+    build_behaviour, filter_inbound_gossip, gossip_topic_hash, AurionBehaviour,
+    AurionBehaviourOutEvent, InboundGossip, GOSSIP_TOPIC_BLOCKS, GOSSIP_TOPIC_CONSENSUS,
+    GOSSIP_TOPIC_TXS, MAX_TRANSMIT_SIZE,
+};
 pub use codec::AurionWireCodec;
 pub use error::NetworkError;
-pub use message::{Handshake, NetworkMessage, AURION_NET_MAGIC, MAX_FRAME_SIZE};
-pub use peer::PeerConnection;
+pub use message::{
+    Handshake, HandshakeStatus, NetworkMessage, AURION_NET_MAGIC, MAX_FRAME_SIZE, PROTOCOL_VERSION,
+};
+pub use metrics::{
+    handshake_deadline_ms, BandwidthMeter, RttTracker, HANDSHAKE_TIMEOUT_MS,
+    KEEPALIVE_PING_INTERVAL_MS, MAX_RTT_MS,
+};
+pub use peer::{AuthenticatedGate, PeerConnection, PeerStatus};
+pub use service::{
+    DomainInbound, DomainOutbound, NetworkCommand, NetworkService, NetworkServiceHandle,
+};
 
 #[cfg(test)]
 #[allow(clippy::expect_used, clippy::unwrap_used)]

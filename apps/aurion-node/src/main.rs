@@ -19,7 +19,7 @@ use aurion_core::{Account, Block, BlockHeader, State, Transaction};
 use aurion_criptografi::{Hash256, Keypair, PublicKeyBytes};
 use aurion_ledger::LedgerStore;
 use aurion_mempool::{Mempool, MempoolConfig};
-use aurion_network::{Handshake, NetworkMessage, PeerConnection};
+use aurion_network::{Handshake, NetworkMessage, PeerConnection, PROTOCOL_VERSION};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -220,6 +220,7 @@ async fn run_node(
                     let hs = Handshake {
                         node_id: connect_ctx.validator_keypair.public_key_bytes(),
                         chain_id: connect_ctx.chain_id,
+                        protocol_version: PROTOCOL_VERSION,
                         listen_port: local_port,
                     };
                     let _ = peer.send_message(NetworkMessage::Handshake(hs)).await;
@@ -402,11 +403,11 @@ async fn handle_peer_inbound(
             return;
         }
     };
-    if handshake.chain_id != ctx.chain_id {
+    if let Err(error) = handshake.validate(ctx.chain_id) {
         tracing::warn!(
-            peer_chain_id = handshake.chain_id,
-            local_chain_id = ctx.chain_id,
-            "Handshake peer ditolak: chain ID tidak cocok"
+            peer = ?handshake.node_id,
+            error = %error,
+            "Handshake peer ditolak: chain ID atau versi protokol tidak cocok"
         );
         return;
     }

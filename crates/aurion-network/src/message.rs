@@ -5,6 +5,8 @@ use aurion_criptografi::{Hash256, PublicKeyBytes, SignatureBytes};
 
 pub const AURION_NET_MAGIC: u32 = 0x4155_524E;
 pub const MAX_FRAME_SIZE: usize = 4 * 1024 * 1024;
+/// Versi protokol wire yang wajib diiklankan setiap peer saat handshake.
+pub const PROTOCOL_VERSION: u16 = 1;
 
 fn read_array<const N: usize>(bytes: &[u8]) -> Result<[u8; N], NetworkError> {
     if bytes.len() != N {
@@ -19,7 +21,36 @@ fn read_array<const N: usize>(bytes: &[u8]) -> Result<[u8; N], NetworkError> {
 pub struct Handshake {
     pub node_id: PublicKeyBytes,
     pub chain_id: u64,
+    pub protocol_version: u16,
     pub listen_port: u16,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HandshakeStatus {
+    Accepted,
+}
+
+impl Handshake {
+    /// Validasi handshake peer terhadap chain lokal dan versi protokol wire.
+    ///
+    /// # Errors
+    /// Mengembalikan `ChainIdMismatch` bila chain berbeda, atau
+    /// `IncompatibleProtocolVersion` bila versi wire tidak sama.
+    pub fn validate(&self, expected_chain_id: u64) -> Result<HandshakeStatus, NetworkError> {
+        if self.chain_id != expected_chain_id {
+            return Err(NetworkError::ChainIdMismatch {
+                expected: expected_chain_id,
+                got: self.chain_id,
+            });
+        }
+        if self.protocol_version != PROTOCOL_VERSION {
+            return Err(NetworkError::IncompatibleProtocolVersion {
+                expected: PROTOCOL_VERSION,
+                got: self.protocol_version,
+            });
+        }
+        Ok(HandshakeStatus::Accepted)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
