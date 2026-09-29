@@ -53,6 +53,14 @@ impl Keypair {
         self.verifying_key.to_bytes()
     }
 
+    /// Ekspos kunci privat 32-byte (mis. untuk utilitas keygen CLI).
+    ///
+    /// Nilai biner ini adalah materi rahasia: jangan pernah mencatat
+    /// atau mengirimkannya ke jaringan.
+    pub fn private_key_bytes(&self) -> PrivateKeyBytes {
+        self.signing_key.to_bytes()
+    }
+
     /// Tanda tangani pesan/hash transaksi secara deterministik.
     pub fn sign(&self, message: &[u8]) -> SignatureBytes {
         self.signing_key.sign(message).to_bytes()

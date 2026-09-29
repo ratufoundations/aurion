@@ -16,6 +16,7 @@ members = [
     "crates/aurion-gateway",
     "apps/aurion-node",
     "apps/aurion-explorer",
+    "apps/aurion-cli",
 ]
 
 [workspace.lints.rust]
