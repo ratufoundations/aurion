@@ -21,6 +21,7 @@ pub struct RaidEvidence {
 }
 
 impl RaidEvidence {
+    #[must_use]
     pub fn new(
         target_validator: PublicKeyBytes,
         violation: ViolationType,
@@ -51,6 +52,7 @@ pub struct RehabilitationPetition {
 }
 
 impl RehabilitationPetition {
+    #[must_use]
     pub fn new(target_validator: PublicKeyBytes, explanation: &str, timestamp: u64) -> Self {
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"AURION_REHABILITATION_PETITION_V1");

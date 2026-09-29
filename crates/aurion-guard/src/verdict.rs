@@ -10,6 +10,7 @@ pub struct BlacklistVerdict {
 }
 
 impl BlacklistVerdict {
+    #[must_use]
     pub fn digest(&self) -> Hash256 {
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"AURION_BLACKLIST_VERDICT_V1");
@@ -28,6 +29,7 @@ pub struct PardonVerdict {
 }
 
 impl PardonVerdict {
+    #[must_use]
     pub fn digest(&self) -> Hash256 {
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"AURION_PARDON_VERDICT_V1");

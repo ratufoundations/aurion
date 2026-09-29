@@ -38,8 +38,9 @@ impl Encoder<NetworkMessage> for AurionWireCodec {
             NetworkMessage::Transaction(tx) => LedgerCodec::encode_tx(&tx).to_vec(),
             NetworkMessage::Block(block) => LedgerCodec::encode_block(&block),
             NetworkMessage::Vote(vote) => NetworkMessage::encode_vote(&vote).to_vec(),
-            NetworkMessage::Ping(nonce) => nonce.to_le_bytes().to_vec(),
-            NetworkMessage::Pong(nonce) => nonce.to_le_bytes().to_vec(),
+            NetworkMessage::Ping(nonce) | NetworkMessage::Pong(nonce) => {
+                nonce.to_le_bytes().to_vec()
+            }
         };
         let frame_payload_len = 1 + payload.len();
         if frame_payload_len > MAX_FRAME_SIZE {
@@ -50,7 +51,12 @@ impl Encoder<NetworkMessage> for AurionWireCodec {
         }
         dst.reserve(Self::HEADER_LEN + frame_payload_len);
         dst.put_u32(AURION_NET_MAGIC);
-        dst.put_u32(frame_payload_len as u32);
+        let frame_payload_len =
+            u32::try_from(frame_payload_len).map_err(|_| NetworkError::FrameTooLarge {
+                size: payload.len() + 1,
+                limit: MAX_FRAME_SIZE,
+            })?;
+        dst.put_u32(frame_payload_len);
         dst.put_u8(type_id);
         dst.put_slice(&payload);
         Ok(())

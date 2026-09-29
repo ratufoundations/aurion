@@ -13,6 +13,7 @@ pub struct Heartbeat {
 }
 
 impl Heartbeat {
+    #[must_use]
     pub fn digest(node_key: &PublicKeyBytes, block_height: u64) -> Hash256 {
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"AURION_VALIDATOR_HEARTBEAT_V1");
@@ -21,6 +22,11 @@ impl Heartbeat {
         *hasher.finalize().as_bytes()
     }
 
+    /// Memeriksa tanda tangan heartbeat menggunakan kunci simpul.
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika tanda tangan tidak valid.
     pub fn verify(&self) -> Result<(), AdmissionError> {
         let digest = Self::digest(&self.node_key, self.block_height);
         SignatureVerifier::verify_single(&self.node_key, &digest, &self.signature)
@@ -38,6 +44,7 @@ pub struct ProbationTracker {
 }
 
 impl ProbationTracker {
+    #[must_use]
     pub fn new(start_block: u64, duration_blocks: u64) -> Self {
         Self {
             start_block,
@@ -60,6 +67,7 @@ impl ProbationTracker {
     }
 
     /// Hitung rasio keaktifan dalam persentase integer murni (0 - 100)
+    #[must_use]
     pub fn uptime_percentage(&self) -> u64 {
         if self.expected_heartbeats == 0 {
             return 100;
@@ -68,6 +76,11 @@ impl ProbationTracker {
     }
 
     /// Evaluasi apakah simpul lulus masa uji coba 1 minggu
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika masa uji coba belum selesai atau uptime di bawah
+    /// persyaratan minimum.
     pub fn evaluate_completion(&self, current_block: u64) -> Result<(), AdmissionError> {
         let elapsed = current_block.saturating_sub(self.start_block);
         if elapsed < self.probation_duration_blocks {

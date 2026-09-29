@@ -3,7 +3,7 @@ use aurion_consensus::{Vote, VoteType};
 use aurion_core::{Block, Transaction};
 use aurion_criptografi::{Hash256, PublicKeyBytes, SignatureBytes};
 
-pub const AURION_NET_MAGIC: u32 = 0x4155524E;
+pub const AURION_NET_MAGIC: u32 = 0x4155_524E;
 pub const MAX_FRAME_SIZE: usize = 4 * 1024 * 1024;
 
 fn read_array<const N: usize>(bytes: &[u8]) -> Result<[u8; N], NetworkError> {
@@ -33,6 +33,7 @@ pub enum NetworkMessage {
 }
 
 impl NetworkMessage {
+    #[must_use]
     pub fn message_type_id(&self) -> u8 {
         match self {
             Self::Handshake(_) => 0x01,
@@ -45,6 +46,7 @@ impl NetworkMessage {
     }
 
     /// Serialisasi bita Vote BFT: 32 + 32 + 8 + 4 + 1 + 64 = 141 bita
+    #[must_use]
     pub fn encode_vote(vote: &Vote) -> [u8; 141] {
         let mut buf = [0u8; 141];
         buf[0..32].copy_from_slice(&vote.validator);
@@ -59,7 +61,10 @@ impl NetworkMessage {
         buf
     }
 
-    /// Deserialisasi bita Vote BFT
+    /// Deserialisasi bita Vote BFT.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila panjang payload atau tipe vote tidak valid.
     pub fn decode_vote(slice: &[u8]) -> Result<Vote, NetworkError> {
         if slice.len() != 141 {
             return Err(NetworkError::MalformedPayload);

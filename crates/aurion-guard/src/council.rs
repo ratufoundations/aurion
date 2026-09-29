@@ -14,6 +14,11 @@ pub struct GuardCouncil {
 }
 
 impl GuardCouncil {
+    /// Membuat dewan dari daftar kunci guard.
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika jumlah guard unik kurang dari kuorum minimum.
     pub fn new(guards: Vec<PublicKeyBytes>) -> Result<Self, GuardError> {
         let guard_set: BTreeSet<PublicKeyBytes> = guards.into_iter().collect();
         if guard_set.len() < MINIMUM_GUARD_QUORUM {
@@ -29,20 +34,28 @@ impl GuardCouncil {
         })
     }
 
+    #[must_use]
     pub fn total_guards(&self) -> usize {
         self.guards.len()
     }
 
+    #[must_use]
     pub fn is_guard(&self, key: &PublicKeyBytes) -> bool {
         self.guards.contains(key)
     }
 
+    #[must_use]
     pub fn is_blacklisted(&self, validator: &PublicKeyBytes) -> bool {
         self.blacklisted_validators.contains(validator)
     }
 
     /// EKSEKUSI PEMUTUSAN JARINGAN (BLACKLIST):
     /// Wajib diverifikasi tanda tangan seluruh anggota Guard (100% konsensus)
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika validator sudah masuk daftar hitam, kuorum tidak
+    /// bulat, ada penanda tangan yang bukan guard, atau tanda tangannya tidak valid.
     pub fn execute_blacklist(&mut self, verdict: &BlacklistVerdict) -> Result<(), GuardError> {
         let target = verdict.evidence.target_validator;
         if self.blacklisted_validators.contains(&target) {
@@ -79,6 +92,11 @@ impl GuardCouncil {
 
     /// EKSEKUSI PENGAMPUNAN (PARDON / UN-BLACKLIST):
     /// Menghapus status isolasi jika seluruh Guard sepakat atas petisi pembuktian sportif
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika validator belum masuk daftar hitam, kuorum tidak
+    /// bulat, ada penanda tangan yang bukan guard, atau tanda tangannya tidak valid.
     pub fn execute_pardon(&mut self, verdict: &PardonVerdict) -> Result<(), GuardError> {
         let target = verdict.petition.target_validator;
         if !self.blacklisted_validators.contains(&target) {

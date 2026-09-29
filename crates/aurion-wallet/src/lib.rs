@@ -10,6 +10,7 @@ pub use domain::Domain;
 pub use error::WalletError;
 pub use wallet::{AurionWallet, LinkedDeviceSession};
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::domain::DOMAIN_TEST_ATTACKER;

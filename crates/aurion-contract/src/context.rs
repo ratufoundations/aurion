@@ -9,6 +9,7 @@ pub struct ExecutionContext {
 }
 
 impl ExecutionContext {
+    #[must_use]
     pub fn new(
         caller: PublicKeyBytes,
         contract_address: PublicKeyBytes,

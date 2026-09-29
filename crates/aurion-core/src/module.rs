@@ -200,12 +200,13 @@ impl ModuleDispatcher {
 }
 
 /// Encode the namespace length before its bytes so module/key pairs cannot collide.
-pub(crate) fn namespaced_key(module_id: &[u8], key: &[u8]) -> Vec<u8> {
-    let mut namespaced = Vec::with_capacity(4 + module_id.len() + key.len());
-    namespaced.extend_from_slice(&(module_id.len() as u32).to_be_bytes());
+pub(crate) fn namespaced_key(module_id: &[u8], key: &[u8]) -> Option<Vec<u8>> {
+    let namespace_len = u64::try_from(module_id.len()).ok()?;
+    let mut namespaced = Vec::with_capacity(8 + module_id.len() + key.len());
+    namespaced.extend_from_slice(&namespace_len.to_be_bytes());
     namespaced.extend_from_slice(module_id);
     namespaced.extend_from_slice(key);
-    namespaced
+    Some(namespaced)
 }
 
 struct NamespacedReader<'a> {
@@ -221,7 +222,7 @@ impl<'a> NamespacedReader<'a> {
 
 impl StateReader for NamespacedReader<'_> {
     fn get(&self, key: &[u8]) -> Option<&[u8]> {
-        self.state.get(&namespaced_key(self.module_id, key))
+        namespaced_key(self.module_id, key).and_then(|namespaced| self.state.get(&namespaced))
     }
 }
 
@@ -238,22 +239,24 @@ impl<'a> NamespacedWriter<'a> {
 
 impl StateReader for NamespacedWriter<'_> {
     fn get(&self, key: &[u8]) -> Option<&[u8]> {
-        self.state.get(&namespaced_key(self.module_id, key))
+        namespaced_key(self.module_id, key).and_then(|namespaced| self.state.get(&namespaced))
     }
 }
 
 impl StateWriter for NamespacedWriter<'_> {
     fn set(&mut self, key: &[u8], value: &[u8]) {
-        self.state.set(&namespaced_key(self.module_id, key), value);
+        if let Some(namespaced) = namespaced_key(self.module_id, key) {
+            self.state.set(&namespaced, value);
+        }
     }
 
     fn remove(&mut self, key: &[u8]) -> Option<Vec<u8>> {
-        self.state.remove(&namespaced_key(self.module_id, key))
+        namespaced_key(self.module_id, key).and_then(|namespaced| self.state.remove(&namespaced))
     }
 }
 
 #[cfg(test)]
-#[allow(clippy::expect_used)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::State;
@@ -285,8 +288,7 @@ mod tests {
             let current = state
                 .get(b"count")
                 .and_then(|bytes| bytes.try_into().ok())
-                .map(u64::from_le_bytes)
-                .unwrap_or(0);
+                .map_or(0, u64::from_le_bytes);
             state.set(b"count", &current.saturating_add(1).to_le_bytes());
             Ok(())
         }

@@ -79,10 +79,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 }
 
 /// Titik pemasangan modul aplikasi. Modul baru cukup didaftarkan di fungsi ini.
-fn build_module_dispatcher() -> Result<ModuleDispatcher, aurion_core::DispatchError> {
+fn build_module_dispatcher() -> ModuleDispatcher {
     let dispatcher = ModuleDispatcher::new();
     // Contoh pemasangan: dispatcher.register_module(Box::new(StakingModule::new()))?;
-    Ok(dispatcher)
+    dispatcher
 }
 
 /// Nilai CLI (`--port/--chain-id/--data-dir`) menimpa konfigurasi berkas
@@ -113,12 +113,14 @@ fn apply_cli_overrides(mut settings: AurionSettings, cli: &Cli) -> AurionSetting
     }
     if has("--data-dir") || has("-d") {
         if let Some(data_dir) = &cli.data_dir {
-            settings.storage.db_path = data_dir.clone();
+            settings.storage.db_path.clone_from(data_dir);
         }
     }
     settings
 }
 
+// Fungsi ini mengoordinasikan lifecycle node, listener P2P, demo, dan block producer.
+#[allow(clippy::too_many_lines)]
 async fn run_node(
     cli: Cli,
     settings: AurionSettings,
@@ -160,7 +162,7 @@ async fn run_node(
         tracing::info!("  - Akun Alice     : 1.000.000 Quanta");
         tracing::info!("  - Akun Validator : 500.000 Quanta");
     }
-    let module_dispatcher = build_module_dispatcher()?;
+    let module_dispatcher = build_module_dispatcher();
     module_dispatcher.init_genesis(&mut state)?;
     let validator_set = ValidatorSet::new(vec![validator_pubkey]);
     let mempool = Mempool::new(MempoolConfig::default());
@@ -197,7 +199,7 @@ async fn run_node(
                             });
                         }
                         Err(_) => {
-                            tracing::warn!(peer = %remote_addr, "Batas peer jaringan tercapai")
+                            tracing::warn!(peer = %remote_addr, "Batas peer jaringan tercapai");
                         }
                     }
                 }
@@ -301,7 +303,7 @@ async fn run_node(
                 height: next_height,
                 prev_hash,
                 state_root,
-                tx_count: executed_txs.len() as u32,
+                tx_count: u32::try_from(executed_txs.len())?,
             },
             transactions: executed_txs,
         };

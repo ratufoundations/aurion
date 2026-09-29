@@ -87,7 +87,7 @@ pub(crate) async fn get_block_by_height(
     }
 }
 
-/// GET /api/v1/accounts/:pubkey_hex - Saldo dan Nonce akun
+/// GET /`api/v1/accounts/:pubkey_hex` - Saldo dan Nonce akun
 pub(crate) async fn get_account(
     State(state): State<Arc<AppState>>,
     Path(pubkey_hex): Path<String>,

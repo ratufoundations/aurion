@@ -19,6 +19,7 @@ pub struct DeviceRecord {
 }
 
 impl DeviceRecord {
+    #[must_use]
     pub fn is_valid(&self, current_time: u64) -> bool {
         if self.expires_at == 0 {
             true

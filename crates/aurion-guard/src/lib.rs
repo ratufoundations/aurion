@@ -16,6 +16,7 @@ pub use evidence::{RaidEvidence, RehabilitationPetition, ViolationType};
 pub use verdict::{BlacklistVerdict, PardonVerdict};
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use aurion_criptografi::Keypair;
@@ -25,8 +26,10 @@ mod tests {
     fn test_guard_raid_blacklist_and_pardon_lifecycle() {
         // 1. Inisialisasi 5 Guard independen
         let guard_keys: Vec<Keypair> = (0..5).map(|_| Keypair::generate()).collect();
-        let guard_pks: Vec<aurion_criptografi::PublicKeyBytes> =
-            guard_keys.iter().map(|k| k.public_key_bytes()).collect();
+        let guard_pks: Vec<aurion_criptografi::PublicKeyBytes> = guard_keys
+            .iter()
+            .map(aurion_criptografi::Keypair::public_key_bytes)
+            .collect();
 
         let rogue_validator = Keypair::generate().public_key_bytes();
 

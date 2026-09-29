@@ -8,6 +8,9 @@ pub struct SignatureVerifier;
 
 impl SignatureVerifier {
     /// Verifikasi satu tanda tangan tunggal (constant-time).
+    ///
+    /// # Errors
+    /// Mengembalikan error bila public key tidak valid atau signature tidak cocok.
     pub fn verify_single(
         public_key: &PublicKeyBytes,
         message: &[u8],
@@ -21,6 +24,9 @@ impl SignatureVerifier {
     }
 
     /// Verifikasi batch paralel multi-core menggunakan Rayon.
+    ///
+    /// # Errors
+    /// Mengembalikan `BatchMismatch` bila panjang key, pesan, dan signature berbeda.
     pub fn verify_batch_parallel(
         public_keys: &[PublicKeyBytes],
         messages: &[&[u8]],
@@ -66,6 +72,7 @@ impl SignatureVerifier {
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use crate::signature::keypair::Keypair;

@@ -99,7 +99,7 @@ fn cmd_keygen() {
     );
 }
 
-/// 2. Perintah Status (Kueri ke Zenoh Queryable: aurion/{chain_id}/status)
+/// 2. Perintah Status (Kueri ke Zenoh Queryable: `aurion/{chain_id}/status`)
 async fn cmd_status(chain_id: u64) -> Result<(), Box<dyn Error + Send + Sync>> {
     println!("Membuka sesi Zenoh...");
     let session = zenoh::open(zenoh::Config::default()).await?;
@@ -226,7 +226,7 @@ async fn cmd_balance(chain_id: u64, address: &str) -> Result<(), Box<dyn Error +
     Ok(())
 }
 
-/// 4. Perintah Monitor (Langganan ke Zenoh Publisher: aurion/{chain_id}/events/blocks)
+/// 4. Perintah Monitor (Langganan ke Zenoh Publisher: `aurion/{chain_id}/events/blocks`)
 async fn cmd_monitor(chain_id: u64) -> Result<(), Box<dyn Error + Send + Sync>> {
     let session = zenoh::open(zenoh::Config::default()).await?;
     let topic = GatewayRoutes::events_blocks(chain_id);

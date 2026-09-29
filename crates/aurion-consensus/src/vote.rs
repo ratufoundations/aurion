@@ -18,6 +18,7 @@ pub struct Vote {
 }
 
 impl Vote {
+    #[must_use]
     pub fn new(
         validator: PublicKeyBytes,
         block_hash: Hash256,
@@ -37,6 +38,7 @@ impl Vote {
     }
 
     /// Serialisasi kanonikal data vote sebelum di-hash dan diverifikasi
+    #[must_use]
     pub fn digest(&self) -> Hash256 {
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"AURION_BFT_VOTE_V1");
@@ -52,7 +54,10 @@ impl Vote {
         *hasher.finalize().as_bytes()
     }
 
-    /// Verifikasi kriptografis suara validator
+    /// Verifikasi kriptografis suara validator.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila tanda tangan suara tidak valid.
     pub fn verify(&self) -> Result<(), ConsensusError> {
         let digest = self.digest();
         SignatureVerifier::verify_single(&self.validator, &digest, &self.signature)

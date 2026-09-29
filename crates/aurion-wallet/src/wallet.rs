@@ -10,6 +10,7 @@ pub struct AurionWallet {
 
 impl AurionWallet {
     /// Inisialisasi wallet baru dengan kunci identitas utama dan domain namespace
+    #[must_use]
     pub fn new(identity: Keypair, namespace: &str) -> Self {
         let domain_tag = crate::domain::Domain::custom(namespace);
         Self {
@@ -18,11 +19,13 @@ impl AurionWallet {
         }
     }
 
+    #[must_use]
     pub fn public_key(&self) -> PublicKeyBytes {
         self.identity.public_key_bytes()
     }
 
-    /// Tautkan perangkat baru (ala scan QR WhatsApp) dengan menerbitkan DeviceCertificate
+    /// Tautkan perangkat baru (ala scan QR `WhatsApp`) dengan menerbitkan `DeviceCertificate`
+    #[must_use]
     pub fn delegate_device(
         &self,
         device_pubkey: PublicKeyBytes,
@@ -65,7 +68,7 @@ impl AurionWallet {
     }
 }
 
-/// Sisi Klien Perangkat (misal: Ponsel / Browser) yang hanya memegang DeviceKey
+/// Sisi Klien Perangkat (misal: Ponsel / Browser) yang hanya memegang `DeviceKey`
 #[derive(Debug)]
 pub struct LinkedDeviceSession {
     pub device_keypair: Keypair,
@@ -73,6 +76,7 @@ pub struct LinkedDeviceSession {
 }
 
 impl LinkedDeviceSession {
+    #[must_use]
     pub fn new(device_keypair: Keypair, certificate: DeviceCertificate) -> Self {
         Self {
             device_keypair,
@@ -80,7 +84,10 @@ impl LinkedDeviceSession {
         }
     }
 
-    /// Validasi status izin sesi perangkat terhadap domain dan jam sistem
+    /// Validasi status izin sesi perangkat terhadap domain dan jam sistem.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila sertifikat perangkat tidak valid.
     pub fn is_valid(
         &self,
         current_time: u64,

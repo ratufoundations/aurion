@@ -26,9 +26,17 @@ impl<'a> AurionVm<'a> {
             gas_meter: GasMeter::new(gas_limit),
         }
     }
+    #[must_use]
     pub fn gas_consumed(&self) -> u64 {
         self.gas_meter.consumed
     }
+    /// Menjalankan bytecode dan menyimpan perubahan storage hanya saat berhasil.
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error untuk kehabisan gas, stack tidak valid, aritmetika
+    /// meluap, lompatan di luar bytecode, pembagian nol, atau opcode revert.
+    #[allow(clippy::too_many_lines)]
     pub fn execute(&mut self, code: &[Opcode]) -> Result<Option<u64>, VmError> {
         let mut shadow_storage = self.storage.clone();
         let mut pc = 0;
@@ -89,17 +97,17 @@ impl<'a> AurionVm<'a> {
                 Opcode::Eq => {
                     let b = self.pop()?;
                     let a = self.pop()?;
-                    self.stack.push(if a == b { 1 } else { 0 });
+                    self.stack.push(u64::from(a == b));
                 }
                 Opcode::Lt => {
                     let b = self.pop()?;
                     let a = self.pop()?;
-                    self.stack.push(if a < b { 1 } else { 0 });
+                    self.stack.push(u64::from(a < b));
                 }
                 Opcode::Gt => {
                     let b = self.pop()?;
                     let a = self.pop()?;
-                    self.stack.push(if a > b { 1 } else { 0 });
+                    self.stack.push(u64::from(a > b));
                 }
                 Opcode::Jmp(target) => {
                     if *target >= code.len() {
@@ -157,13 +165,13 @@ impl<'a> AurionVm<'a> {
         *self.storage = shadow_storage;
         Ok(self.stack.last().copied())
     }
-    #[inline(always)]
     fn pop(&mut self) -> Result<u64, VmError> {
         self.stack.pop().ok_or(VmError::StackUnderflow)
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use aurion_criptografi::Keypair;

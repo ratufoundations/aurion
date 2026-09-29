@@ -8,12 +8,14 @@ pub struct ContractStorage {
 }
 
 impl ContractStorage {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             state: BTreeMap::new(),
         }
     }
 
+    #[must_use]
     pub fn get(&self, contract: &PublicKeyBytes, key: u64) -> u64 {
         self.state
             .get(contract)

@@ -11,6 +11,7 @@ pub struct Transaction {
 }
 
 impl Transaction {
+    #[must_use]
     pub const fn new(
         sender: PublicKeyBytes,
         recipient: PublicKeyBytes,
@@ -28,6 +29,7 @@ impl Transaction {
     }
 
     /// Serialisasi kanonikal payload transaksi sebelum di-hash
+    #[must_use]
     pub fn payload_bytes(
         sender: &PublicKeyBytes,
         recipient: &PublicKeyBytes,
@@ -43,6 +45,7 @@ impl Transaction {
     }
 
     /// Hash identitas transaksi dengan domain separation
+    #[must_use]
     pub fn digest(&self) -> Hash256 {
         let payload = Self::payload_bytes(&self.sender, &self.recipient, self.amount, self.nonce);
         let mut hasher = blake3::Hasher::new();
@@ -51,7 +54,10 @@ impl Transaction {
         *hasher.finalize().as_bytes()
     }
 
-    /// Validasi kriptografi tanda tangan transaksi
+    /// Validasi kriptografi tanda tangan transaksi.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila tanda tangan pengirim tidak sah.
     pub fn verify_signature(&self) -> Result<(), ExecutionError> {
         let digest = self.digest();
         SignatureVerifier::verify_single(&self.sender, &digest, &self.signature)

@@ -11,6 +11,7 @@ pub use roles::FederationTopology;
 pub use spec::{GenesisSpec, QUANTA_PER_AUR, TOTAL_GENESIS_SUPPLY_AUR};
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use aurion_criptografi::Keypair;

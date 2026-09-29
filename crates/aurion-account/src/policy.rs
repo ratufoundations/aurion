@@ -20,6 +20,10 @@ impl Default for SpendingPolicy {
 }
 
 impl SpendingPolicy {
+    /// Periksa batas transaksi/kuota dan mutakhirkan pemakaian.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila transaksi melampaui batas per transaksi atau kuota harian.
     pub fn check_and_update(&mut self, amount: u64, current_time: u64) -> Result<(), AccountError> {
         if current_time.saturating_sub(self.last_reset_time) >= 86400 {
             self.current_spent = 0;

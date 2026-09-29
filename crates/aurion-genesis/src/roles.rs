@@ -21,10 +21,12 @@ impl FederationTopology {
         }
     }
 
+    #[must_use]
     pub fn is_validator(&self, key: &PublicKeyBytes) -> bool {
         self.validators.contains(key)
     }
 
+    #[must_use]
     pub fn is_guard(&self, key: &PublicKeyBytes) -> bool {
         self.guards.contains(key)
     }

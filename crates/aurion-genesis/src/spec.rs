@@ -16,6 +16,11 @@ pub struct GenesisSpec {
 }
 
 impl GenesisSpec {
+    /// Membuat spesifikasi genesis dengan validator dan guard awal.
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika daftar validator atau guard kosong.
     pub fn new(
         chain_id: u64,
         network_name: impl Into<String>,
@@ -40,17 +45,31 @@ impl GenesisSpec {
         })
     }
 
-    /// Menghitung pasokan awal dalam satuan dasar terkecil (Quanta)
+    /// Menghitung pasokan awal dalam satuan dasar terkecil (Quanta).
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika konversi suplai ke Quanta meluap.
     pub fn total_supply_quanta(&self) -> Result<u64, GenesisError> {
         self.initial_supply_aur
             .checked_mul(QUANTA_PER_AUR)
             .ok_or(GenesisError::ArithmeticOverflow)
     }
 
+    /// Menyerialisasi spesifikasi ke JSON berformat rapi.
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika serialisasi JSON gagal.
     pub fn to_json_pretty(&self) -> Result<String, GenesisError> {
         Ok(serde_json::to_string_pretty(self)?)
     }
 
+    /// Membaca spesifikasi dari JSON.
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika JSON tidak valid atau tidak cocok dengan skema.
     pub fn from_json_str(json: &str) -> Result<Self, GenesisError> {
         Ok(serde_json::from_str(json)?)
     }

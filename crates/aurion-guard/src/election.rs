@@ -25,10 +25,11 @@ pub struct CandidateProfile {
 
 impl CandidateProfile {
     /// Hitung skor kontribusi validator secara deterministik tanpa float
+    #[must_use]
     pub fn compute_score(&self) -> u64 {
         let proposed_score = self.blocks_proposed.saturating_mul(WEIGHT_PROPOSED_BLOCK);
         let vote_score = self.votes_cast.saturating_mul(WEIGHT_VOTE_CAST);
-        let seniority_score = (self.active_epochs as u64).saturating_mul(WEIGHT_ACTIVE_EPOCH);
+        let seniority_score = u64::from(self.active_epochs).saturating_mul(WEIGHT_ACTIVE_EPOCH);
 
         let positive_score = proposed_score
             .saturating_add(vote_score)
@@ -67,6 +68,11 @@ pub struct EpochElection;
 
 impl EpochElection {
     /// Memilih dewan Guard teratas untuk epoch berikutnya
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika jumlah kandidat yang memenuhi syarat kurang dari
+    /// jumlah kursi yang diminta.
     pub fn elect_council(
         epoch: u64,
         candidates: &[CandidateProfile],
@@ -112,6 +118,7 @@ impl EpochElection {
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
 
@@ -199,8 +206,8 @@ mod tests {
             candidates.push(CandidateProfile {
                 validator: dummy_pubkey(i),
                 stake_quanta: DEFAULT_MIN_GUARD_STAKE_QUANTA,
-                blocks_proposed: (i as u64) * 10,
-                votes_cast: (i as u64) * 50,
+                blocks_proposed: u64::from(i) * 10,
+                votes_cast: u64::from(i) * 50,
                 missed_rounds: 0,
                 active_epochs: 1,
                 is_blacklisted: false,

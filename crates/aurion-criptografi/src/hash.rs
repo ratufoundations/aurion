@@ -5,12 +5,13 @@ pub struct Hasher;
 
 impl Hasher {
     /// Hashing satu payload secara instan memanfaatkan SIMD hardware.
-    #[inline(always)]
+    #[must_use]
     pub fn digest(data: &[u8]) -> Hash256 {
         *blake3::hash(data).as_bytes()
     }
 
     /// Hashing paralel untuk data besar (chunked).
+    #[must_use]
     pub fn digest_parallel(data: &[u8]) -> Hash256 {
         let mut hasher = blake3::Hasher::new();
         hasher.update_rayon(data);
@@ -18,7 +19,7 @@ impl Hasher {
     }
 
     /// Menggabungkan dua node hash (Merkle tree binary node).
-    #[inline(always)]
+    #[must_use]
     pub fn combine(left: &Hash256, right: &Hash256) -> Hash256 {
         let mut hasher = blake3::Hasher::new();
         hasher.update(left);
@@ -28,6 +29,7 @@ impl Hasher {
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
 

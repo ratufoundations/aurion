@@ -19,12 +19,18 @@ impl PeerConnection {
         }
     }
 
-    /// Kirim satu pesan terenkode ke peer target
+    /// Kirim satu pesan terenkode ke peer target.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila encoding atau penulisan ke peer gagal.
     pub async fn send_message(&mut self, msg: NetworkMessage) -> Result<(), NetworkError> {
         self.framed.send(msg).await
     }
 
-    /// Baca pesan berikutnya dari stream jaringan
+    /// Baca pesan berikutnya dari stream jaringan.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila frame tidak valid atau stream gagal dibaca.
     pub async fn read_message(&mut self) -> Result<Option<NetworkMessage>, NetworkError> {
         match self.framed.next().await {
             Some(Ok(msg)) => {

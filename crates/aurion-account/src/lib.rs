@@ -11,6 +11,7 @@ pub use role::{DeviceRecord, DeviceRole};
 pub use state::{SovereignAccount, MAX_DEVICES_PER_ACCOUNT};
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use aurion_criptografi::Keypair;

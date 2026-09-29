@@ -13,6 +13,7 @@ pub use probation::{
 pub use registry::{NodeAdmissionStatus, ValidatorRegistry};
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use aurion_criptografi::Keypair;

@@ -13,7 +13,10 @@ pub struct LedgerStore {
 }
 
 impl LedgerStore {
-    /// Inisialisasi basis data ledger pada file storage
+    /// Inisialisasi basis data ledger pada file storage.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila file database atau tabel ledger gagal dibuat.
     pub fn open(path: impl AsRef<Path>) -> Result<Self, LedgerError> {
         let db = Database::create(path).map_err(|e| LedgerError::DatabaseError(e.to_string()))?;
         let write_txn = db
@@ -39,7 +42,10 @@ impl LedgerStore {
         Ok(Self { db })
     }
 
-    /// Ambil data status akun terkini langsung dari disk
+    /// Ambil data status akun terkini langsung dari disk.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila transaksi baca, tabel, atau data akun gagal dibaca.
     pub fn get_account(
         &self,
         pubkey: &aurion_criptografi::PublicKeyBytes,
@@ -62,7 +68,10 @@ impl LedgerStore {
         }
     }
 
-    /// Ambil blok berdasarkan nomor tinggi (Block Height)
+    /// Ambil blok berdasarkan nomor tinggi (Block Height).
+    ///
+    /// # Errors
+    /// Mengembalikan error bila transaksi baca, tabel, atau data blok gagal dibaca.
     pub fn get_block_by_height(&self, height: u64) -> Result<Option<Block>, LedgerError> {
         let read_txn = self
             .db
@@ -82,7 +91,10 @@ impl LedgerStore {
         }
     }
 
-    /// Ambil nomor tinggi blok terakhir yang sudah tersimpan permanen
+    /// Ambil nomor tinggi blok terakhir yang sudah tersimpan permanen.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila metadata ledger tidak dapat dibaca atau rusak.
     pub fn get_latest_height(&self) -> Result<u64, LedgerError> {
         let read_txn = self
             .db
@@ -103,7 +115,10 @@ impl LedgerStore {
         }
     }
 
-    /// COMMIT BLOK ATOMIK: Eksekusi transaksi, perbarui saldo, dan simpan blok secara ACID
+    /// Commit blok secara atomik: eksekusi transaksi, perbarui saldo, dan simpan blok.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila eksekusi blok atau transaksi ACID gagal.
     pub fn commit_block(&self, block: &Block, state: &mut State) -> Result<(), LedgerError> {
         tracing::info!(
             height = block.header.height,
@@ -188,6 +203,7 @@ impl LedgerStore {
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use aurion_core::{BlockHeader, Transaction};

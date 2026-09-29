@@ -54,6 +54,7 @@ pub struct Mempool {
 }
 
 impl Mempool {
+    #[must_use]
     pub fn new(config: MempoolConfig) -> Self {
         Self {
             config,
@@ -61,12 +62,18 @@ impl Mempool {
             total_tx_count: 0,
         }
     }
+    #[must_use]
     pub fn total_count(&self) -> usize {
         self.total_tx_count
     }
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.total_tx_count == 0
     }
+    /// Memvalidasi dan menambahkan transaksi ke antrean sender.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila transaksi tidak valid, kapasitas habis, atau nonce bentrok.
     pub fn insert(
         &mut self,
         tx: Transaction,
@@ -127,6 +134,7 @@ impl Mempool {
         self.total_tx_count += 1;
         Ok(())
     }
+    #[must_use]
     pub fn select_transactions_for_block(
         &self,
         confirmed_state: &State,
@@ -139,10 +147,7 @@ impl Mempool {
         let mut heap = BinaryHeap::new();
         let mut virtual_nonces: HashMap<PublicKeyBytes, u64> = HashMap::new();
         for (sender, queue) in &self.by_sender {
-            let confirmed_nonce = confirmed_state
-                .get_account(sender)
-                .map(|a| a.nonce)
-                .unwrap_or(0);
+            let confirmed_nonce = confirmed_state.get_account(sender).map_or(0, |a| a.nonce);
             virtual_nonces.insert(*sender, confirmed_nonce);
             if let Some(candidate) = queue.get(&confirmed_nonce) {
                 heap.push(CandidateKey {
@@ -182,10 +187,7 @@ impl Mempool {
             }
         }
         self.by_sender.retain(|sender, queue| {
-            let confirmed_nonce = confirmed_state
-                .get_account(sender)
-                .map(|a| a.nonce)
-                .unwrap_or(0);
+            let confirmed_nonce = confirmed_state.get_account(sender).map_or(0, |a| a.nonce);
             let before_len = queue.len();
             queue.retain(|nonce, _| *nonce >= confirmed_nonce);
             let removed = before_len - queue.len();
@@ -196,6 +198,7 @@ impl Mempool {
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use aurion_criptografi::Keypair;

@@ -6,7 +6,12 @@ use aurion_ledger::LedgerStore;
 pub struct GenesisBootstrap;
 
 impl GenesisBootstrap {
-    /// Inisialisasi basis data ledger fisik dengan Blok 0 dan akun Treasury
+    /// Inisialisasi basis data ledger fisik dengan Blok 0 dan akun Treasury.
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika ledger gagal dibaca atau ditulis, suplai genesis
+    /// meluap, atau ledger sudah memiliki blok genesis.
     pub fn initialize_ledger(
         ledger: &LedgerStore,
         spec: &GenesisSpec,

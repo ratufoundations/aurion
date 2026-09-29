@@ -40,25 +40,28 @@ impl Zeroize for Keypair {
 
 impl Keypair {
     /// Generate kunci baru dari random generator perangkat keras OS.
+    #[must_use]
     pub fn generate() -> Self {
         let signing_key = SigningKey::generate(&mut OsRng);
         let verifying_key = signing_key.verifying_key();
         Self {
-            signing_key,
             verifying_key,
+            signing_key,
         }
     }
 
     /// Load kunci privat dari 32 bita raw.
+    #[must_use]
     pub fn from_bytes(bytes: &PrivateKeyBytes) -> Self {
         let signing_key = SigningKey::from_bytes(bytes);
         let verifying_key = signing_key.verifying_key();
         Self {
-            signing_key,
             verifying_key,
+            signing_key,
         }
     }
 
+    #[must_use]
     pub fn public_key_bytes(&self) -> PublicKeyBytes {
         self.verifying_key.to_bytes()
     }
@@ -67,11 +70,13 @@ impl Keypair {
     ///
     /// Nilai biner ini adalah materi rahasia: jangan pernah mencatat
     /// atau mengirimkannya ke jaringan.
+    #[must_use]
     pub fn private_key_bytes(&self) -> PrivateKeyBytes {
         self.signing_key.to_bytes()
     }
 
     /// Tanda tangani pesan/hash transaksi secara deterministik.
+    #[must_use]
     pub fn sign(&self, message: &[u8]) -> SignatureBytes {
         self.signing_key.sign(message).to_bytes()
     }

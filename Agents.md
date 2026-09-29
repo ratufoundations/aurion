@@ -14,7 +14,7 @@ Setiap kode yang dihasilkan agen WAJIB mematuhi empat aturan mutlak berikut tanp
    * Setiap berkas `lib.rs` dan `main.rs` wajib mendeklarasikan `#![forbid(unsafe_code)]` di baris pertama.
 
 2. **LARANGAN MUTLAK BILANGAN PECAHAN (`zero-float`):**
-   * Tipe `f32` dan `f64` dilarang keras di seluruh workspace (dicegat oleh `clippy.toml` dan `deny.toml`).
+   * Tipe `f32` dan `f64` dilarang keras di seluruh workspace. Penegakan dilakukan oleh lint Clippy workspace di `Cargo.toml`, daftar `disallowed-types` di `clippy.toml`, dan pemindai `tools/aurion_guard.py`; `deny.toml` mengatur supply chain, bukan tipe numerik.
    * Seluruh kalkulasi finansial, rasio, kuorum, atau persentase wajib menggunakan fixed-point integer (`u64` / satuan Quanta). 
    * 1 AUR = 1.000.000 Quanta. Operasi pembagian wajib mempertimbangkan integer truncation dan sisa bagi (`%`).
 

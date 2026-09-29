@@ -1,6 +1,6 @@
 use redb::TableDefinition;
 
-/// Tabel Akun: PublicKey [u8; 32] -> Balance (8 bita) + Nonce (8 bita) = [u8; 16]
+/// Tabel Akun: `PublicKey` [u8; 32] -> Balance (8 bita) + Nonce (8 bita) = [u8; 16]
 pub const ACCOUNTS_TABLE: TableDefinition<&[u8; 32], &[u8; 16]> = TableDefinition::new("accounts");
 
 /// Tabel Blok: Block Height (u64) -> Bita Kanonikal Blok
@@ -10,5 +10,5 @@ pub const BLOCKS_TABLE: TableDefinition<u64, &[u8]> = TableDefinition::new("bloc
 pub const BLOCK_INDEX_TABLE: TableDefinition<&[u8; 32], u64> =
     TableDefinition::new("block_hash_index");
 
-/// Metadata: String Key -> Value Bytes (misal: "latest_height", "state_root")
+/// Metadata: String Key -> Value Bytes (misal: "`latest_height`", "`state_root`")
 pub const METADATA_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::new("chain_metadata");

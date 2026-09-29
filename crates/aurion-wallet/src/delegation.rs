@@ -13,6 +13,7 @@ pub struct DeviceCertificate {
 
 impl DeviceCertificate {
     /// Menghitung komitmen biner sertifikat delegasi dengan pemisahan domain
+    #[must_use]
     pub fn digest(
         identity: &PublicKeyBytes,
         device_key: &PublicKeyBytes,
@@ -30,7 +31,10 @@ impl DeviceCertificate {
         *hasher.finalize().as_bytes()
     }
 
-    /// Verifikasi keabsahan sertifikat perangkat dan masa berlakunya
+    /// Verifikasi keabsahan sertifikat perangkat dan masa berlakunya.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila domain, kedaluwarsa, atau tanda tangan sertifikat tidak valid.
     pub fn verify(&self, current_time: u64, expected_domain: &Hash256) -> Result<(), WalletError> {
         if &self.domain_tag != expected_domain {
             return Err(WalletError::DomainMismatch);

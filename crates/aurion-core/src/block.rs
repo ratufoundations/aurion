@@ -10,6 +10,7 @@ pub struct BlockHeader {
 }
 
 impl BlockHeader {
+    #[must_use]
     pub fn hash(&self) -> Hash256 {
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"AURION_BLOCK_HEADER_V1");
@@ -28,7 +29,10 @@ pub struct Block {
 }
 
 impl Block {
-    /// Eksekusi sekumpulan transaksi dalam blok dan validasi State Root akhir
+    /// Eksekusi sekumpulan transaksi dalam blok dan validasi State Root akhir.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila transaksi ditolak atau state root akhir tidak cocok.
     pub fn execute(&self, state: &mut State) -> Result<(), ExecutionError> {
         tracing::debug!(
             height = self.header.height,

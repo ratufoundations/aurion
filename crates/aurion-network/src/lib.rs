@@ -11,6 +11,7 @@ pub use message::{Handshake, NetworkMessage, AURION_NET_MAGIC, MAX_FRAME_SIZE};
 pub use peer::PeerConnection;
 
 #[cfg(test)]
+#[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
     use super::*;
     use aurion_consensus::{Vote, VoteType};

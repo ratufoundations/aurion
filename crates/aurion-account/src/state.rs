@@ -19,6 +19,7 @@ pub struct SovereignAccount {
 
 impl SovereignAccount {
     /// Inisialisasi akun baru dengan satu Master Device (ala registrasi pertama WA)
+    #[must_use]
     pub fn new(account_id: Hash256, master_device_key: PublicKeyBytes, current_time: u64) -> Self {
         let mut devices = BTreeMap::new();
         devices.insert(
@@ -39,7 +40,10 @@ impl SovereignAccount {
         }
     }
 
-    /// Tautkan perangkat baru (ala Scan QR WhatsApp)
+    /// Tautkan perangkat baru (ala Scan QR `WhatsApp`).
+    ///
+    /// # Errors
+    /// Mengembalikan error bila signer tidak terdaftar/master atau batas perangkat tercapai.
     pub fn link_device(
         &mut self,
         signer_device: &PublicKeyBytes,
@@ -75,7 +79,10 @@ impl SovereignAccount {
         Ok(())
     }
 
-    /// Cabut akses perangkat (ala Log out linked device di WA)
+    /// Cabut akses perangkat (ala Log out linked device di WA).
+    ///
+    /// # Errors
+    /// Mengembalikan error bila signer tidak terdaftar/master atau master mencoba mencabut diri.
     pub fn revoke_device(
         &mut self,
         signer_device: &PublicKeyBytes,
@@ -97,7 +104,10 @@ impl SovereignAccount {
         Ok(())
     }
 
-    /// Eksekusi pengeluaran dana yang diajukan oleh suatu perangkat
+    /// Eksekusi pengeluaran dana yang diajukan oleh suatu perangkat.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila nonce, izin perangkat, kebijakan, atau saldo tidak valid.
     pub fn authorize_transfer(
         &mut self,
         signer_device: &PublicKeyBytes,

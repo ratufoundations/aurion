@@ -22,6 +22,7 @@ pub enum Opcode {
 }
 
 impl Opcode {
+    #[must_use]
     pub fn gas_cost(&self) -> u64 {
         match self {
             Self::Pop | Self::Dup | Self::Swap => 1,

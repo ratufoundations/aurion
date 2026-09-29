@@ -1,3 +1,10 @@
-target/
+/target/
+**/target/
 **/*.rs.bk
 *.log
+logs/*.tmp
+logs/*-dev.log
+logs/*-prod.log
+!logs/WORK_LOG.md
+aurion_data/
+target/dev_db/

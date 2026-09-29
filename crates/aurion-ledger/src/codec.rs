@@ -17,7 +17,7 @@ impl Codec {
     // ==========================================
     // ACCOUNT CODEC (16 Bytes)
     // ==========================================
-    #[inline(always)]
+    #[must_use]
     pub fn encode_account(acc: &Account) -> [u8; 16] {
         let mut buf = [0u8; 16];
         buf[0..8].copy_from_slice(&acc.balance.to_le_bytes());
@@ -25,7 +25,7 @@ impl Codec {
         buf
     }
 
-    #[inline(always)]
+    #[must_use]
     pub fn decode_account(bytes: &[u8; 16]) -> Account {
         let balance = u64::from_le_bytes([
             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
@@ -41,6 +41,7 @@ impl Codec {
     // ==========================================
     pub const TX_SIZE: usize = 144;
 
+    #[must_use]
     pub fn encode_tx(tx: &Transaction) -> [u8; Self::TX_SIZE] {
         let mut buf = [0u8; Self::TX_SIZE];
         buf[0..32].copy_from_slice(&tx.sender);
@@ -51,6 +52,10 @@ impl Codec {
         buf
     }
 
+    /// Mendekode satu transaksi dengan panjang payload yang kanonikal.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila panjang atau data payload transaksi tidak valid.
     pub fn decode_tx(slice: &[u8]) -> Result<Transaction, LedgerError> {
         if slice.len() != Self::TX_SIZE {
             return Err(LedgerError::InvalidTransactionLength {
@@ -74,6 +79,7 @@ impl Codec {
     // ==========================================
     pub const HEADER_SIZE: usize = 76;
 
+    #[must_use]
     pub fn encode_block(block: &Block) -> Vec<u8> {
         let mut out =
             Vec::with_capacity(Self::HEADER_SIZE + (block.transactions.len() * Self::TX_SIZE));
@@ -92,6 +98,10 @@ impl Codec {
         out
     }
 
+    /// Mendekode blok dan seluruh transaksi yang terserialisasi.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila header, panjang blok, atau transaksi rusak.
     pub fn decode_block(bytes: &[u8]) -> Result<Block, LedgerError> {
         if bytes.len() < Self::HEADER_SIZE {
             return Err(LedgerError::CorruptedBlock(0));

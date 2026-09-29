@@ -15,6 +15,7 @@ pub struct State {
 }
 
 impl State {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             accounts: BTreeMap::new(),
@@ -22,6 +23,7 @@ impl State {
         }
     }
 
+    #[must_use]
     pub fn get_account(&self, pubkey: &PublicKeyBytes) -> Option<&Account> {
         self.accounts.get(pubkey)
     }
@@ -30,11 +32,15 @@ impl State {
         self.accounts.insert(pubkey, account);
     }
 
+    #[must_use]
     pub fn accounts(&self) -> &BTreeMap<PublicKeyBytes, Account> {
         &self.accounts
     }
 
-    /// Transisi status atomik: S(t+1) = f(S_t, Tx)
+    /// Transisi status atomik: `S(t+1) = f(S_t, Tx)`.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila tanda tangan, nonce, saldo, atau aritmatika tidak valid.
     pub fn apply_transaction(&mut self, tx: &Transaction) -> Result<(), ExecutionError> {
         if tx.sender == tx.recipient {
             tracing::error!(account = ?tx.sender, "Percobaan transfer ke akun sendiri");
@@ -109,6 +115,7 @@ impl State {
     }
 
     /// Menghitung State Root deterministik 32 bita dari seluruh akun yang terurut
+    #[must_use]
     pub fn compute_state_root(&self) -> Hash256 {
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"AURION_STATE_ROOT_V1");
@@ -119,9 +126,9 @@ impl State {
         }
         hasher.update(b"AURION_MODULE_STATE_V1");
         for (key, value) in &self.module_data {
-            hasher.update(&(key.len() as u64).to_le_bytes());
+            hasher.update(&u64::try_from(key.len()).unwrap_or(u64::MAX).to_le_bytes());
             hasher.update(key);
-            hasher.update(&(value.len() as u64).to_le_bytes());
+            hasher.update(&u64::try_from(value.len()).unwrap_or(u64::MAX).to_le_bytes());
             hasher.update(value);
         }
 

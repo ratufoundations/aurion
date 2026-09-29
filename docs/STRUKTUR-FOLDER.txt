@@ -1,5 +1,5 @@
 aurion/
-├── Agents.md                      # [KOSONG/PLACEHOLDER 0 byte, untracked] dokumen otoritas arsitektur — BELUM TERSEDIA di main
+├── Agents.md                      # [OTORITAS] rulebook keamanan, arsitektur, dan protokol kerja agen
 ├── apps/
 │   ├── aurion-node/               # [AKTIF] biner simpul validator (TCP + consensus + ledger + mempool)
 │   ├── aurion-explorer/           # [AKTIF] backend API explorer (axum) — baca LedgerStore
@@ -14,7 +14,7 @@ aurion/
 │   ├── aurion-gateway/            # [AKTIF] GatewayRoutes + AurionGateway (Zenoh boundary)
 │   ├── aurion-genesis/            # [AKTIF] GenesisSpec, bootstrap blok 0 (QUANTA_PER_AUR = 1_000_000 — nilai eksplorasi, BUKAN kebijakan moneter terkunci)
 │   ├── aurion-guard/              # [AKTIF] GuardCouncil, election, evidence, verdict
-│   ├── aurion-ledger/             # [AKTIF] LedgerStore, Codec, schema (sled)
+│   ├── aurion-ledger/             # [AKTIF] LedgerStore, Codec, schema (redb)
 │   ├── aurion-mempool/            # [AKTIF] Mempool, fee/nonce/balance validation
 │   ├── aurion-network/            # [AKTIF] AurionWireCodec, Handshake, PeerConnection (TCP)
 │   ├── aurion-validator/          # [AKTIF] registry, probation, endorsement
@@ -25,16 +25,16 @@ aurion/
 │       ├── TASK-002-crypto-testing-standards.md  # kerangka C0–C7, status DRAFT
 │       └── TASK-003-peta-tes-fondasi-aurion-v0.md # working test map, status WORKING-MAP (bukan aturan final)
 ├── tests/
-│   └── aurion-criptografi-tests/  # [KOSONG] dir integration test terpisah (belum ada file; tes kripto saat ini inline #[cfg(test)] di source)
-├── logs/                          # [KOSONG] output log runtime
-├── tools/                         # [KOSONG] skrip bantu / fuzz / bench
+│   └── aurion-criptografi-tests/  # [PLACEHOLDER] .gitkeep; harness belum dibuat, tes saat ini inline #[cfg(test)]
+├── logs/                          # [AKTIF] WORK_LOG.md terlacak; log runtime diabaikan Git
+├── tools/                         # [AKTIF] aurion_guard.py (security guard) dan guard-cli runner Cargo
 ├── scripts/
-│   └── audit.sh                   # audit suite: clippy + cargo audit + cargo deny + grep unsafe/float
+│   └── audit.sh                   # guard + fmt + strict Clippy + workspace tests + optional cargo audit/deny
 ├── clippy.toml                    # larangan f32/f64 (alasan: determinisme consensus)
 ├── deny.toml                      # kebijakan advisories/licenses/bans/sources
 ├── Cargo.toml                     # [workspace] resolver=3, 17 members (config + 13 crates + 3 apps), [workspace.dependencies] tracing/tracing-subscriber/tracing-appender/toml, [workspace.lints] unsafe forbid + float deny + unwrap_used deny
 ├── Cargo.lock                     # lockfile
-└── target/                        # [GENERATED] build artifacts cargo, jangan di-commit
+└── target/                        # [GENERATED] build/database artifacts Cargo, diabaikan Git
 
 CATATAN:
 - Typo lama `aurion-consesus` sudah tidak ada; nama terkunci: `crates/aurion-consensus`.

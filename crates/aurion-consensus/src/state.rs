@@ -37,7 +37,11 @@ impl RoundState {
         }
     }
 
-    /// Masukkan vote ke pool, validasi validator & tanda tangan
+    /// Masukkan vote ke pool, validasi validator & tanda tangan.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila ronde tidak cocok, validator tidak dikenal, vote duplikat,
+    /// atau tanda tangan tidak valid.
     pub fn add_vote(&mut self, vote: &Vote) -> Result<Option<QuorumCertificate>, ConsensusError> {
         if vote.height != self.height || vote.round != self.round {
             return Err(ConsensusError::HeightRoundMismatch);

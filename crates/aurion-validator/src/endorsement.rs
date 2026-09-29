@@ -12,6 +12,7 @@ pub struct AdmissionPetition {
 }
 
 impl AdmissionPetition {
+    #[must_use]
     pub fn digest(&self) -> Hash256 {
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"AURION_VALIDATOR_ADMISSION_PETITION_V1");
@@ -30,6 +31,7 @@ pub struct PeerEndorsementCertificate {
 }
 
 impl PeerEndorsementCertificate {
+    #[must_use]
     pub fn new(petition: AdmissionPetition) -> Self {
         Self {
             petition,
@@ -38,6 +40,11 @@ impl PeerEndorsementCertificate {
     }
 
     /// Tambah suara dukungan dari validator aktif
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika endorser adalah kandidat, tidak aktif, mengirim
+    /// dukungan duplikat, atau tanda tangannya tidak valid.
     pub fn add_endorsement(
         &mut self,
         endorser: PublicKeyBytes,
@@ -66,6 +73,10 @@ impl PeerEndorsementCertificate {
     }
 
     /// Verifikasi apakah ambang batas minimal 3 validator telah terpenuhi
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika jumlah dukungan belum mencapai ambang minimum.
     pub fn verify_threshold(&self) -> Result<(), AdmissionError> {
         if self.endorsements.len() < MINIMUM_PEER_APPROVALS {
             return Err(AdmissionError::InsufficientEndorsements {

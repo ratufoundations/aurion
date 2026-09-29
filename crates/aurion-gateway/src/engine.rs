@@ -17,7 +17,10 @@ pub struct AurionGateway {
 }
 
 impl AurionGateway {
-    /// Inisialisasi Sesi Zenoh Gateway
+    /// Inisialisasi Sesi Zenoh Gateway.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila sesi Zenoh atau queryable gagal dibuat.
     pub async fn start(
         chain_id: u64,
         ledger: Arc<LedgerStore>,
@@ -84,8 +87,7 @@ impl AurionGateway {
                                 .get_account(&pk)
                                 .ok()
                                 .flatten()
-                                .map(|acc| (acc.balance, acc.nonce))
-                                .unwrap_or((0, 0));
+                                .map_or((0, 0), |acc| (acc.balance, acc.nonce));
 
                             serde_json::json!({
                                 "address": pubkey_hex,
@@ -154,7 +156,10 @@ impl AurionGateway {
         Ok(())
     }
 
-    /// PUBLISHER: Siarkan blok baru secara real-time ke semua pelanggan Zenoh
+    /// Siarkan blok baru secara real-time ke semua pelanggan Zenoh.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila pengiriman ke sesi Zenoh gagal.
     pub async fn broadcast_block(&self, block: &Block) -> Result<(), GatewayError> {
         let topic = GatewayRoutes::events_blocks(self.chain_id);
         let block_bytes = Codec::encode_block(block);

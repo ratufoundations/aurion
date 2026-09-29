@@ -13,6 +13,7 @@ pub struct Domain;
 
 impl Domain {
     /// Menghasilkan tag 32 bita unik untuk namespace aplikasi / federasi tertentu
+    #[must_use]
     pub fn custom(namespace: &str) -> Hash256 {
         let mut hasher = blake3::Hasher::new();
         hasher.update(b"AURION_WALLET_CUSTOM_DOMAIN_V1");
@@ -21,9 +22,10 @@ impl Domain {
     }
 }
 
-/// Hash payload transaksi 80 bita dengan domain AURION_TX_CANONICAL_V1.
+/// Hash payload transaksi 80 bita dengan domain `AURION_TX_CANONICAL_V1`.
 /// Setara byte-per-byte dengan `Transaction::digest()` di aurion-core
 /// (BLAKE3 streaming: update(domain) + update(payload)).
+#[must_use]
 pub fn hash_transaction_payload(payload_80b: &[u8; 80]) -> Hash256 {
     let mut hasher = blake3::Hasher::new();
     hasher.update(DOMAIN_TRANSACTION_SIGNING);

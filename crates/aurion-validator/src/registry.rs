@@ -26,6 +26,7 @@ pub struct ValidatorRegistry {
 }
 
 impl ValidatorRegistry {
+    #[must_use]
     pub fn new(initial_validators: Vec<PublicKeyBytes>, probation_duration: u64) -> Self {
         let mut nodes = BTreeMap::new();
         let mut active_validators = BTreeSet::new();
@@ -47,6 +48,10 @@ impl ValidatorRegistry {
     }
 
     /// 1. Pendaftaran baru ke masa uji coba
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika simpul sudah terdaftar.
     pub fn register_for_probation(
         &mut self,
         node: PublicKeyBytes,
@@ -64,6 +69,11 @@ impl ValidatorRegistry {
     }
 
     /// 2. Proses Heartbeat selama masa probation
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika tanda tangan heartbeat tidak valid atau simpul
+    /// belum terdaftar.
     pub fn handle_heartbeat(
         &mut self,
         heartbeat: &Heartbeat,
@@ -85,6 +95,11 @@ impl ValidatorRegistry {
     }
 
     /// 3. Luluskan Probation -> Promosikan ke Status Candidate
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika simpul tidak ditemukan, belum lulus probation,
+    /// atau bukan kandidat yang memenuhi syarat.
     pub fn graduate_to_candidate(
         &mut self,
         node: &PublicKeyBytes,
@@ -115,6 +130,11 @@ impl ValidatorRegistry {
     }
 
     /// 4. Berikan suara dukungan (Endorsement) dari validator aktif
+    ///
+    /// # Errors
+    ///
+    /// Mengembalikan error jika kandidat tidak ditemukan, tidak memenuhi syarat,
+    /// atau dukungannya tidak valid.
     pub fn submit_endorsement(
         &mut self,
         candidate: &PublicKeyBytes,
