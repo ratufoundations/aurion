@@ -1,3 +1,13 @@
+## 2026-09-30 — Penyelesaian modul aurion-gateway GW0–GW5 (Boundary Ingress & CQRS Gateway)
+- Menyelesaikan implementasi modul `crates/aurion-gateway` dengan matriks invarian GW0–GW5 (Sanitasi Ingress/Anti-Malformed, Pemisahan CQRS Read/Write, Proteksi Max Request DoS, Rate Limiter Token Bucket u64, Isolasi Galat Klien/Error Redaction, Metrik Gateway Zero-Float).
+- Membuat modul: `src/sanitizer.rs` (validasi JSON/hex/frame), `src/rate_limiter.rs` (Token Bucket u64), `src/metrics.rs` (pencatatan BPS u64), `src/error.rs` (tipe galat terstruktur).
+- Membuat `tests/gateway_invariants.rs` berisi 32 tes integrasi: 5 GW0 (sanitasi malformed), 5 GW1 (CQRS segregasi), 5 GW2 (DoS protection), 5 GW3 (token bucket rate limiting), 6 GW4 (fault isolation), 6 GW5 (zero-float metrics).
+- Perbaikan clippy: doc markdown backticks, missing Errors section, manual is_multiple_of, checked_conversions, cast_lossless, double_must_use.
+- Perbaikan guard: mengganti .unwrap() dengan expect() di test file.
+- Verifikasi: `cargo test -p aurion-gateway` lulus (32 integration tests); `cargo clippy -p aurion-gateway --all-targets --all-features -- -D warnings` lulus; `python3 tools/aurion_guard.py check` lulus.
+- Status task register: COMPLETED.
+- Berkas diubah: `crates/aurion-gateway/src/{sanitizer,rate_limiter,metrics,error,lib}.rs`, `crates/aurion-gateway/tests/gateway_invariants.rs`, `docs/task-register/TASK-aurion-gateway.md`, `docs/STRUKTUR-FOLDER.txt`, `logs/WORK_LOG.md`.
+
 ## 2026-09-30 — Penyelesaian modul aurion-guard G0–G5 (Security Engine, Slashing, Tombstoning)
 - Menyelesaikan implementasi modul `crates/aurion-guard` dengan matriks invarian G0–G5 (Verifikasi Kripto Equivocation, Anti-Replay & Kedaluwarsa Bukti, Slashing Bertingkat Solven, Tombstoning Permanen, Kuorum Multi-Sig GuardCouncil, Akuntansi Denda BPS Zero-Float).
 - Memperbaiki `TREASURY_RATE_BPS` dari 6000 ke 9000 untuk mencocokkan alokasi treasury 90% dari slash amount (reporter 5% + burn 5% + treasury 90% = 100%).
