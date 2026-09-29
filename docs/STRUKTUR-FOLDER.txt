@@ -1,29 +1,44 @@
 aurion/
-├── apps/                          # [KOSONG] rencana binary / node / CLI
-├── config/                        # [KOSONG] rencana config TOML/YAML
+├── Agents.md                      # [KOSONG/PLACEHOLDER 0 byte, untracked] dokumen otoritas arsitektur — BELUM TERSEDIA di main
+├── apps/
+│   ├── aurion-node/               # [AKTIF] biner simpul validator (TCP + consensus + ledger + mempool)
+│   ├── aurion-explorer/           # [AKTIF] backend API explorer (axum) — baca LedgerStore
+│   └── aurion-cli/                # [AKTIF] CLI operasional (keygen/status/balance/monitor via Zenoh)
+├── config/                        # [KOSONG] rencana config TOML/YAML (belum ada file)
 ├── crates/
-│   ├── aurion-consesus/           # [KOSONG] !!! typo, seharusnya `consensus`
-│   ├── aurion-core/               # [KOSONG] rencana tipe inti: Block, Tx, State
-│   └── aurion-criptografi/        # [AKTIF] satu-satunya crate terdaftar di workspace
-│       ├── Cargo.toml             # deps: blake3, ed25519-dalek, rayon, zeroize, subtle, rand_core, thiserror
-│       └── src/
-│           ├── lib.rs             # #![forbid(unsafe_code)], pub mod hash/signature, type Hash256/PubKey/Sig/PrivKey
-│           ├── hash.rs            # struct Hasher::{digest, digest_parallel(rayon), combine(Merkle)}
-│           └── signature/
-│               ├── mod.rs         # re-export error/keypair/verifier
-│               ├── error.rs       # enum CryptoError::{InvalidPublicKey, InvalidSignature, VerificationFailed, BatchMismatch}
-│               ├── keypair.rs     # struct Keypair{signing_key, verifying_key} + ZeroizeOnDrop, generate/from_bytes/sign
-│               └── verifier.rs    # struct SignatureVerifier::{verify_single, verify_batch(rayon)}
+│   ├── aurion-account/            # [AKTIF] SovereignAccount, role, policy
+│   ├── aurion-consensus/          # [AKTIF] ValidatorSet, RoundState, Vote, QC
+│   ├── aurion-contract/           # [AKTIF] VM eksperimental (baseline penelitian, BUKAN keputusan final)
+│   ├── aurion-core/               # [AKTIF] tipe inti: Account, Transaction, Block, State
+│   ├── aurion-criptografi/        # [AKTIF] hash BLAKE3 + Ed25519 (workspace member pertama)
+│   ├── aurion-gateway/            # [AKTIF] GatewayRoutes + AurionGateway (Zenoh boundary)
+│   ├── aurion-genesis/            # [AKTIF] GenesisSpec, bootstrap blok 0 (QUANTA_PER_AUR = 1_000_000 — nilai eksplorasi, BUKAN kebijakan moneter terkunci)
+│   ├── aurion-guard/              # [AKTIF] GuardCouncil, election, evidence, verdict
+│   ├── aurion-ledger/             # [AKTIF] LedgerStore, Codec, schema (sled)
+│   ├── aurion-mempool/            # [AKTIF] Mempool, fee/nonce/balance validation
+│   ├── aurion-network/            # [AKTIF] AurionWireCodec, Handshake, PeerConnection (TCP)
+│   ├── aurion-validator/          # [AKTIF] registry, probation, endorsement
+│   └── aurion-wallet/            # [AKTIF] AurionWallet, domain separation wallet-level, delegation
 ├── docs/
+│   ├── STRUKTUR-FOLDER.txt        # file ini (diperbarui 2026-09-29; snapshot lama sebelum 2026-09-28 sudah kedaluwarsa)
 │   └── task-register/
-│       └── TASK-002-crypto-testing-standards.md  # Spec C0-C7 Verification Framework v1.0.0, status DRAFT
+│       ├── TASK-002-crypto-testing-standards.md  # kerangka C0–C7, status DRAFT
+│       └── TASK-003-peta-tes-fondasi-aurion-v0.md # working test map, status WORKING-MAP (bukan aturan final)
 ├── tests/
-│   └── aurion-criptografi-tests/  # [KOSONG] dir integration test terpisah (belum ada file)
+│   └── aurion-criptografi-tests/  # [KOSONG] dir integration test terpisah (belum ada file; tes kripto saat ini inline #[cfg(test)] di source)
 ├── logs/                          # [KOSONG] output log runtime
 ├── tools/                         # [KOSONG] skrip bantu / fuzz / bench
-├── Cargo.toml                     # [workspace] resolver=3, members=["crates/aurion-criptografi"]
-├── Cargo.lock                     # lockfile 13KB
+├── scripts/
+│   └── audit.sh                   # audit suite: clippy + cargo audit + cargo deny + grep unsafe/float
+├── clippy.toml                    # larangan f32/f64 (alasan: determinisme consensus)
+├── deny.toml                      # kebijakan advisories/licenses/bans/sources
+├── Cargo.toml                     # [workspace] resolver=3, 16 members (13 crates + 3 apps), [workspace.lints] unsafe forbid + float deny + unwrap_used deny
+├── Cargo.lock                     # lockfile
 └── target/                        # [GENERATED] build artifacts cargo, jangan di-commit
-    ├── debug/deps/                # .d + bin aurion_criptografi-*
-    ├── debug/.fingerprint/        # blake3, curve25519-dalek, ed25519, rayon, dll
-    └── debug/build/               # output cc/assembly blake3 (avx2/avx512/sse2/sse41)
+
+CATATAN:
+- Typo lama `aurion-consesus` sudah tidak ada; nama terkunci: `crates/aurion-consensus`.
+- Nama kripto terkunci: `crates/aurion-criptografi` (`aurion-criptografi`); TASK-002 sudah mencatat alias lama `crates/crypto`.
+- `README.md` (root, commit `f62a45c` 2026-09-29 — mendarat dari pemilik proyek saat task ini berjalan; lihat SYNC-REPORT-2026-09-29 §3/§9 adendum).
+- Tidak ada DSR di kode (grep `DSR` di crates/apps hanya cocok di docs TASK-003 sebagai kandidat paralel F4).
+
