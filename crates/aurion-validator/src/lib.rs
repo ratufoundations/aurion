@@ -1,16 +1,46 @@
 #![forbid(unsafe_code)]
 
 pub mod endorsement;
+pub mod epoch;
 pub mod error;
+pub mod lifecycle;
+pub mod liveness;
 pub mod probation;
+pub mod proof;
+pub mod record;
 pub mod registry;
+pub mod scoring;
+pub mod status;
 
-pub use endorsement::{AdmissionPetition, PeerEndorsementCertificate, MINIMUM_PEER_APPROVALS};
-pub use error::AdmissionError;
+pub use aurion_account::MIN_VALIDATOR_STAKE_QUANTA;
+pub use endorsement::{
+    AdmissionPetition, Endorsement, EndorsementLedger, PeerEndorsementCertificate,
+    MAX_ACTIVE_ENDORSEMENTS, MINIMUM_PEER_APPROVALS, MIN_ENDORSER_TENURE_BLOCKS,
+};
+pub use epoch::{
+    select_active_set, ActiveSetSelection, EpochSchedule, EPOCH_LENGTH_BLOCKS,
+    MAX_ACTIVE_VALIDATORS,
+};
+pub use error::{AdmissionError, ValidatorError};
+pub use lifecycle::{
+    EpochRotation, SlashOutcome, ValidatorLifecycle, ValidatorPolicy,
+    DEFAULT_PROBATION_WINDOW_BLOCKS, ENDORSEMENT_PROBATION_DISCOUNT_BPS, PROBATION_FLOOR_DIVISOR,
+};
+pub use liveness::{
+    BlockReport, UnjailRequest, MAX_MISSED_BLOCKS_THRESHOLD, SEVERE_SLASH_RATE_BPS,
+    SUSPENSION_COOLDOWN_BLOCKS, UNJAIL_COOLDOWN_BLOCKS,
+};
 pub use probation::{
     Heartbeat, ProbationTracker, DEFAULT_PROBATION_BLOCKS, MINIMUM_UPTIME_PERCENT,
 };
+pub use proof::{ProofOfPossession, POP_DOMAIN_TAG};
+pub use record::ValidatorRecord;
 pub use registry::{NodeAdmissionStatus, ValidatorRegistry};
+pub use scoring::{
+    accumulate_weight, effective_stake_quanta, meets_bps_quorum, slash_amount, uptime_bps,
+    BPS_DENOMINATOR, FULL_PERFORMANCE_BPS,
+};
+pub use status::{SuspensionReason, ValidatorStatus, ALL_VALIDATOR_STATUSES};
 
 #[cfg(test)]
 #[allow(clippy::expect_used, clippy::unwrap_used)]

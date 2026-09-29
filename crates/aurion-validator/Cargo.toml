@@ -8,6 +8,7 @@ tracing = { workspace = true }
 aurion-criptografi = { path = "../aurion-criptografi" }
 aurion-core = { path = "../aurion-core" }
 aurion-consensus = { path = "../aurion-consensus" }
+aurion-account = { path = "../aurion-account" }
 blake3 = "1.5"
 thiserror = "1.0"
 

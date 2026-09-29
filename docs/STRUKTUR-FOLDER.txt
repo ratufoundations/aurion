@@ -17,7 +17,7 @@ aurion/
 │   ├── aurion-ledger/             # [AKTIF] redb LedgerStore, codec, module KV, append-only commits, read snapshots; tes L0–L5
 │   ├── aurion-mempool/            # [AKTIF] Mempool, signature/fee/nonce/solvency, deterministic selection and bounded eviction; M0–M5 tests
 │   ├── aurion-network/            # [AKTIF] facade NetworkService + AurionBehaviour (libp2p gossipsub/noise/identify/yamux/tcp), wire codec, handshake gate, metrik u64; tes N0-N5
-│   ├── aurion-validator/          # [AKTIF] registry, probation, endorsement
+│   ├── aurion-validator/          # [AKTIF] gerbang penerimaan validator (PoP/stake/peran), pipeline probation, rotasi epoch deterministik, auto-jail liveness, endorsement anti-Sybil, skoring BPS nir-pecahan; tes V0–V5
 │   └── aurion-wallet/            # [AKTIF] AurionWallet, domain separation wallet-level, delegation
 ├── docs/
 │   ├── RFC-001.md                  # arah desain modul komposabel (Draft / Proposed)
@@ -30,6 +30,7 @@ aurion/
 │       ├── TASK-aurion-network.md               # P2P wire & swarm boundary N0–N5 (ACTIVE, fondasi libp2p 0.56)
 │       ├── TASK-aurion-ledger.md                # invarian persistensi L0–L5 (COMPLETED)
 │       ├── TASK-aurion-mempool.md               # invarian admission M0–M5 (COMPLETED)
+│       ├── TASK-aurion-validator.md             # siklus hidup validator V0–V5 (COMPLETED)
 │       ├── TASK-002-crypto-testing-standards.md  # kerangka C0–C7, status DRAFT
 │       └── TASK-003-peta-tes-fondasi-aurion-v0.md # working test map, status WORKING-MAP (bukan aturan final)
 ├── logs/                          # [AKTIF] WORK_LOG.md terlacak; log runtime diabaikan Git

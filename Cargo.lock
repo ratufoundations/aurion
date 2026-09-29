@@ -486,6 +486,7 @@ dependencies = [
 name = "aurion-validator"
 version = "0.1.0"
 dependencies = [
+ "aurion-account",
  "aurion-consensus",
  "aurion-core",
  "aurion-criptografi",
