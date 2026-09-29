@@ -15,6 +15,7 @@ pub struct QuorumCertificate {
     pub signers: Vec<PublicKeyBytes>,
 }
 
+#[derive(Debug)]
 pub struct RoundState {
     pub height: u64,
     pub round: u32,
@@ -26,6 +27,7 @@ pub struct RoundState {
 
 impl RoundState {
     pub fn new(height: u64, round: u32, validator_set: ValidatorSet) -> Self {
+        tracing::info!(height, round, "Ronde BFT baru dimulai");
         Self {
             height,
             round,
@@ -59,9 +61,17 @@ impl RoundState {
             return Err(ConsensusError::DuplicateVote(vote.validator));
         }
 
+        tracing::debug!(voter = ?vote.validator, height = vote.height, round = vote.round, "Suara vote sah diterima");
+
         // 3. Cek apakah batas kuorum 2f + 1 sudah terpenuhi
         let threshold = self.validator_set.quorum_threshold();
         if voters.len() >= threshold {
+            tracing::info!(
+                height = self.height,
+                round = self.round,
+                signers = voters.len(),
+                "Kuorum QC 2f+1 tercapai"
+            );
             return Ok(Some(QuorumCertificate {
                 height: self.height,
                 round: self.round,

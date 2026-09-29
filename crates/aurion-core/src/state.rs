@@ -1,4 +1,9 @@
-use crate::{account::Account, error::ExecutionError, transaction::Transaction};
+use crate::{
+    account::Account,
+    error::ExecutionError,
+    module::{StateReader, StateWriter},
+    transaction::Transaction,
+};
 use aurion_criptografi::{Hash256, PublicKeyBytes};
 use std::collections::BTreeMap;
 
@@ -6,12 +11,14 @@ use std::collections::BTreeMap;
 pub struct State {
     // Gunakan BTreeMap untuk memastikan iterasi selalu terurut (deterministik)
     accounts: BTreeMap<PublicKeyBytes, Account>,
+    module_data: BTreeMap<Vec<u8>, Vec<u8>>,
 }
 
 impl State {
     pub fn new() -> Self {
         Self {
             accounts: BTreeMap::new(),
+            module_data: BTreeMap::new(),
         }
     }
 
@@ -30,11 +37,15 @@ impl State {
     /// Transisi status atomik: S(t+1) = f(S_t, Tx)
     pub fn apply_transaction(&mut self, tx: &Transaction) -> Result<(), ExecutionError> {
         if tx.sender == tx.recipient {
+            tracing::error!(account = ?tx.sender, "Percobaan transfer ke akun sendiri");
             return Err(ExecutionError::SelfTransferForbidden);
         }
 
         // 1. Verifikasi tanda tangan digital
-        tx.verify_signature()?;
+        if let Err(error) = tx.verify_signature() {
+            tracing::error!(account = ?tx.sender, error = %error, "Tanda tangan transaksi ditolak");
+            return Err(error);
+        }
 
         // 2. Baca status sender
         let sender_acc = self
@@ -53,6 +64,7 @@ impl State {
 
         // 4. Validasi Saldo Sender
         if sender_acc.balance < tx.amount {
+            tracing::error!(account = ?tx.sender, available = sender_acc.balance, required = tx.amount, "Percobaan double-spend / saldo tidak mencukupi");
             return Err(ExecutionError::InsufficientBalance {
                 available: sender_acc.balance,
                 required: tx.amount,
@@ -91,6 +103,7 @@ impl State {
             tx.recipient,
             Account::new(new_recipient_balance, recipient_acc.nonce),
         );
+        tracing::debug!(account = ?tx.sender, new_balance = new_sender_balance, "State akun dimutasi");
 
         Ok(())
     }
@@ -104,7 +117,30 @@ impl State {
             let acc_hash = account.hash(pubkey);
             hasher.update(&acc_hash);
         }
+        hasher.update(b"AURION_MODULE_STATE_V1");
+        for (key, value) in &self.module_data {
+            hasher.update(&(key.len() as u64).to_le_bytes());
+            hasher.update(key);
+            hasher.update(&(value.len() as u64).to_le_bytes());
+            hasher.update(value);
+        }
 
         *hasher.finalize().as_bytes()
+    }
+}
+
+impl StateReader for State {
+    fn get(&self, key: &[u8]) -> Option<&[u8]> {
+        self.module_data.get(key).map(Vec::as_slice)
+    }
+}
+
+impl StateWriter for State {
+    fn set(&mut self, key: &[u8], value: &[u8]) {
+        self.module_data.insert(key.to_vec(), value.to_vec());
+    }
+
+    fn remove(&mut self, key: &[u8]) -> Option<Vec<u8>> {
+        self.module_data.remove(key)
     }
 }

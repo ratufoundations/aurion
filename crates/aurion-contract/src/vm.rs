@@ -5,6 +5,7 @@ use crate::{
 
 pub const MAX_STACK_DEPTH: usize = 1024;
 
+#[derive(Debug)]
 pub struct AurionVm<'a> {
     context: &'a ExecutionContext,
     storage: &'a mut ContractStorage,
@@ -33,6 +34,7 @@ impl<'a> AurionVm<'a> {
         let mut pc = 0;
         while pc < code.len() {
             let op = &code[pc];
+            tracing::trace!(pc, gas_left = self.gas_meter.remaining(), opcode = ?op, "Eksekusi opcode instruksi VM");
             self.gas_meter.consume(op.gas_cost())?;
             match op {
                 Opcode::Push(val) => {
@@ -117,8 +119,16 @@ impl<'a> AurionVm<'a> {
                     }
                 }
                 Opcode::GetCaller => {
-                    let caller_id =
-                        u64::from_le_bytes(self.context.caller[0..8].try_into().unwrap());
+                    let caller_id = u64::from_le_bytes([
+                        self.context.caller[0],
+                        self.context.caller[1],
+                        self.context.caller[2],
+                        self.context.caller[3],
+                        self.context.caller[4],
+                        self.context.caller[5],
+                        self.context.caller[6],
+                        self.context.caller[7],
+                    ]);
                     self.stack.push(caller_id);
                 }
                 Opcode::GetCallValue => {
@@ -176,12 +186,20 @@ mod tests {
         ];
         {
             let mut vm = AurionVm::new(&ctx, &mut storage, 10_000);
-            assert_eq!(vm.execute(&counter_bytecode).unwrap(), Some(1));
+            assert_eq!(
+                vm.execute(&counter_bytecode)
+                    .expect("test operation should succeed"),
+                Some(1)
+            );
             assert_eq!(storage.get(&contract_addr, 100), 1);
         }
         {
             let mut vm = AurionVm::new(&ctx, &mut storage, 10_000);
-            assert_eq!(vm.execute(&counter_bytecode).unwrap(), Some(2));
+            assert_eq!(
+                vm.execute(&counter_bytecode)
+                    .expect("test operation should succeed"),
+                Some(2)
+            );
             assert_eq!(storage.get(&contract_addr, 100), 2);
         }
     }

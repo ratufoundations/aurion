@@ -2,11 +2,12 @@
 
 use std::error::Error;
 
+use aurion_config::{init_central_logging_with_settings, AppMode, AurionSettings};
 use aurion_criptografi::Keypair;
 use aurion_gateway::GatewayRoutes;
 use aurion_ledger::Codec;
 use clap::{Parser, Subcommand};
-use comfy_table::{Cell, Color, Table, presets::UTF8_FULL};
+use comfy_table::{presets::UTF8_FULL, Cell, Color, Table};
 
 #[derive(Parser, Debug)]
 #[command(
@@ -16,13 +17,11 @@ use comfy_table::{Cell, Color, Table, presets::UTF8_FULL};
     long_about = "CLI resmi untuk membuat kredensial, memeriksa status konsensus, dan memantau siaran blok Aurion via Zenoh."
 )]
 struct Cli {
-    #[arg(
-        short,
-        long,
-        default_value_t = 1001,
-        help = "ID Jaringan Aurion (Chain ID)"
-    )]
-    chain_id: u64,
+    #[arg(short, long, help = "ID Jaringan Aurion (Chain ID)")]
+    chain_id: Option<u64>,
+
+    #[arg(short, long, help = "Aktifkan log terperinci di terminal")]
+    verbose: bool,
 
     #[command(subcommand)]
     command: Commands,
@@ -49,15 +48,26 @@ enum Commands {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let cli = Cli::parse();
+    let config = AurionSettings::load_from_file("config/node.dev.toml")?;
+    let chain_id = cli.chain_id.unwrap_or(config.network.chain_id);
+    let mode = if cli.verbose {
+        AppMode::Developer
+    } else {
+        AppMode::Production
+    };
+    let mut logging = config.logging.clone();
+    logging.log_to_stdout &= cli.verbose;
+    let _guard = init_central_logging_with_settings(mode, &logging, "aurion-cli");
+    tracing::info!(chain_id, verbose = cli.verbose, "Aurion CLI mulai");
 
     match cli.command {
         Commands::Keygen => {
             cmd_keygen();
             Ok(())
         }
-        Commands::Status => cmd_status(cli.chain_id).await,
-        Commands::Balance { address } => cmd_balance(cli.chain_id, &address).await,
-        Commands::Monitor => cmd_monitor(cli.chain_id).await,
+        Commands::Status => cmd_status(chain_id).await,
+        Commands::Balance { address } => cmd_balance(chain_id, &address).await,
+        Commands::Monitor => cmd_monitor(chain_id).await,
     }
 }
 
@@ -146,9 +156,7 @@ const QUANTA_PER_AUR: u64 = 1_000_000;
 /// 3. Perintah Balance (Zero-float: kalkulasi konversi Quanta ke AUR via modulus)
 async fn cmd_balance(chain_id: u64, address: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
     if address.len() != 64 {
-        eprintln!(
-            "Format alamat tidak valid: panjang hex harus tepat 64 karakter (32 byte)."
-        );
+        eprintln!("Format alamat tidak valid: panjang hex harus tepat 64 karakter (32 byte).");
         return Ok(());
     }
 

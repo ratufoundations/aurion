@@ -1,5 +1,6 @@
 use crate::error::VmError;
 
+#[derive(Debug)]
 pub struct GasMeter {
     pub limit: u64,
     pub consumed: u64,

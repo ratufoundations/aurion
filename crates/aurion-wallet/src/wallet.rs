@@ -2,6 +2,7 @@ use crate::{delegation::DeviceCertificate, domain::hash_transaction_payload, err
 use aurion_core::Transaction;
 use aurion_criptografi::{Hash256, Keypair, PublicKeyBytes};
 
+#[derive(Debug)]
 pub struct AurionWallet {
     pub identity: Keypair,
     pub domain_tag: Hash256,
@@ -59,11 +60,13 @@ impl AurionWallet {
         let payload = Transaction::payload_bytes(&sender, &recipient, amount, nonce);
         let digest = hash_transaction_payload(&payload);
         let signature = self.identity.sign(&digest);
+        tracing::debug!(addr = ?sender, amount, nonce, "Transaksi berhasil ditandatangani oleh dompet");
         Transaction::new(sender, recipient, amount, nonce, signature)
     }
 }
 
 /// Sisi Klien Perangkat (misal: Ponsel / Browser) yang hanya memegang DeviceKey
+#[derive(Debug)]
 pub struct LinkedDeviceSession {
     pub device_keypair: Keypair,
     pub certificate: DeviceCertificate,

@@ -18,8 +18,9 @@ mod tests {
 
     #[test]
     fn test_genesis_initialization_with_66m_aur() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let ledger = aurion_ledger::LedgerStore::open(temp_file.path()).unwrap();
+        let temp_file = NamedTempFile::new().expect("test operation should succeed");
+        let ledger = aurion_ledger::LedgerStore::open(temp_file.path())
+            .expect("test operation should succeed");
 
         let treasury = Keypair::generate().public_key_bytes();
         let val1 = Keypair::generate().public_key_bytes();
@@ -34,21 +35,29 @@ mod tests {
             vec![val1, val2],
             vec![guard1],
         )
-        .unwrap();
+        .expect("test operation should succeed");
 
         // Verifikasi perhitungan Quanta
         let expected_quanta = 66_000_000 * 1_000_000u64;
-        assert_eq!(spec.total_supply_quanta().unwrap(), expected_quanta);
+        assert_eq!(
+            spec.total_supply_quanta()
+                .expect("test operation should succeed"),
+            expected_quanta
+        );
 
         // Inisialisasi Blok 0 ke Ledger
-        let genesis_block = GenesisBootstrap::initialize_ledger(&ledger, &spec).unwrap();
+        let genesis_block = GenesisBootstrap::initialize_ledger(&ledger, &spec)
+            .expect("test operation should succeed");
 
         assert_eq!(genesis_block.header.height, 0);
         assert_eq!(genesis_block.header.prev_hash, [0u8; 32]);
         assert_eq!(genesis_block.header.tx_count, 0);
 
         // Verifikasi saldo Treasury di disk redb
-        let treasury_on_disk = ledger.get_account(&treasury).unwrap().unwrap();
+        let treasury_on_disk = ledger
+            .get_account(&treasury)
+            .expect("test operation should succeed")
+            .expect("test operation should succeed");
         assert_eq!(treasury_on_disk.balance, expected_quanta);
         assert_eq!(treasury_on_disk.nonce, 0);
 

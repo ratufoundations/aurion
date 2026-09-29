@@ -7,6 +7,7 @@ use std::collections::BTreeSet;
 
 pub const MINIMUM_GUARD_QUORUM: usize = 5;
 
+#[derive(Debug)]
 pub struct GuardCouncil {
     guards: BTreeSet<PublicKeyBytes>,
     blacklisted_validators: BTreeSet<PublicKeyBytes>,
@@ -70,7 +71,9 @@ impl GuardCouncil {
         }
 
         // 3. Putus jaringan: Masukkan ke daftar isolasi mutlak
+        tracing::warn!(node = ?target, block_height = verdict.evidence.block_height, "Indikasi anomali: Razia Guard dipicu");
         self.blacklisted_validators.insert(target);
+        tracing::error!(node = ?target, penalty = "blacklist", votes = total, "Putusan vonis aklamasi 5/5 dijatuhkan");
         Ok(())
     }
 
@@ -105,6 +108,7 @@ impl GuardCouncil {
 
         // 3. Pulihkan hak validator
         self.blacklisted_validators.remove(&target);
+        tracing::info!(node = ?target, votes = total, "Putusan pardon Guard dijalankan");
         Ok(())
     }
 }

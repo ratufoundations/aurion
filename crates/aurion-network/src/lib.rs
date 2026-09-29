@@ -27,8 +27,13 @@ mod tests {
         let msg = NetworkMessage::Vote(vote.clone());
         let mut codec = AurionWireCodec;
         let mut buffer = BytesMut::new();
-        codec.encode(msg, &mut buffer).unwrap();
-        let decoded = codec.decode(&mut buffer).unwrap().unwrap();
+        codec
+            .encode(msg, &mut buffer)
+            .expect("test operation should succeed");
+        let decoded = codec
+            .decode(&mut buffer)
+            .expect("test operation should succeed")
+            .expect("test operation should succeed");
         match decoded {
             NetworkMessage::Vote(decoded_vote) => {
                 assert_eq!(decoded_vote.validator, vote.validator);
@@ -55,8 +60,13 @@ mod tests {
         let msg = NetworkMessage::Transaction(tx.clone());
         let mut codec = AurionWireCodec;
         let mut buffer = BytesMut::new();
-        codec.encode(msg, &mut buffer).unwrap();
-        let decoded = codec.decode(&mut buffer).unwrap().unwrap();
+        codec
+            .encode(msg, &mut buffer)
+            .expect("test operation should succeed");
+        let decoded = codec
+            .decode(&mut buffer)
+            .expect("test operation should succeed")
+            .expect("test operation should succeed");
         match decoded {
             NetworkMessage::Transaction(decoded_tx) => {
                 assert_eq!(decoded_tx.sender, tx.sender);
@@ -70,26 +80,43 @@ mod tests {
 
     #[tokio::test]
     async fn test_tcp_peer_loopback() {
-        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
-        let addr = listener.local_addr().unwrap();
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("test operation should succeed");
+        let addr = listener
+            .local_addr()
+            .expect("test operation should succeed");
         let server_task = tokio::spawn(async move {
-            let (socket, _) = listener.accept().await.unwrap();
+            let (socket, _) = listener
+                .accept()
+                .await
+                .expect("test operation should succeed");
             let mut peer = PeerConnection::new(socket);
-            let msg = peer.read_message().await.unwrap().unwrap();
+            let msg = peer
+                .read_message()
+                .await
+                .expect("test operation should succeed")
+                .expect("test operation should succeed");
             if let NetworkMessage::Ping(nonce) = msg {
                 peer.send_message(NetworkMessage::Pong(nonce))
                     .await
-                    .unwrap();
+                    .expect("test operation should succeed");
             }
         });
-        let client_socket = tokio::net::TcpStream::connect(addr).await.unwrap();
+        let client_socket = tokio::net::TcpStream::connect(addr)
+            .await
+            .expect("test operation should succeed");
         let mut client_peer = PeerConnection::new(client_socket);
         client_peer
             .send_message(NetworkMessage::Ping(42))
             .await
-            .unwrap();
-        let response = client_peer.read_message().await.unwrap().unwrap();
+            .expect("test operation should succeed");
+        let response = client_peer
+            .read_message()
+            .await
+            .expect("test operation should succeed")
+            .expect("test operation should succeed");
         assert_eq!(response, NetworkMessage::Pong(42));
-        server_task.await.unwrap();
+        server_task.await.expect("test operation should succeed");
     }
 }

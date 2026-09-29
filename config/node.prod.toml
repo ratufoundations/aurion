@@ -1,9 +1,35 @@
 mode = "production"
-db_path = "/var/lib/aurion/data"
-log_dir = "logs"
 
 [network]
 chain_id = 1001
 p2p_bind_addr = "0.0.0.0:8080"
-rpc_bind_addr = "127.0.0.1:8545"
+max_peers = 100
+handshake_timeout_ms = 5000
+seed_nodes = [
+    "/ip4/116.212.72.89/tcp/8080"
+]
+
+[consensus]
 block_time_ms = 2000
+round_timeout_ms = 5000
+max_tx_per_block = 10000
+quorum_threshold_percent = 67
+
+[storage]
+db_path = "/var/lib/aurion/data"
+max_open_files = 1024
+flush_interval_ms = 2000
+
+[gateway]
+query_timeout_ms = 5000
+
+[explorer]
+http_bind_addr = "0.0.0.0:8545"
+cors_enabled = false
+cache_ttl_seconds = 10
+
+[logging]
+log_dir = "logs"
+log_to_stdout = false
+log_to_file = true
+max_file_size_mb = 200

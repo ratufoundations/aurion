@@ -2,6 +2,7 @@ use crate::{error::GenesisError, spec::GenesisSpec};
 use aurion_core::{Account, Block, BlockHeader, State};
 use aurion_ledger::LedgerStore;
 
+#[derive(Debug)]
 pub struct GenesisBootstrap;
 
 impl GenesisBootstrap {
@@ -32,6 +33,11 @@ impl GenesisBootstrap {
             },
             transactions: Vec::new(),
         };
+        tracing::info!(
+            chain_id = spec.chain_id,
+            supply = spec.initial_supply_aur,
+            "Menginisialisasi Blok 0 (Genesis)"
+        );
         // 4. Tulis ke redb via jalur yang sama dengan blok normal
         // (Block::execute memvalidasi state_root lalu commit menulis height+index).
         ledger.commit_block(&genesis_block, &mut state)?;

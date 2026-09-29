@@ -3,110 +3,93 @@
 pub mod logger;
 pub mod mode;
 pub mod network;
+pub mod settings;
+pub mod validation;
 
 use std::path::Path;
 use thiserror::Error;
 
-pub use logger::init_central_logging;
+pub use logger::{init_central_logging, init_central_logging_with_settings};
 pub use mode::AppMode;
-pub use network::{
-    NetworkConfig, DEFAULT_BLOCK_TIME_MS, DEFAULT_CHAIN_ID, DEFAULT_P2P_PORT, DEFAULT_RPC_PORT,
+pub use network::{DEFAULT_BLOCK_TIME_MS, DEFAULT_CHAIN_ID, DEFAULT_P2P_PORT, DEFAULT_RPC_PORT};
+pub use settings::{
+    AurionSettings, ConsensusSettings, ExplorerSettings, GatewaySettings, LoggingSettings,
+    NetworkSettings, StorageSettings,
 };
+pub use validation::{validate_settings, ValidationError};
 
 #[derive(Error, Debug)]
 pub enum ConfigError {
     #[error("Gagal membaca berkas konfigurasi: {0}")]
     Io(#[from] std::io::Error),
-
-    #[error("Gagal mengurai format TOML: {0}")]
-    Parse(#[from] toml::de::Error),
+    #[error("Format konfigurasi TOML tidak valid: {0}")]
+    Toml(#[from] toml::de::Error),
+    #[error("Invarian konfigurasi gagal: {0}")]
+    Validation(#[from] ValidationError),
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct AurionConfig {
-    pub mode: AppMode,
-    pub network: NetworkConfig,
-    pub db_path: String,
-    pub log_dir: String,
-}
-
-impl Default for AurionConfig {
-    fn default() -> Self {
-        Self {
-            mode: AppMode::Developer,
-            network: NetworkConfig::default(),
-            db_path: "target/aurion_data".to_string(),
-            log_dir: "logs".to_string(),
-        }
-    }
-}
-
-impl AurionConfig {
-    /// Muat konfigurasi dari file TOML.
+impl AurionSettings {
+    /// Membaca TOML, menggabungkan field yang tidak dicantumkan dengan default, lalu memvalidasi invarian.
     ///
     /// # Errors
-    ///
-    /// Mengembalikan [`ConfigError::Io`] bila berkas tidak dapat dibaca dan
-    /// [`ConfigError::Parse`] bila isi berkas bukan TOML yang valid.
+    /// Mengembalikan error bila file tidak dapat dibaca, TOML tidak valid, atau invarian gagal.
     pub fn load_from_file<P: AsRef<Path>>(path: P) -> Result<Self, ConfigError> {
         let content = std::fs::read_to_string(path)?;
-        let config: AurionConfig = toml::from_str(&content)?;
-        Ok(config)
+        let settings: Self = toml::from_str(&content)?;
+        validation::validate_settings(&settings)?;
+        Ok(settings)
+    }
+
+    /// Memuat konfigurasi dan memakai nilai default bila file tidak tersedia atau tidak valid.
+    pub fn load_or_default<P: AsRef<Path>>(path: P) -> Self {
+        Self::load_from_file(path).unwrap_or_default()
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::expect_used)]
 mod tests {
     use super::*;
 
-    fn manifest_path(name: &str) -> std::path::PathBuf {
-        std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join(name)
+    #[test]
+    fn defaults_satisfy_validation() {
+        let settings = AurionSettings::default();
+        assert_eq!(settings.network.chain_id, DEFAULT_CHAIN_ID);
+        assert_eq!(settings.consensus.block_time_ms, DEFAULT_BLOCK_TIME_MS);
+        assert!(validate_settings(&settings).is_ok());
     }
 
     #[test]
-    fn default_mode_is_developer() {
-        assert_eq!(AurionConfig::default().mode, AppMode::Developer);
+    fn loads_developer_blueprint() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("node.dev.toml");
+        let settings = AurionSettings::load_from_file(path).expect("developer config should load");
+        assert_eq!(settings.mode, AppMode::Developer);
+        assert_eq!(
+            settings.storage.db_path,
+            std::path::Path::new("target/dev_db")
+        );
+        assert_eq!(settings.explorer.http_bind_addr, "127.0.0.1:8545");
     }
 
     #[test]
-    fn default_network_matches_constants() {
-        let net = NetworkConfig::default();
-        assert_eq!(net.chain_id, DEFAULT_CHAIN_ID);
-        assert_eq!(net.block_time_ms, DEFAULT_BLOCK_TIME_MS);
-        assert_eq!(net.p2p_bind_addr, format!("0.0.0.0:{DEFAULT_P2P_PORT}"));
-        assert_eq!(net.rpc_bind_addr, format!("127.0.0.1:{DEFAULT_RPC_PORT}"));
+    fn loads_production_blueprint() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("node.prod.toml");
+        let settings = AurionSettings::load_from_file(path).expect("production config should load");
+        assert_eq!(settings.mode, AppMode::Production);
+        assert_eq!(
+            settings.storage.db_path,
+            std::path::Path::new("/var/lib/aurion/data")
+        );
+        assert!(!settings.logging.log_to_stdout);
     }
 
     #[test]
-    fn load_dev_toml() {
-        match AurionConfig::load_from_file(manifest_path("node.dev.toml")) {
-            Ok(cfg) => {
-                assert_eq!(cfg.mode, AppMode::Developer);
-                assert_eq!(cfg.network.chain_id, DEFAULT_CHAIN_ID);
-                assert_eq!(cfg.db_path, "target/dev_db");
-            }
-            Err(e) => panic!("gagal memuat node.dev.toml: {e}"),
-        }
-    }
-
-    #[test]
-    fn load_prod_toml() {
-        match AurionConfig::load_from_file(manifest_path("node.prod.toml")) {
-            Ok(cfg) => {
-                assert_eq!(cfg.mode, AppMode::Production);
-                assert_eq!(cfg.network.chain_id, DEFAULT_CHAIN_ID);
-                assert_eq!(cfg.db_path, "/var/lib/aurion/data");
-            }
-            Err(e) => panic!("gagal memuat node.prod.toml: {e}"),
-        }
-    }
-
-    #[test]
-    fn load_missing_file_returns_io_error() {
-        match AurionConfig::load_from_file(manifest_path("tidak-ada.toml")) {
-            Ok(_) => panic!("seharusnya gagal untuk berkas yang tidak ada"),
-            Err(ConfigError::Io(_)) => {}
-            Err(e) => panic!("jenis galat salah: {e}"),
-        }
+    fn rejects_invalid_quorum() {
+        let mut settings = AurionSettings::default();
+        settings.consensus.quorum_threshold_percent = 50;
+        assert_eq!(
+            validate_settings(&settings),
+            Err(ValidationError::InvalidQuorum(50))
+        );
     }
 }

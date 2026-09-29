@@ -26,6 +26,9 @@ pub enum LedgerError {
     #[error("Data biner transaksi tidak valid: panjang diharapkan {expected}, diterima {got}")]
     InvalidTransactionLength { expected: usize, got: usize },
 
+    #[error("Data biner ledger tidak valid")]
+    MalformedData,
+
     #[error("Akun {0:?} tidak ditemukan di ledger")]
     AccountNotFound(PublicKeyBytes),
 

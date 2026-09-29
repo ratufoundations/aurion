@@ -62,6 +62,7 @@ pub struct ElectionOutcome {
     pub candidate_scores: Vec<(PublicKeyBytes, u64)>,
 }
 
+#[derive(Debug)]
 pub struct EpochElection;
 
 impl EpochElection {
@@ -206,7 +207,8 @@ mod tests {
             });
         }
 
-        let outcome = EpochElection::elect_council(1, &candidates, &config).unwrap();
+        let outcome = EpochElection::elect_council(1, &candidates, &config)
+            .expect("test operation should succeed");
 
         assert_eq!(outcome.elected_guards.len(), 5);
         assert_eq!(outcome.elected_guards[0], dummy_pubkey(6));

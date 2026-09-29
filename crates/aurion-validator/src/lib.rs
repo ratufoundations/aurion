@@ -37,7 +37,9 @@ mod tests {
         // 2. Calon node mendaftar masa uji coba
         let candidate_keypair = Keypair::generate();
         let candidate_pk = candidate_keypair.public_key_bytes();
-        registry.register_for_probation(candidate_pk, 0).unwrap();
+        registry
+            .register_for_probation(candidate_pk, 0)
+            .expect("test operation should succeed");
 
         // 3. Simulasi pengiriman Heartbeat selama masa probation
         for block in 1..=100 {
@@ -52,17 +54,25 @@ mod tests {
                 block_height: block,
                 signature: candidate_keypair.sign(&hb_digest),
             };
-            registry.handle_heartbeat(&hb, block).unwrap();
+            registry
+                .handle_heartbeat(&hb, block)
+                .expect("test operation should succeed");
         }
 
         // Coba luluskan sebelum blok 100 -> GAGAL
         assert!(registry.graduate_to_candidate(&candidate_pk, 99).is_err());
 
         // Luluskan pada blok 100 dengan uptime 100% -> SUKSES MASUK KANDIDAT
-        registry.graduate_to_candidate(&candidate_pk, 100).unwrap();
+        registry
+            .graduate_to_candidate(&candidate_pk, 100)
+            .expect("test operation should succeed");
 
         // 4. Koleksi 3 Persetujuan Validator Aktif
-        let petition_digest = match registry.nodes.get(&candidate_pk).unwrap() {
+        let petition_digest = match registry
+            .nodes
+            .get(&candidate_pk)
+            .expect("test operation should succeed")
+        {
             NodeAdmissionStatus::Candidate(cert) => cert.petition.digest(),
             _ => panic!("Status harus Candidate"),
         };
@@ -71,14 +81,14 @@ mod tests {
         let sig1 = v1.sign(&petition_digest);
         let promoted = registry
             .submit_endorsement(&candidate_pk, v1.public_key_bytes(), sig1)
-            .unwrap();
+            .expect("test operation should succeed");
         assert!(!promoted); // Baru 1/3
 
         // Validator 2 menyetujui
         let sig2 = v2.sign(&petition_digest);
         let promoted = registry
             .submit_endorsement(&candidate_pk, v2.public_key_bytes(), sig2)
-            .unwrap();
+            .expect("test operation should succeed");
         assert!(!promoted); // Baru 2/3
 
         // Calon mencoba menyetujui dirinya sendiri -> DITOLAK
@@ -94,7 +104,7 @@ mod tests {
         let sig3 = v3.sign(&petition_digest);
         let promoted = registry
             .submit_endorsement(&candidate_pk, v3.public_key_bytes(), sig3)
-            .unwrap();
+            .expect("test operation should succeed");
         assert!(promoted); // RESMI AKTIF
 
         // 5. Verifikasi status akhir

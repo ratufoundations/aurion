@@ -9,6 +9,16 @@ pub struct Keypair {
     signing_key: SigningKey,
 }
 
+impl std::fmt::Debug for Keypair {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("Keypair")
+            .field("public_key", &self.verifying_key.to_bytes())
+            .field("signing_key", &"[REDACTED]")
+            .finish()
+    }
+}
+
 impl Drop for Keypair {
     fn drop(&mut self) {
         // Defense-in-depth: wipe secret scalar on drop.

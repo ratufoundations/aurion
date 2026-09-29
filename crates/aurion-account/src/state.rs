@@ -128,6 +128,7 @@ impl SovereignAccount {
             }
         }
         if self.balance < amount {
+            tracing::warn!(account = ?self.account_id, available = self.balance, required = amount, "Transfer ditolak: saldo tidak mencukupi");
             return Err(AccountError::InsufficientBalance {
                 available: self.balance,
                 required: amount,
@@ -135,6 +136,7 @@ impl SovereignAccount {
         }
         self.balance -= amount;
         self.nonce += 1;
+        tracing::debug!(account = ?self.account_id, role = ?device.role, new_balance = self.balance, "Kebijakan akun diperbarui");
         Ok(())
     }
 }

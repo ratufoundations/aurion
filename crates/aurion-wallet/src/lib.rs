@@ -54,8 +54,12 @@ mod tests {
         state
             .apply_transaction(&tx)
             .expect("Transaksi dari wallet harus sah");
-        let alice_acc = state.get_account(&alice_wallet.public_key()).unwrap();
-        let bob_acc = state.get_account(&bob_pubkey).unwrap();
+        let alice_acc = state
+            .get_account(&alice_wallet.public_key())
+            .expect("test operation should succeed");
+        let bob_acc = state
+            .get_account(&bob_pubkey)
+            .expect("test operation should succeed");
         assert_eq!(alice_acc.balance, 380_000);
         assert_eq!(alice_acc.nonce, 1);
         assert_eq!(bob_acc.balance, 120_000);

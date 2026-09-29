@@ -197,12 +197,14 @@ dependencies = [
  "aurion-criptografi",
  "aurion-wallet",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
 name = "aurion-cli"
 version = "0.1.0"
 dependencies = [
+ "aurion-config",
  "aurion-criptografi",
  "aurion-gateway",
  "aurion-ledger",
@@ -213,6 +215,7 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tokio",
+ "tracing",
  "zenoh",
 ]
 
@@ -236,6 +239,7 @@ dependencies = [
  "aurion-criptografi",
  "blake3",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
@@ -245,6 +249,7 @@ dependencies = [
  "aurion-core",
  "aurion-criptografi",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
@@ -254,6 +259,7 @@ dependencies = [
  "aurion-criptografi",
  "blake3",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
@@ -266,6 +272,7 @@ dependencies = [
  "rayon",
  "subtle",
  "thiserror 1.0.69",
+ "tracing",
  "zeroize",
 ]
 
@@ -273,6 +280,7 @@ dependencies = [
 name = "aurion-explorer"
 version = "0.1.0"
 dependencies = [
+ "aurion-config",
  "aurion-core",
  "aurion-criptografi",
  "aurion-ledger",
@@ -283,6 +291,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tower-http",
+ "tracing",
 ]
 
 [[package]]
@@ -298,6 +307,7 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tokio",
+ "tracing",
  "zenoh",
 ]
 
@@ -313,6 +323,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
@@ -324,6 +335,7 @@ dependencies = [
  "aurion-criptografi",
  "blake3",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
@@ -335,6 +347,7 @@ dependencies = [
  "redb",
  "tempfile",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
@@ -345,6 +358,7 @@ dependencies = [
  "aurion-criptografi",
  "blake3",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
@@ -360,6 +374,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tokio-util",
+ "tracing",
 ]
 
 [[package]]
@@ -389,6 +404,7 @@ dependencies = [
  "aurion-criptografi",
  "blake3",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]
@@ -399,6 +415,7 @@ dependencies = [
  "aurion-criptografi",
  "blake3",
  "thiserror 1.0.69",
+ "tracing",
 ]
 
 [[package]]

@@ -46,6 +46,7 @@ impl PartialOrd for CandidateKey {
     }
 }
 
+#[derive(Debug)]
 pub struct Mempool {
     config: MempoolConfig,
     by_sender: HashMap<PublicKeyBytes, BTreeMap<u64, PooledTransaction>>,
@@ -103,6 +104,7 @@ impl Mempool {
             .copied()
             .unwrap_or(Account::new(0, 0));
         if tx.nonce < confirmed_acc.nonce {
+            tracing::warn!(tx_hash = ?tx.digest(), reason = "nonce usang", "Tx ditolak dari mempool");
             return Err(MempoolError::NonceTooLow {
                 expected: confirmed_acc.nonce,
                 got: tx.nonce,
@@ -114,11 +116,13 @@ impl Mempool {
             .sum();
         let total_required = total_pending_spend.saturating_add(tx.amount.saturating_add(fee));
         if confirmed_acc.balance < total_required {
+            tracing::warn!(tx_hash = ?tx.digest(), reason = "saldo kurang", "Tx ditolak dari mempool");
             return Err(MempoolError::InsufficientBalance {
                 available: confirmed_acc.balance,
                 required: total_required,
             });
         }
+        tracing::debug!(tx_hash = ?tx.digest(), fee, "Tx masuk antrean mempool");
         sender_queue.insert(tx.nonce, PooledTransaction { tx, fee });
         self.total_tx_count += 1;
         Ok(())
@@ -225,9 +229,15 @@ mod tests {
         let alice_tx0 = make_tx(&alice, charlie_pk, 1000, 0);
         let alice_tx1 = make_tx(&alice, charlie_pk, 1000, 1);
         let bob_tx0 = make_tx(&bob, charlie_pk, 2000, 0);
-        mempool.insert(alice_tx0.clone(), 10, &state).unwrap();
-        mempool.insert(alice_tx1.clone(), 100, &state).unwrap();
-        mempool.insert(bob_tx0.clone(), 50, &state).unwrap();
+        mempool
+            .insert(alice_tx0.clone(), 10, &state)
+            .expect("test operation should succeed");
+        mempool
+            .insert(alice_tx1.clone(), 100, &state)
+            .expect("test operation should succeed");
+        mempool
+            .insert(bob_tx0.clone(), 50, &state)
+            .expect("test operation should succeed");
         assert_eq!(mempool.total_count(), 3);
         let block_txs = mempool.select_transactions_for_block(&state, 3);
         assert_eq!(block_txs.len(), 3);

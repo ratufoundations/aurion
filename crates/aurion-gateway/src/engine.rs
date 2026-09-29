@@ -8,6 +8,7 @@ use aurion_mempool::Mempool;
 
 use crate::{error::GatewayError, routes::GatewayRoutes};
 
+#[derive(Debug)]
 pub struct AurionGateway {
     pub chain_id: u64,
     pub session: Arc<Session>,
@@ -25,10 +26,7 @@ impl AurionGateway {
         let config = zenoh::Config::default();
         let session = Arc::new(zenoh::open(config).await?);
 
-        println!(
-            "[ZENOH GATEWAY] Sesi aktif dengan Router ID: {}",
-            session.zid()
-        );
+        tracing::info!(router_id = %session.zid(), "Sesi Zenoh gateway aktif");
 
         let gateway = Self {
             chain_id,
@@ -53,6 +51,7 @@ impl AurionGateway {
 
         tokio::spawn(async move {
             while let Ok(query) = status_queryable.recv_async().await {
+                tracing::debug!(topic = %query.key_expr(), "Menerima kueri Zenoh dari klien eksternal");
                 let height = ledger_for_status.get_latest_height().unwrap_or(0);
                 let payload = serde_json::json!({
                     "chain_id": chain_id,
@@ -61,7 +60,7 @@ impl AurionGateway {
                 .to_string();
 
                 if let Err(e) = query.reply(query.key_expr(), payload).await {
-                    eprintln!("[ZENOH QUERYABLE ERROR] Gagal balas query status: {}", e);
+                    tracing::error!(error = %e, "Gagal membalas kueri status Zenoh");
                 }
             }
         });
@@ -73,6 +72,7 @@ impl AurionGateway {
 
         tokio::spawn(async move {
             while let Ok(query) = account_queryable.recv_async().await {
+                tracing::debug!(topic = %query.key_expr(), "Menerima kueri Zenoh dari klien eksternal");
                 let key_str = query.key_expr().as_str();
                 // Ambil segmen terakhir sebagai pubkey_hex
                 if let Some(pubkey_hex) = key_str.split('/').next_back() {
@@ -110,6 +110,7 @@ impl AurionGateway {
 
         tokio::spawn(async move {
             while let Ok(query) = tx_queryable.recv_async().await {
+                tracing::debug!(topic = %query.key_expr(), "Menerima kueri Zenoh dari klien eksternal");
                 let reply_payload = if let Some(payload) = query.payload() {
                     let raw_bytes = payload.to_bytes();
                     match Codec::decode_tx(&raw_bytes) {
@@ -119,14 +120,20 @@ impl AurionGateway {
                             let dummy_state = State::new();
 
                             match mp.insert(tx, 0, &dummy_state) {
-                                Ok(()) => serde_json::json!({
-                                    "success": true,
-                                    "tx_hash": tx_hash
-                                }),
-                                Err(e) => serde_json::json!({
-                                    "success": false,
-                                    "error": format!("Mempool ditolak: {}", e)
-                                }),
+                                Ok(()) => {
+                                    tracing::info!(tx_hash = %tx_hash, "Transaksi gateway diterima mempool");
+                                    serde_json::json!({
+                                        "success": true,
+                                        "tx_hash": tx_hash
+                                    })
+                                }
+                                Err(e) => {
+                                    tracing::warn!(tx_hash = %tx_hash, error = %e, "Mempool menolak transaksi gateway");
+                                    serde_json::json!({
+                                        "success": false,
+                                        "error": format!("Mempool ditolak: {}", e)
+                                    })
+                                }
                             }
                         }
                         Err(e) => serde_json::json!({
@@ -153,6 +160,7 @@ impl AurionGateway {
         let block_bytes = Codec::encode_block(block);
 
         self.session.put(&topic, block_bytes).await?;
+        tracing::debug!(topic = %topic, height = block.header.height, "Blok disiarkan melalui Zenoh");
 
         Ok(())
     }

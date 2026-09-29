@@ -1,6 +1,16 @@
 use crate::error::LedgerError;
 use aurion_core::{Account, Block, BlockHeader, Transaction};
 
+fn read_array<const N: usize>(bytes: &[u8]) -> Result<[u8; N], LedgerError> {
+    if bytes.len() != N {
+        return Err(LedgerError::MalformedData);
+    }
+    let mut array = [0u8; N];
+    array.copy_from_slice(bytes);
+    Ok(array)
+}
+
+#[derive(Debug)]
 pub struct Codec;
 
 impl Codec {
@@ -17,8 +27,12 @@ impl Codec {
 
     #[inline(always)]
     pub fn decode_account(bytes: &[u8; 16]) -> Account {
-        let balance = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
-        let nonce = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
+        let balance = u64::from_le_bytes([
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+        ]);
+        let nonce = u64::from_le_bytes([
+            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
+        ]);
         Account::new(balance, nonce)
     }
 
@@ -44,11 +58,11 @@ impl Codec {
                 got: slice.len(),
             });
         }
-        let sender = slice[0..32].try_into().unwrap();
-        let recipient = slice[32..64].try_into().unwrap();
-        let amount = u64::from_le_bytes(slice[64..72].try_into().unwrap());
-        let nonce = u64::from_le_bytes(slice[72..80].try_into().unwrap());
-        let signature = slice[80..144].try_into().unwrap();
+        let sender = read_array(&slice[0..32])?;
+        let recipient = read_array(&slice[32..64])?;
+        let amount = u64::from_le_bytes(read_array(&slice[64..72])?);
+        let nonce = u64::from_le_bytes(read_array(&slice[72..80])?);
+        let signature = read_array(&slice[80..144])?;
 
         Ok(Transaction::new(
             sender, recipient, amount, nonce, signature,
@@ -83,10 +97,10 @@ impl Codec {
             return Err(LedgerError::CorruptedBlock(0));
         }
 
-        let height = u64::from_le_bytes(bytes[0..8].try_into().unwrap());
-        let prev_hash = bytes[8..40].try_into().unwrap();
-        let state_root = bytes[40..72].try_into().unwrap();
-        let tx_count = u32::from_le_bytes(bytes[72..76].try_into().unwrap());
+        let height = u64::from_le_bytes(read_array(&bytes[0..8])?);
+        let prev_hash = read_array(&bytes[8..40])?;
+        let state_root = read_array(&bytes[40..72])?;
+        let tx_count = u32::from_le_bytes(read_array(&bytes[72..76])?);
 
         let expected_total_len = Self::HEADER_SIZE + (tx_count as usize * Self::TX_SIZE);
         if bytes.len() != expected_total_len {

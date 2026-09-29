@@ -18,6 +18,7 @@ pub enum NodeAdmissionStatus {
     Disqualified,
 }
 
+#[derive(Debug)]
 pub struct ValidatorRegistry {
     pub nodes: BTreeMap<PublicKeyBytes, NodeAdmissionStatus>,
     pub active_validators: BTreeSet<PublicKeyBytes>,
@@ -58,6 +59,7 @@ impl ValidatorRegistry {
         let tracker = ProbationTracker::new(current_block, self.probation_duration);
         self.nodes
             .insert(node, NodeAdmissionStatus::InProbation(tracker));
+        tracing::info!(validator = ?node, current_block, "Validator baru masuk masa probation");
         Ok(())
     }
 
@@ -108,6 +110,7 @@ impl ValidatorRegistry {
         };
 
         *status = NodeAdmissionStatus::Candidate(PeerEndorsementCertificate::new(petition));
+        tracing::info!(validator = ?node, uptime_percent = uptime, "Validator lulus probation dan menjadi kandidat");
         Ok(())
     }
 
@@ -141,6 +144,7 @@ impl ValidatorRegistry {
         if should_promote {
             *status = NodeAdmissionStatus::Active;
             self.active_validators.insert(*candidate);
+            tracing::info!(validator = ?candidate, "Validator resmi dipromosikan ke active set");
             return Ok(true); // Resmi menjadi Validator Aktif
         }
 

@@ -34,10 +34,10 @@ mod tests {
                 current_time,
                 86400 * 30,
             )
-            .unwrap();
+            .expect("test operation should succeed");
         account
             .authorize_transfer(&laptop_pk, 30_000, 0, current_time + 10)
-            .unwrap();
+            .expect("test operation should succeed");
         assert_eq!(account.balance, 470_000);
         assert_eq!(account.nonce, 1);
         let err = account
@@ -52,7 +52,7 @@ mod tests {
         );
         account
             .authorize_transfer(&master_pk, 100_000, 1, current_time + 30)
-            .unwrap();
+            .expect("test operation should succeed");
         assert_eq!(account.balance, 370_000);
         assert_eq!(account.nonce, 2);
         let link_err = account
@@ -65,7 +65,9 @@ mod tests {
             )
             .unwrap_err();
         assert_eq!(link_err, AccountError::MasterPrivilegeRequired);
-        account.revoke_device(&master_pk, &laptop_pk).unwrap();
+        account
+            .revoke_device(&master_pk, &laptop_pk)
+            .expect("test operation should succeed");
         let revoked_err = account
             .authorize_transfer(&laptop_pk, 10_000, 2, current_time + 40)
             .unwrap_err();

@@ -30,12 +30,18 @@ pub struct Block {
 impl Block {
     /// Eksekusi sekumpulan transaksi dalam blok dan validasi State Root akhir
     pub fn execute(&self, state: &mut State) -> Result<(), ExecutionError> {
+        tracing::debug!(
+            height = self.header.height,
+            txs = self.header.tx_count,
+            "Eksekusi blok dimulai"
+        );
         for tx in &self.transactions {
             state.apply_transaction(tx)?;
         }
 
         let computed_root = state.compute_state_root();
         if computed_root != self.header.state_root {
+            tracing::error!(height = self.header.height, "State root blok tidak cocok");
             return Err(ExecutionError::StateRootMismatch);
         }
 

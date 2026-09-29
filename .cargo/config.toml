@@ -1,4 +1,4 @@
 [alias]
-guard-check = "!python3 tools/aurion_guard.py check"
-guard-build = "!python3 tools/aurion_guard.py cargo build"
-guard-test  = "!python3 tools/aurion_guard.py cargo test"
+guard-check = ["run", "--quiet", "--manifest-path", "tools/guard-cli/Cargo.toml", "--", "check"]
+guard-build = ["run", "--quiet", "--manifest-path", "tools/guard-cli/Cargo.toml", "--", "cargo", "build"]
+guard-test  = ["run", "--quiet", "--manifest-path", "tools/guard-cli/Cargo.toml", "--", "cargo", "test"]

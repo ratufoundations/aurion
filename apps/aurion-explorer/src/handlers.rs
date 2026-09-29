@@ -8,13 +8,13 @@ use axum::{
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub struct AppState {
-    pub ledger: Arc<LedgerStore>,
-    pub chain_id: u64,
+pub(crate) struct AppState {
+    pub(crate) ledger: Arc<LedgerStore>,
+    pub(crate) chain_id: u64,
 }
 
 /// GET /api/v1/status - Ringkasan status rantai
-pub async fn get_chain_status(
+pub(crate) async fn get_chain_status(
     State(state): State<Arc<AppState>>,
 ) -> (StatusCode, Json<ApiResponse<ChainStatusDto>>) {
     let latest_height = state.ledger.get_latest_height().unwrap_or(0);
@@ -46,7 +46,7 @@ pub async fn get_chain_status(
 }
 
 /// GET /api/v1/blocks/:height - Ambil detail blok berdasarkan tinggi
-pub async fn get_block_by_height(
+pub(crate) async fn get_block_by_height(
     State(state): State<Arc<AppState>>,
     Path(height): Path<u64>,
 ) -> (StatusCode, Json<ApiResponse<BlockDto>>) {
@@ -88,7 +88,7 @@ pub async fn get_block_by_height(
 }
 
 /// GET /api/v1/accounts/:pubkey_hex - Saldo dan Nonce akun
-pub async fn get_account(
+pub(crate) async fn get_account(
     State(state): State<Arc<AppState>>,
     Path(pubkey_hex): Path<String>,
 ) -> (StatusCode, Json<ApiResponse<AccountDto>>) {

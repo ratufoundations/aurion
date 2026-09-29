@@ -1,14 +1,14 @@
 use serde::Serialize;
 
 #[derive(Serialize)]
-pub struct ApiResponse<T> {
-    pub success: bool,
-    pub data: Option<T>,
-    pub error: Option<String>,
+pub(crate) struct ApiResponse<T> {
+    pub(crate) success: bool,
+    pub(crate) data: Option<T>,
+    pub(crate) error: Option<String>,
 }
 
 impl<T> ApiResponse<T> {
-    pub fn ok(data: T) -> Self {
+    pub(crate) fn ok(data: T) -> Self {
         Self {
             success: true,
             data: Some(data),
@@ -16,7 +16,7 @@ impl<T> ApiResponse<T> {
         }
     }
 
-    pub fn err(message: impl Into<String>) -> Self {
+    pub(crate) fn err(message: impl Into<String>) -> Self {
         Self {
             success: false,
             data: None,
@@ -26,37 +26,37 @@ impl<T> ApiResponse<T> {
 }
 
 #[derive(Serialize)]
-pub struct ChainStatusDto {
-    pub chain_id: u64,
-    pub latest_height: u64,
-    pub latest_block_hash: String,
-    pub latest_state_root: String,
-    pub server_time: u64,
+pub(crate) struct ChainStatusDto {
+    pub(crate) chain_id: u64,
+    pub(crate) latest_height: u64,
+    pub(crate) latest_block_hash: String,
+    pub(crate) latest_state_root: String,
+    pub(crate) server_time: u64,
 }
 
 #[derive(Serialize)]
-pub struct TransactionDto {
-    pub sender: String,
-    pub recipient: String,
-    pub amount: u64,
-    pub nonce: u64,
-    pub signature: String,
-    pub tx_hash: String,
+pub(crate) struct TransactionDto {
+    pub(crate) sender: String,
+    pub(crate) recipient: String,
+    pub(crate) amount: u64,
+    pub(crate) nonce: u64,
+    pub(crate) signature: String,
+    pub(crate) tx_hash: String,
 }
 
 #[derive(Serialize)]
-pub struct BlockDto {
-    pub height: u64,
-    pub block_hash: String,
-    pub prev_hash: String,
-    pub state_root: String,
-    pub tx_count: u32,
-    pub transactions: Vec<TransactionDto>,
+pub(crate) struct BlockDto {
+    pub(crate) height: u64,
+    pub(crate) block_hash: String,
+    pub(crate) prev_hash: String,
+    pub(crate) state_root: String,
+    pub(crate) tx_count: u32,
+    pub(crate) transactions: Vec<TransactionDto>,
 }
 
 #[derive(Serialize)]
-pub struct AccountDto {
-    pub address: String,
-    pub balance: u64,
-    pub nonce: u64,
+pub(crate) struct AccountDto {
+    pub(crate) address: String,
+    pub(crate) balance: u64,
+    pub(crate) nonce: u64,
 }

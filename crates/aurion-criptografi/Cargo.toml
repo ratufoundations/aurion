@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+tracing = { workspace = true }
 blake3 = { version = "1.5", features = ["rayon"] }
 ed25519-dalek = { version = "2.1", features = ["batch", "rand_core", "zeroize"] }
 rayon = "1.10"

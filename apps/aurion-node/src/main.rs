@@ -5,14 +5,16 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
+use tokio::sync::OwnedSemaphorePermit;
 
 use clap::Parser;
 use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::Mutex;
-use tokio::time::sleep;
+use tokio::sync::{Mutex, Semaphore};
+use tokio::time::{sleep, timeout};
 
-use aurion_config::{init_central_logging, AurionConfig};
+use aurion_config::{init_central_logging_with_settings, AurionSettings};
 use aurion_consensus::{RoundState, ValidatorSet, Vote, VoteType};
+use aurion_core::ModuleDispatcher;
 use aurion_core::{Account, Block, BlockHeader, State, Transaction};
 use aurion_criptografi::{Hash256, Keypair, PublicKeyBytes};
 use aurion_ledger::LedgerStore;
@@ -26,22 +28,12 @@ use aurion_network::{Handshake, NetworkMessage, PeerConnection};
     about = "Simpul Validator Aurion Blockchain"
 )]
 struct Cli {
-    #[arg(
-        short,
-        long,
-        default_value = "9000",
-        help = "Port TCP untuk P2P networking"
-    )]
-    port: u16,
-    #[arg(
-        short,
-        long,
-        default_value = "./data/aurion.db",
-        help = "Jalur direktori database ledger (redb)"
-    )]
-    data_dir: PathBuf,
-    #[arg(short, long, default_value = "1001", help = "Chain ID jaringan")]
-    chain_id: u64,
+    #[arg(short, long, help = "Port TCP untuk P2P networking")]
+    port: Option<u16>,
+    #[arg(short, long, help = "Jalur direktori database ledger (redb)")]
+    data_dir: Option<PathBuf>,
+    #[arg(short, long, help = "Chain ID jaringan")]
+    chain_id: Option<u64>,
     #[arg(
         long,
         help = "Alamat peer awal untuk koneksi bootstrap (contoh: 127.0.0.1:9001)"
@@ -58,141 +50,167 @@ struct Cli {
 struct NodeContext {
     pub validator_keypair: Keypair,
     pub chain_id: u64,
+    pub handshake_timeout_ms: u64,
     pub state: Mutex<State>,
     pub ledger: LedgerStore,
     pub mempool: Mutex<Mempool>,
     pub validator_set: ValidatorSet,
+    pub module_dispatcher: ModuleDispatcher,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // 1. Muat konfigurasi terpusat (fallback ke default bila berkas belum ada)
-    let file_config = AurionConfig::load_from_file("config/node.dev.toml").ok();
+    // 1. Muat dan validasi konfigurasi terpusat
+    let file_config = AurionSettings::load_from_file("config/node.dev.toml")?;
     let cli = Cli::parse();
     // 2. Nilai CLI menimpa berkas bila flag terkait diberikan eksplisit
-    let config = apply_cli_overrides(file_config.unwrap_or_default(), &cli);
+    let settings = apply_cli_overrides(file_config, &cli);
 
     // 3. Pasang logging terpusat sesuai mode
-    let _guard = init_central_logging(config.mode, &config.log_dir, "aurion-node");
+    let _guard =
+        init_central_logging_with_settings(settings.mode, &settings.logging, "aurion-node");
 
     tracing::info!(
-        chain_id = config.network.chain_id,
-        db_path = %config.db_path,
+        chain_id = settings.network.chain_id,
+        db_path = %settings.storage.db_path.display(),
         "Simpul Aurion berhasil diinisialisasi dari konfigurasi terpusat"
     );
-    run_node(cli, config).await
+    run_node(cli, settings).await
+}
+
+/// Titik pemasangan modul aplikasi. Modul baru cukup didaftarkan di fungsi ini.
+fn build_module_dispatcher() -> Result<ModuleDispatcher, aurion_core::DispatchError> {
+    let dispatcher = ModuleDispatcher::new();
+    // Contoh pemasangan: dispatcher.register_module(Box::new(StakingModule::new()))?;
+    Ok(dispatcher)
 }
 
 /// Nilai CLI (`--port/--chain-id/--data-dir`) menimpa konfigurasi berkas
 /// hanya bila flag tersebut diberikan eksplisit di baris perintah.
-fn apply_cli_overrides(mut config: AurionConfig, cli: &Cli) -> AurionConfig {
+fn apply_cli_overrides(mut settings: AurionSettings, cli: &Cli) -> AurionSettings {
     use std::env::args;
     let raw: Vec<String> = args().collect();
     let has = |flag: &str| {
         raw.iter()
             .any(|a| a == flag || a.starts_with(&format!("{flag}=")))
     };
-    if has("--port") {
-        let mut net = config.network.clone();
-        if let Some(host) = net
+    if has("--port") || has("-p") {
+        if let Some(host) = settings
+            .network
             .p2p_bind_addr
             .rsplit_once(':')
             .map(|(h, _)| h.to_string())
         {
-            net.p2p_bind_addr = format!("{host}:{}", cli.port);
-            config.network = net;
+            if let Some(port) = cli.port {
+                settings.network.p2p_bind_addr = format!("{host}:{port}");
+            }
         }
     }
-    if has("--chain-id") {
-        config.network.chain_id = cli.chain_id;
+    if has("--chain-id") || has("-c") {
+        if let Some(chain_id) = cli.chain_id {
+            settings.network.chain_id = chain_id;
+        }
     }
-    if has("--data-dir") || has("--data_dir") {
-        config.db_path = cli.data_dir.to_string_lossy().into_owned();
+    if has("--data-dir") || has("-d") {
+        if let Some(data_dir) = &cli.data_dir {
+            settings.storage.db_path = data_dir.clone();
+        }
     }
-    config
+    settings
 }
 
 async fn run_node(
     cli: Cli,
-    config: AurionConfig,
+    settings: AurionSettings,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    println!("============================================================");
-    println!("               AURION BLOCKCHAIN VALIDATOR NODE             ");
-    println!("============================================================");
+    tracing::info!("============================================================");
+    tracing::info!("               AURION BLOCKCHAIN VALIDATOR NODE             ");
+    tracing::info!("============================================================");
     let validator_keypair = Keypair::generate();
     let validator_pubkey = validator_keypair.public_key_bytes();
-    println!(
+    tracing::info!(
         "Identitas Validator (Pubkey): {:02X?}",
         &validator_pubkey[0..8]
     );
-    println!("Chain ID                     : {}", config.network.chain_id);
-    println!(
-        "P2P Bind Addr                : {}",
-        config.network.p2p_bind_addr
+    tracing::info!(
+        "Chain ID                     : {}",
+        settings.network.chain_id
     );
-    let db_path = std::path::PathBuf::from(&config.db_path);
+    tracing::info!(
+        "P2P Bind Addr                : {}",
+        settings.network.p2p_bind_addr
+    );
+    let db_path = settings.storage.db_path.clone();
     if let Some(parent) = db_path.parent() {
         if !parent.as_os_str().is_empty() && !parent.exists() {
             fs::create_dir_all(parent)?;
         }
     }
     let ledger = LedgerStore::open(&db_path)?;
-    println!("Ledger Store                 : Terbuka di {:?}", db_path);
+    tracing::info!("Ledger Store                 : Terbuka di {:?}", db_path);
     let mut state = State::new();
     let current_height = ledger.get_latest_height()?;
-    println!("Ledger Block Height Saat Ini : {}", current_height);
+    tracing::info!("Ledger Block Height Saat Ini : {}", current_height);
     let alice = Keypair::generate();
     let bob = Keypair::generate();
     if current_height == 0 {
-        println!("\n[GENESIS] Menginisialisasi Alokasi Treasury Akun Genesis...");
+        tracing::info!("\n[GENESIS] Menginisialisasi Alokasi Treasury Akun Genesis...");
         state.insert_account(alice.public_key_bytes(), Account::new(1_000_000, 0));
         state.insert_account(validator_pubkey, Account::new(500_000, 0));
-        println!("  - Akun Alice     : 1.000.000 Quanta");
-        println!("  - Akun Validator : 500.000 Quanta");
+        tracing::info!("  - Akun Alice     : 1.000.000 Quanta");
+        tracing::info!("  - Akun Validator : 500.000 Quanta");
     }
+    let module_dispatcher = build_module_dispatcher()?;
+    module_dispatcher.init_genesis(&mut state)?;
     let validator_set = ValidatorSet::new(vec![validator_pubkey]);
     let mempool = Mempool::new(MempoolConfig::default());
     let ctx = Arc::new(NodeContext {
         validator_keypair,
-        chain_id: config.network.chain_id,
+        chain_id: settings.network.chain_id,
+        handshake_timeout_ms: settings.network.handshake_timeout_ms,
         state: Mutex::new(state),
         ledger,
         mempool: Mutex::new(mempool),
         validator_set,
+        module_dispatcher,
     });
-    let listen_addr: SocketAddr = match config.network.p2p_bind_addr.parse() {
-        Ok(addr) => addr,
-        Err(e) => {
-            eprintln!(
-                "[CONFIG ERROR] p2p_bind_addr tidak valid ({}): {}",
-                config.network.p2p_bind_addr, e
-            );
-            SocketAddr::from(([0, 0, 0, 0], cli.port))
-        }
-    };
+    tracing::info!(
+        module_count = ctx.module_dispatcher.module_ids().count(),
+        "Module runtime siap"
+    );
+    let listen_addr: SocketAddr = settings.network.p2p_bind_addr.parse()?;
     let listener = TcpListener::bind(listen_addr).await?;
-    println!("\n[NETWORK] Listener P2P aktif pada: {}", listen_addr);
+    let peer_slots = Arc::new(Semaphore::new(usize::try_from(settings.network.max_peers)?));
+    tracing::info!("\n[NETWORK] Listener P2P aktif pada: {}", listen_addr);
     let net_ctx = Arc::clone(&ctx);
+    let peer_limit = Arc::clone(&peer_slots);
     tokio::spawn(async move {
         loop {
             match listener.accept().await {
                 Ok((socket, remote_addr)) => {
-                    println!("[NETWORK] Peer baru terhubung dari: {}", remote_addr);
-                    let peer_ctx = Arc::clone(&net_ctx);
-                    tokio::spawn(async move {
-                        handle_peer_inbound(socket, peer_ctx).await;
-                    });
+                    tracing::info!("[NETWORK] Peer baru terhubung dari: {}", remote_addr);
+                    match peer_limit.clone().try_acquire_owned() {
+                        Ok(permit) => {
+                            let peer_ctx = Arc::clone(&net_ctx);
+                            tokio::spawn(async move {
+                                handle_peer_inbound(socket, peer_ctx, permit).await;
+                            });
+                        }
+                        Err(_) => {
+                            tracing::warn!(peer = %remote_addr, "Batas peer jaringan tercapai")
+                        }
+                    }
                 }
                 Err(e) => {
-                    eprintln!("[NETWORK ERROR] Gagal menerima koneksi TCP: {}", e);
+                    tracing::error!("[NETWORK ERROR] Gagal menerima koneksi TCP: {}", e);
                 }
             }
         }
     });
     if let Some(peer_addr) = cli.peer {
-        println!("[NETWORK] Menyambung ke bootstrap peer: {}", peer_addr);
+        tracing::info!("[NETWORK] Menyambung ke bootstrap peer: {}", peer_addr);
         let connect_ctx = Arc::clone(&ctx);
-        let local_port = cli.port;
+        let local_port = listen_addr.port();
         tokio::spawn(async move {
             match TcpStream::connect(&peer_addr).await {
                 Ok(stream) => {
@@ -203,11 +221,12 @@ async fn run_node(
                         listen_port: local_port,
                     };
                     let _ = peer.send_message(NetworkMessage::Handshake(hs)).await;
-                    println!("[NETWORK] Handshake berhasil dikirim ke {}", peer_addr);
+                    tracing::info!("[NETWORK] Handshake berhasil dikirim ke {}", peer_addr);
                 }
-                Err(e) => eprintln!(
+                Err(e) => tracing::error!(
                     "[NETWORK ERROR] Gagal menyambung ke peer {}: {}",
-                    peer_addr, e
+                    peer_addr,
+                    e
                 ),
             }
         });
@@ -234,26 +253,28 @@ async fn run_node(
                 let mut mempool_guard = demo_ctx.mempool.lock().await;
                 match mempool_guard.insert(tx.clone(), fee, &state_guard) {
                     Ok(()) => {
-                        println!("\n[MEMPOOL] Transaksi Demo Masuk -> Kirim {} Quanta ke Bob (Nonce: {})", amount, nonce);
+                        tracing::info!("\n[MEMPOOL] Transaksi Demo Masuk -> Kirim {} Quanta ke Bob (Nonce: {})", amount, nonce);
                         nonce += 1;
                     }
                     Err(e) => {
-                        eprintln!("[MEMPOOL REJECT] Transaksi ditolak: {}", e);
+                        tracing::error!("[MEMPOOL REJECT] Transaksi ditolak: {}", e);
                     }
                 }
             }
         });
     }
-    println!("\n[ENGINE] Mesin Konsensus BFT & Block Producer Berjalan...\n");
+    tracing::info!("\n[ENGINE] Mesin Konsensus BFT & Block Producer Berjalan...\n");
     let engine_ctx = Arc::clone(&ctx);
     loop {
-        sleep(Duration::from_secs(2)).await;
+        sleep(Duration::from_millis(settings.consensus.block_time_ms)).await;
         let mut mempool_guard = engine_ctx.mempool.lock().await;
         if mempool_guard.is_empty() {
             continue;
         }
         let mut state_guard = engine_ctx.state.lock().await;
-        let txs_to_mine = mempool_guard.select_transactions_for_block(&state_guard, 50);
+        let max_tx_per_block = usize::try_from(settings.consensus.max_tx_per_block)?;
+        let txs_to_mine =
+            mempool_guard.select_transactions_for_block(&state_guard, max_tx_per_block);
         if txs_to_mine.is_empty() {
             continue;
         }
@@ -264,7 +285,7 @@ async fn run_node(
         for tx in txs_to_mine {
             match shadow_state.apply_transaction(&tx) {
                 Ok(()) => executed_txs.push(tx),
-                Err(e) => eprintln!("[EXECUTION SKIP] Tx dilewati karena error FSM: {}", e),
+                Err(e) => tracing::error!("[EXECUTION SKIP] Tx dilewati karena error FSM: {}", e),
             }
         }
         if executed_txs.is_empty() {
@@ -296,7 +317,7 @@ async fn run_node(
         let prevote_qc = match round_state.add_vote(&prevote) {
             Ok(qc) => qc,
             Err(e) => {
-                eprintln!("[BFT SKIP] Prevote gagal: {}", e);
+                tracing::error!("[BFT SKIP] Prevote gagal: {}", e);
                 continue;
             }
         };
@@ -311,7 +332,7 @@ async fn run_node(
             let precommit_qc = match round_state.add_vote(&precommit) {
                 Ok(qc) => qc,
                 Err(e) => {
-                    eprintln!("[BFT SKIP] Precommit gagal: {}", e);
+                    tracing::error!("[BFT SKIP] Precommit gagal: {}", e);
                     continue;
                 }
             };
@@ -322,36 +343,73 @@ async fn run_node(
                 {
                     Ok(()) => {
                         mempool_guard.prune_committed(&candidate_block, &state_guard);
-                        println!("------------------------------------------------------------");
-                        println!(">> BLOK BERHASIL DI-COMMIT KE LEDGER (ACID PERSISTED) <<");
-                        println!("   Tinggi Blok (Height) : {}", next_height);
-                        println!("   Hash Blok            : {:02X?}", &block_hash[0..8]);
-                        println!("   State Root           : {:02X?}", &state_root[0..8]);
-                        println!(
+                        tracing::info!(
+                            "------------------------------------------------------------"
+                        );
+                        tracing::info!(">> BLOK BERHASIL DI-COMMIT KE LEDGER (ACID PERSISTED) <<");
+                        tracing::info!("   Tinggi Blok (Height) : {}", next_height);
+                        tracing::info!("   Hash Blok            : {:02X?}", &block_hash[0..8]);
+                        tracing::info!("   State Root           : {:02X?}", &state_root[0..8]);
+                        tracing::info!(
                             "   Jumlah Transaksi     : {}",
                             candidate_block.header.tx_count
                         );
-                        println!("   BFT Quorum Signers   : {} validator", qc.signers.len());
-                        println!("------------------------------------------------------------");
+                        tracing::info!("   BFT Quorum Signers   : {} validator", qc.signers.len());
+                        tracing::info!(
+                            "------------------------------------------------------------"
+                        );
                     }
-                    Err(e) => eprintln!("[LEDGER ERROR] Commit blok gagal: {}", e),
+                    Err(e) => tracing::error!("[LEDGER ERROR] Commit blok gagal: {}", e),
                 }
             }
         }
     }
 }
 
-async fn handle_peer_inbound(socket: TcpStream, ctx: Arc<NodeContext>) {
+async fn handle_peer_inbound(
+    socket: TcpStream,
+    ctx: Arc<NodeContext>,
+    _permit: OwnedSemaphorePermit,
+) {
     let mut peer = PeerConnection::new(socket);
+    let first_message = timeout(
+        Duration::from_millis(ctx.handshake_timeout_ms),
+        peer.read_message(),
+    )
+    .await;
+    let handshake = match first_message {
+        Ok(Ok(Some(NetworkMessage::Handshake(handshake)))) => handshake,
+        Ok(Ok(Some(_))) => {
+            tracing::warn!("Peer tidak mengirim handshake sebagai pesan pertama");
+            return;
+        }
+        Ok(Ok(None)) => return,
+        Ok(Err(error)) => {
+            tracing::warn!(error = %error, "Gagal membaca handshake peer");
+            return;
+        }
+        Err(_) => {
+            tracing::warn!(
+                timeout_ms = ctx.handshake_timeout_ms,
+                "Handshake peer melewati batas waktu"
+            );
+            return;
+        }
+    };
+    if handshake.chain_id != ctx.chain_id {
+        tracing::warn!(
+            peer_chain_id = handshake.chain_id,
+            local_chain_id = ctx.chain_id,
+            "Handshake peer ditolak: chain ID tidak cocok"
+        );
+        return;
+    }
+    tracing::info!(peer = ?handshake.node_id, chain_id = handshake.chain_id, listen_port = handshake.listen_port, "Handshake peer P2P berhasil");
+
     while let Ok(Some(msg)) = peer.read_message().await {
         match msg {
-            NetworkMessage::Handshake(hs) => {
-                println!(
-                    "[NETWORK] Peer Handshake: Node {:02X?} (Chain: {}, Port: {})",
-                    &hs.node_id[0..6],
-                    hs.chain_id,
-                    hs.listen_port
-                );
+            NetworkMessage::Handshake(_) => {
+                tracing::warn!("Peer mengirim handshake berulang");
             }
             NetworkMessage::Transaction(tx) => {
                 let state_guard = ctx.state.lock().await;

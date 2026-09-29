@@ -3,6 +3,7 @@ use crate::{PublicKeyBytes, SignatureBytes};
 use ed25519_dalek::{Signature as DalekSignature, Verifier, VerifyingKey};
 use rayon::prelude::*;
 
+#[derive(Debug)]
 pub struct SignatureVerifier;
 
 impl SignatureVerifier {
@@ -91,8 +92,8 @@ mod tests {
             sigs.push(kp.sign(b"tx_payload_data"));
         }
 
-        let is_valid =
-            SignatureVerifier::verify_batch_parallel(&pks, &messages, &sigs, 32).unwrap();
+        let is_valid = SignatureVerifier::verify_batch_parallel(&pks, &messages, &sigs, 32)
+            .expect("test operation should succeed");
 
         assert!(is_valid);
     }

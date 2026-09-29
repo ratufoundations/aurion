@@ -6,6 +6,16 @@ use aurion_ledger::Codec as LedgerCodec;
 use bytes::{Buf, BufMut, BytesMut};
 use tokio_util::codec::{Decoder, Encoder};
 
+fn read_array<const N: usize>(bytes: &[u8]) -> Result<[u8; N], NetworkError> {
+    if bytes.len() != N {
+        return Err(NetworkError::MalformedPayload);
+    }
+    let mut array = [0u8; N];
+    array.copy_from_slice(bytes);
+    Ok(array)
+}
+
+#[derive(Debug)]
 pub struct AurionWireCodec;
 
 impl AurionWireCodec {
@@ -55,14 +65,17 @@ impl Decoder for AurionWireCodec {
         if src.len() < Self::HEADER_LEN {
             return Ok(None);
         }
-        let magic = u32::from_be_bytes(src[0..4].try_into().unwrap());
+        let magic = u32::from_be_bytes(read_array(&src[0..4])?);
         if magic != AURION_NET_MAGIC {
             return Err(NetworkError::InvalidMagic {
                 expected: AURION_NET_MAGIC,
                 got: magic,
             });
         }
-        let payload_len = u32::from_be_bytes(src[4..8].try_into().unwrap()) as usize;
+        let payload_len = u32::from_be_bytes(read_array(&src[4..8])?) as usize;
+        if payload_len == 0 {
+            return Err(NetworkError::MalformedPayload);
+        }
         if payload_len > MAX_FRAME_SIZE {
             return Err(NetworkError::FrameTooLarge {
                 size: payload_len,
@@ -73,6 +86,10 @@ impl Decoder for AurionWireCodec {
             src.reserve(Self::HEADER_LEN + payload_len - src.len());
             return Ok(None);
         }
+        tracing::trace!(
+            bytes = Self::HEADER_LEN + payload_len,
+            "Frame wire TCP masuk"
+        );
         src.advance(Self::HEADER_LEN);
         let type_id = src.get_u8();
         let body_len = payload_len - 1;
@@ -82,9 +99,9 @@ impl Decoder for AurionWireCodec {
                 if body.len() != 42 {
                     return Err(NetworkError::MalformedPayload);
                 }
-                let node_id = body[0..32].try_into().unwrap();
-                let chain_id = u64::from_le_bytes(body[32..40].try_into().unwrap());
-                let listen_port = u16::from_le_bytes(body[40..42].try_into().unwrap());
+                let node_id = read_array(&body[0..32])?;
+                let chain_id = u64::from_le_bytes(read_array(&body[32..40])?);
+                let listen_port = u16::from_le_bytes(read_array(&body[40..42])?);
                 Ok(Some(NetworkMessage::Handshake(Handshake {
                     node_id,
                     chain_id,
@@ -107,14 +124,14 @@ impl Decoder for AurionWireCodec {
                 if body.len() != 8 {
                     return Err(NetworkError::MalformedPayload);
                 }
-                let nonce = u64::from_le_bytes(body[..].try_into().unwrap());
+                let nonce = u64::from_le_bytes(read_array(&body[..])?);
                 Ok(Some(NetworkMessage::Ping(nonce)))
             }
             0x06 => {
                 if body.len() != 8 {
                     return Err(NetworkError::MalformedPayload);
                 }
-                let nonce = u64::from_le_bytes(body[..].try_into().unwrap());
+                let nonce = u64::from_le_bytes(read_array(&body[..])?);
                 Ok(Some(NetworkMessage::Pong(nonce)))
             }
             unknown => Err(NetworkError::UnknownMessageType(unknown)),

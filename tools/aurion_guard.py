@@ -46,6 +46,7 @@ RE_UNWRAP = re.compile(r"\.unwrap\(\)")
 
 # 4. Larangan println! / eprintln! di crates pustaka murni
 RE_PRINTLN = re.compile(r"\b(println!|eprintln!)\b")
+RE_RUST_STRING = re.compile(r'"(?:\\.|[^"\\])*"')
 
 
 class Violation:
@@ -86,22 +87,24 @@ class AurionGuard:
             if "#[cfg(test)]" in stripped:
                 in_test_module = True
 
-            # Abaikan baris komentar
+            # Abaikan komentar dan singkirkan string agar IP/versi/contoh angka tidak
+            # salah diklasifikasikan sebagai literal floating-point Rust.
             if stripped.startswith("//") or stripped.startswith("/*") or stripped.startswith("*"):
                 continue
+            code_line = re.sub(r"/\*.*?\*/", "", RE_RUST_STRING.sub("", line)).split("//", 1)[0]
 
             # Periksa deklarasi wajib #![forbid(unsafe_code)] di entrypoint
             if is_entrypoint and "#![forbid(unsafe_code)]" in stripped:
                 has_forbid_unsafe = True
 
             # 1. ATURAN: Larangan blok unsafe
-            if RE_UNSAFE_BLOCK.search(line):
+            if RE_UNSAFE_BLOCK.search(code_line):
                 self.violations.append(
                     Violation(file_path, i, "BLOK UNSAFE DILARANG (Agents.md §1.1)", line)
                 )
 
             # 2. ATURAN: Larangan tipe & literal pecahan (f32 / f64)
-            if RE_FLOAT_TYPES.search(line) or (not in_test_module and RE_FLOAT_LITERAL.search(line)):
+            if RE_FLOAT_TYPES.search(code_line) or (not in_test_module and RE_FLOAT_LITERAL.search(code_line)):
                 self.violations.append(
                     Violation(file_path, i, "TIPE/LITERAL FLOAT DILARANG (Agents.md §1.2 - Gunakan u64 Quanta)", line)
                 )
@@ -113,7 +116,7 @@ class AurionGuard:
                 )
 
             # 4. ATURAN: Larangan println! di dalam crates/
-            if is_crate and not in_test_module and RE_PRINTLN.search(line):
+            if is_crate and not in_test_module and RE_PRINTLN.search(code_line):
                 self.violations.append(
                     Violation(file_path, i, "PRINTLN! DI CRATE DILARANG (Wajib gunakan tracing::{info, debug})", line)
                 )

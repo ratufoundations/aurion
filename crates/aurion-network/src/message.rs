@@ -6,6 +6,15 @@ use aurion_criptografi::{Hash256, PublicKeyBytes, SignatureBytes};
 pub const AURION_NET_MAGIC: u32 = 0x4155524E;
 pub const MAX_FRAME_SIZE: usize = 4 * 1024 * 1024;
 
+fn read_array<const N: usize>(bytes: &[u8]) -> Result<[u8; N], NetworkError> {
+    if bytes.len() != N {
+        return Err(NetworkError::MalformedPayload);
+    }
+    let mut array = [0u8; N];
+    array.copy_from_slice(bytes);
+    Ok(array)
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Handshake {
     pub node_id: PublicKeyBytes,
@@ -55,16 +64,16 @@ impl NetworkMessage {
         if slice.len() != 141 {
             return Err(NetworkError::MalformedPayload);
         }
-        let validator: PublicKeyBytes = slice[0..32].try_into().unwrap();
-        let block_hash: Hash256 = slice[32..64].try_into().unwrap();
-        let height = u64::from_le_bytes(slice[64..72].try_into().unwrap());
-        let round = u32::from_le_bytes(slice[72..76].try_into().unwrap());
+        let validator: PublicKeyBytes = read_array(&slice[0..32])?;
+        let block_hash: Hash256 = read_array(&slice[32..64])?;
+        let height = u64::from_le_bytes(read_array(&slice[64..72])?);
+        let round = u32::from_le_bytes(read_array(&slice[72..76])?);
         let vote_type = match slice[76] {
             0x01 => VoteType::Prevote,
             0x02 => VoteType::Precommit,
             _ => return Err(NetworkError::MalformedPayload),
         };
-        let signature: SignatureBytes = slice[77..141].try_into().unwrap();
+        let signature: SignatureBytes = read_array(&slice[77..141])?;
         Ok(Vote::new(
             validator, block_hash, height, round, vote_type, signature,
         ))

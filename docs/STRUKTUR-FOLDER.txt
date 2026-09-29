@@ -4,7 +4,7 @@ aurion/
 │   ├── aurion-node/               # [AKTIF] biner simpul validator (TCP + consensus + ledger + mempool)
 │   ├── aurion-explorer/           # [AKTIF] backend API explorer (axum) — baca LedgerStore
 │   └── aurion-cli/                # [AKTIF] CLI operasional (keygen/status/balance/monitor via Zenoh)
-├── config/                        # [AKTIF] crate aurion-config (workspace member): AppMode, NetworkConfig, AurionConfig (TOML), init_central_logging; data: node.dev.toml / node.prod.toml
+├── config/                        # [AKTIF] crate aurion-config (workspace member): AurionSettings (TOML), AppMode, validasi startup, init_central_logging; data: node.dev.toml / node.prod.toml
 ├── crates/
 │   ├── aurion-account/            # [AKTIF] SovereignAccount, role, policy
 │   ├── aurion-consensus/          # [AKTIF] ValidatorSet, RoundState, Vote, QC

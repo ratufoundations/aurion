@@ -30,7 +30,7 @@ mod tests {
 
         let rogue_validator = Keypair::generate().public_key_bytes();
 
-        let mut council = GuardCouncil::new(guard_pks).unwrap();
+        let mut council = GuardCouncil::new(guard_pks).expect("test operation should succeed");
         assert_eq!(council.total_guards(), 5);
 
         // 2. Razia: Bukti validator melakukan Double-Signing pada blok 142
@@ -70,7 +70,9 @@ mod tests {
             guard_keys[4].sign(&digest),
         );
 
-        council.execute_blacklist(&blacklist_verdict).unwrap();
+        council
+            .execute_blacklist(&blacklist_verdict)
+            .expect("test operation should succeed");
         assert!(council.is_blacklisted(&rogue_validator));
 
         // 5. REHABILITASI SPORTIF:
@@ -95,7 +97,9 @@ mod tests {
         }
 
         // Eksekusi pemulihan: Blacklist resmi dihapus
-        council.execute_pardon(&pardon_verdict).unwrap();
+        council
+            .execute_pardon(&pardon_verdict)
+            .expect("test operation should succeed");
         assert!(!council.is_blacklisted(&rogue_validator));
     }
 }

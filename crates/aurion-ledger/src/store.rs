@@ -7,6 +7,7 @@ use aurion_core::{Account, Block, State};
 use redb::Database;
 use std::path::Path;
 
+#[derive(Debug)]
 pub struct LedgerStore {
     db: Database,
 }
@@ -95,7 +96,8 @@ impl LedgerStore {
             .map_err(|e| LedgerError::StorageError(e.to_string()))?
         {
             let bytes = val.value();
-            Ok(u64::from_le_bytes(bytes.try_into().unwrap()))
+            let height_bytes: [u8; 8] = bytes.try_into().map_err(|_| LedgerError::MalformedData)?;
+            Ok(u64::from_le_bytes(height_bytes))
         } else {
             Ok(0)
         }
@@ -103,6 +105,11 @@ impl LedgerStore {
 
     /// COMMIT BLOK ATOMIK: Eksekusi transaksi, perbarui saldo, dan simpan blok secara ACID
     pub fn commit_block(&self, block: &Block, state: &mut State) -> Result<(), LedgerError> {
+        tracing::info!(
+            height = block.header.height,
+            txs = block.transactions.len(),
+            "Menulis blok permanen ke redb"
+        );
         // 1. Eksekusi blok terhadap State FSM in-memory
         block.execute(state)?;
 
@@ -172,9 +179,10 @@ impl LedgerStore {
         }
 
         // Commit fisik ke piringan disk
-        write_txn
-            .commit()
-            .map_err(|e| LedgerError::CommitError(e.to_string()))?;
+        write_txn.commit().map_err(|e| {
+            tracing::error!(height = block.header.height, error = %e, "Gagal commit blok ke disk");
+            LedgerError::CommitError(e.to_string())
+        })?;
         Ok(())
     }
 }
@@ -188,8 +196,8 @@ mod tests {
 
     #[test]
     fn test_atomic_ledger_commit_and_persistence() {
-        let temp_file = NamedTempFile::new().unwrap();
-        let store = LedgerStore::open(temp_file.path()).unwrap();
+        let temp_file = NamedTempFile::new().expect("test operation should succeed");
+        let store = LedgerStore::open(temp_file.path()).expect("test operation should succeed");
         let mut state = State::new();
         let alice = Keypair::generate();
         let bob = Keypair::generate();
@@ -200,7 +208,9 @@ mod tests {
         let sig = alice.sign(&unsigned.digest());
         let tx = Transaction::new(alice_pk, bob_pk, 200_000, 0, sig);
         let mut shadow = state.clone();
-        shadow.apply_transaction(&tx).unwrap();
+        shadow
+            .apply_transaction(&tx)
+            .expect("test operation should succeed");
         let expected_root = shadow.compute_state_root();
         let block = Block {
             header: BlockHeader {
@@ -211,14 +221,30 @@ mod tests {
             },
             transactions: vec![tx],
         };
-        store.commit_block(&block, &mut state).unwrap();
-        let alice_disk = store.get_account(&alice_pk).unwrap().unwrap();
-        let bob_disk = store.get_account(&bob_pk).unwrap().unwrap();
+        store
+            .commit_block(&block, &mut state)
+            .expect("test operation should succeed");
+        let alice_disk = store
+            .get_account(&alice_pk)
+            .expect("test operation should succeed")
+            .expect("test operation should succeed");
+        let bob_disk = store
+            .get_account(&bob_pk)
+            .expect("test operation should succeed")
+            .expect("test operation should succeed");
         assert_eq!(alice_disk.balance, 800_000);
         assert_eq!(alice_disk.nonce, 1);
         assert_eq!(bob_disk.balance, 200_000);
-        assert_eq!(store.get_latest_height().unwrap(), 1);
-        let got = store.get_block_by_height(1).unwrap().unwrap();
+        assert_eq!(
+            store
+                .get_latest_height()
+                .expect("test operation should succeed"),
+            1
+        );
+        let got = store
+            .get_block_by_height(1)
+            .expect("test operation should succeed")
+            .expect("test operation should succeed");
         assert_eq!(got.header.height, 1);
         assert_eq!(got.transactions.len(), 1);
     }

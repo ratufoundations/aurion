@@ -8,6 +8,7 @@ pub const DOMAIN_IDENTITY_CHALLENGE: &[u8] = b"AURION_WALLET_IDENTITY_AUTH_V1";
 /// Namespace aplikasi untuk pengujian domain-mismatch.
 pub const DOMAIN_TEST_ATTACKER: &str = "attacker.fake.domain";
 
+#[derive(Debug)]
 pub struct Domain;
 
 impl Domain {

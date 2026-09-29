@@ -1,5 +1,6 @@
 use crate::Hash256;
 
+#[derive(Debug)]
 pub struct Hasher;
 
 impl Hasher {
