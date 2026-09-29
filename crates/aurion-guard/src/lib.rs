@@ -4,6 +4,8 @@ pub mod council;
 pub mod election;
 pub mod error;
 pub mod evidence;
+pub mod evidence_ledger;
+pub mod slashing;
 pub mod verdict;
 
 pub use council::{GuardCouncil, MINIMUM_GUARD_QUORUM};
@@ -13,6 +15,11 @@ pub use election::{
 };
 pub use error::GuardError;
 pub use evidence::{RaidEvidence, RehabilitationPetition, ViolationType};
+pub use evidence_ledger::{EvidenceContext, ExecutedEvidenceLedger, MAX_EVIDENCE_AGE_BLOCKS};
+pub use slashing::{
+    BPS_SCALE, BURN_RATE_BPS, REPORTER_REWARD_BPS, SEVERE_SLASH_BPS, TREASURY_RATE_BPS,
+    SlashAllocation, SlashCalculator, ViolationSeverity,
+};
 pub use verdict::{BlacklistVerdict, PardonVerdict};
 
 #[cfg(test)]

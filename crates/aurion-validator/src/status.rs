@@ -13,17 +13,21 @@ pub enum ValidatorStatus {
     Jailed,
     /// Ditangguhkan karena penalti berat (slashing/putusan dewan/tata kelola).
     Suspended,
+    /// Dilarang permanen karena pelanggaran kritis (double-signing, equivocation).
+    /// Tidak ada jalan pemulihan; validator harus mendaftar ulang dengan kunci baru.
+    Tombstoned,
     /// Keluar permanen (terminal); tidak ada transisi keluar.
     Retired,
 }
 
 /// Seluruh status siklus hidup; dipakai untuk audit kelengkapan matriks transisi.
-pub const ALL_VALIDATOR_STATUSES: [ValidatorStatus; 6] = [
+pub const ALL_VALIDATOR_STATUSES: [ValidatorStatus; 7] = [
     ValidatorStatus::Probation,
     ValidatorStatus::Eligible,
     ValidatorStatus::ActiveSet,
     ValidatorStatus::Jailed,
     ValidatorStatus::Suspended,
+    ValidatorStatus::Tombstoned,
     ValidatorStatus::Retired,
 ];
 
@@ -60,7 +64,8 @@ impl ValidatorStatus {
             Self::ActiveSet => 2,
             Self::Jailed => 3,
             Self::Suspended => 4,
-            Self::Retired => 5,
+            Self::Tombstoned => 5,
+            Self::Retired => 6,
         }
     }
 
@@ -77,13 +82,14 @@ impl ValidatorStatus {
     /// `true` bila status ini dihitung dalam kuorum konsensus aktif.
     #[must_use]
     pub const fn counts_toward_quorum(self) -> bool {
+        // Hanya ActiveSet yang dihitung, Tombstoned secara eksplisit dikecualikan
         matches!(self, Self::ActiveSet)
     }
 
     /// `true` bila status bersifat terminal (tanpa transisi keluar).
     #[must_use]
     pub const fn is_terminal(self) -> bool {
-        matches!(self, Self::Retired)
+        matches!(self, Self::Retired | Self::Tombstoned)
     }
 
     /// `true` bila validator sedang menjalani masa percobaan.
@@ -92,17 +98,23 @@ impl ValidatorStatus {
         matches!(self, Self::Probation)
     }
 
-    /// `true` bila validator sedang ditahan atau ditangguhkan.
+    /// `true` bila validator sedang ditahan, ditangguhkan, atau ditombstone.
     #[must_use]
     pub const fn is_restricted(self) -> bool {
-        matches!(self, Self::Jailed | Self::Suspended)
+        matches!(self, Self::Jailed | Self::Suspended | Self::Tombstoned)
+    }
+
+    /// `true` bila validator ditombstone (dilarang permanen).
+    #[must_use]
+    pub const fn is_tombstoned(self) -> bool {
+        matches!(self, Self::Tombstoned)
     }
 
     /// Matriks transisi sah (V1/V3).
     ///
     /// `Probation` tidak pernah boleh melompat langsung ke `ActiveSet`, dan
-    /// `Jailed`/`Suspended` wajib kembali melalui `Eligible` sebelum dapat
-    /// dipilih ulang pada batas epoch.
+    /// `Jailed`/`Suspended`/`Tombstoned` memiliki batasan transisi khusus.
+    /// `Tombstoned` adalah status terminal yang hanya dapat bertransisi ke `Retired`.
     #[must_use]
     pub const fn can_transition_to(self, next: Self) -> bool {
         matches!(
@@ -115,10 +127,13 @@ impl ValidatorStatus {
                 Self::ActiveSet | Self::Suspended | Self::Retired
             ) | (
                 Self::ActiveSet,
-                Self::Eligible | Self::Jailed | Self::Suspended | Self::Retired
+                Self::Eligible | Self::Jailed | Self::Suspended | Self::Tombstoned | Self::Retired
             ) | (
                 Self::Jailed,
-                Self::Eligible | Self::Suspended | Self::Retired
+                Self::Eligible | Self::Suspended | Self::Tombstoned | Self::Retired
+            ) | (
+                Self::Tombstoned,
+                Self::Retired
             )
         )
     }

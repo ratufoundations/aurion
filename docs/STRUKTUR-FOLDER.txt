@@ -14,7 +14,7 @@ aurion/
 │   ├── aurion-criptografi/        # [AKTIF] hash BLAKE3 + Ed25519; tes integrasi invarian C0–C7 di crates/aurion-criptografi/tests/
 │   ├── aurion-gateway/            # [AKTIF] GatewayRoutes + AurionGateway (Zenoh boundary)
 │   ├── aurion-genesis/            # [AKTIF] GenesisSpec, bootstrap blok 0 (QUANTA_PER_AUR = 1_000_000 — nilai eksplorasi, BUKAN kebijakan moneter terkunci)
-│   ├── aurion-guard/              # [AKTIF] GuardCouncil, election, evidence, verdict
+│   ├── aurion-guard/              # [AKTIF] GuardCouncil, evidence verification, slashing, tombstoning, council governance; tes G0–G5 (COMPLETED)
 │   ├── aurion-ledger/             # [AKTIF] redb LedgerStore, codec, module KV, append-only commits, read snapshots; tes L0–L5
 │   ├── aurion-mempool/            # [AKTIF] Mempool, signature/fee/nonce/solvency, deterministic selection and bounded eviction; M0–M5 tests
 │   ├── aurion-network/            # [AKTIF] facade NetworkService + AurionBehaviour (libp2p gossipsub/noise/identify/yamux/tcp), wire codec, handshake gate, metrik u64; tes N0-N5
@@ -29,6 +29,7 @@ aurion/
 │       ├── TASK-aurion-consensus.md             # invarian konsensus B0–B5 (COMPLETED)
 │       ├── TASK-aurion-core.md                  # state transition ST0–ST5 (COMPLETED)
 │       ├── TASK-aurion-execution.md             # Capability-Keeper RFC-001, invarian E0–E5 (COMPLETED)
+│       ├── TASK-aurion-guard.md                 # security engine, slashing, tombstoning, council governance G0–G5 (COMPLETED)
 │       ├── TASK-aurion-network.md               # P2P wire & swarm boundary N0–N5 (ACTIVE, fondasi libp2p 0.56)
 │       ├── TASK-aurion-ledger.md                # invarian persistensi L0–L5 (COMPLETED)
 │       ├── TASK-aurion-mempool.md               # invarian admission M0–M5 (COMPLETED)

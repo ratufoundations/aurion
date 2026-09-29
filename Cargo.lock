@@ -433,6 +433,7 @@ dependencies = [
  "aurion-consensus",
  "aurion-core",
  "aurion-criptografi",
+ "aurion-validator",
  "blake3",
  "thiserror 1.0.69",
  "tracing",

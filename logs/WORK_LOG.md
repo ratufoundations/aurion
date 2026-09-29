@@ -1,3 +1,14 @@
+## 2026-09-30 — Penyelesaian modul aurion-guard G0–G5 (Security Engine, Slashing, Tombstoning)
+- Menyelesaikan implementasi modul `crates/aurion-guard` dengan matriks invarian G0–G5 (Verifikasi Kripto Equivocation, Anti-Replay & Kedaluwarsa Bukti, Slashing Bertingkat Solven, Tombstoning Permanen, Kuorum Multi-Sig GuardCouncil, Akuntansi Denda BPS Zero-Float).
+- Memperbaiki `TREASURY_RATE_BPS` dari 6000 ke 9000 untuk mencocokkan alokasi treasury 90% dari slash amount (reporter 5% + burn 5% + treasury 90% = 100%).
+- Memperbaiki test `test_g5_zero_float_guarantee` untuk mendeteksi penggunaan tipe float sebenarnya (bukan string literal di komentar).
+- Memperbaiki test `test_g5_bps_precision` untuk memverifikasi bahwa alokasi BPS berjumlah 10000.
+- Menambahkan `is_empty()` method ke `ExecutedEvidenceLedger` untuk kepatuhan clippy.
+- Menambahkan clippy allows ke test file untuk `expect_used`, `unwrap_used`, `similar_names`, `redundant_closure_for_method_calls`, `uninlined_format_args`.
+- Status task register: COMPLETED.
+- Verifikasi: `cargo test -p aurion-guard` lulus (8 unit + 21 integration); `cargo clippy -p aurion-guard --all-targets --all-features -- -D warnings` lulus; `python3 tools/aurion_guard.py check` lulus.
+- Berkas diubah: `crates/aurion-guard/src/{error,slashing,evidence_ledger,lib}.rs`, `crates/aurion-guard/tests/guard_invariants.rs`, `docs/task-register/TASK-aurion-guard.md`, `docs/STRUKTUR-FOLDER.txt`, `logs/WORK_LOG.md`.
+
 ## 2026-09-30 — Implementasi modul aurion-execution RFC-001 Capability-Keeper E0–E5
 - Mendaftarkan `docs/task-register/TASK-aurion-execution.md` dengan matriks invarian E0–E5 (StoreKey namespace isolation, Transactional Cache CoW rollback, inter-Keeper capability authorization, multi-action compositional reversibility, zero-float fuel metering, deterministic state delta & replay) dan memperbarui `docs/STRUKTUR-FOLDER.txt`.
 - Permukaan produksi: `src/{error,store_key,fuel,cache,capability,keeper,action,envelope,state_root,engine,lib}.rs` (11 modul terpisah) dengan dependensi `aurion-core`, `aurion-criptografi`, `aurion-account`, `aurion-ledger`.
