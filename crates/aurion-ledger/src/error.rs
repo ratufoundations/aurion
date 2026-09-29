@@ -35,6 +35,18 @@ pub enum LedgerError {
     #[error("Blok pada tinggi {0} tidak ditemukan")]
     BlockNotFound(u64),
 
+    #[error("Blok pada tinggi {0} sudah ada dan bersifat append-only")]
+    BlockAlreadyExists(u64),
+
+    #[error("Tinggi blok tidak berurutan: diharapkan {expected}, diterima {actual}")]
+    NonSequentialBlock { expected: u64, actual: u64 },
+
+    #[error("Tinggi blok telah mencapai nilai maksimum")]
+    HeightOverflow,
+
+    #[error("Hash parent blok pada tinggi {0} tidak cocok dengan tip ledger")]
+    PreviousHashMismatch(u64),
+
     #[error("Eksekusi blok gagal: {0}")]
     ExecutionFailed(#[from] aurion_core::ExecutionError),
 }

@@ -1,15 +1,22 @@
 use crate::{
     codec::Codec,
     error::LedgerError,
-    schema::{ACCOUNTS_TABLE, BLOCKS_TABLE, BLOCK_INDEX_TABLE, METADATA_TABLE},
+    schema::{ACCOUNTS_TABLE, BLOCKS_TABLE, BLOCK_INDEX_TABLE, METADATA_TABLE, MODULE_KV_TABLE},
 };
 use aurion_core::{Account, Block, State};
-use redb::Database;
-use std::path::Path;
+use aurion_criptografi::{Hash256, PublicKeyBytes};
+use redb::{Database, ReadTransaction, ReadableTable, Table};
+use std::{path::Path, sync::Arc};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct LedgerStore {
-    db: Database,
+    db: Arc<Database>,
+}
+
+/// Snapshot baca konsisten yang mempertahankan versi ledger saat dibuka.
+#[derive(Debug)]
+pub struct LedgerSnapshot {
+    read_txn: ReadTransaction,
 }
 
 impl LedgerStore {
@@ -35,37 +42,34 @@ impl LedgerStore {
             let _ = write_txn
                 .open_table(METADATA_TABLE)
                 .map_err(|e| LedgerError::TableError(e.to_string()))?;
+            let _ = write_txn
+                .open_table(MODULE_KV_TABLE)
+                .map_err(|e| LedgerError::TableError(e.to_string()))?;
         }
         write_txn
             .commit()
             .map_err(|e| LedgerError::CommitError(e.to_string()))?;
-        Ok(Self { db })
+        Ok(Self { db: Arc::new(db) })
+    }
+
+    /// Membuka snapshot baca untuk beberapa kueri yang harus melihat versi sama.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila transaksi baca gagal dimulai.
+    pub fn read_snapshot(&self) -> Result<LedgerSnapshot, LedgerError> {
+        let read_txn = self
+            .db
+            .begin_read()
+            .map_err(|e| LedgerError::TransactionError(e.to_string()))?;
+        Ok(LedgerSnapshot { read_txn })
     }
 
     /// Ambil data status akun terkini langsung dari disk.
     ///
     /// # Errors
     /// Mengembalikan error bila transaksi baca, tabel, atau data akun gagal dibaca.
-    pub fn get_account(
-        &self,
-        pubkey: &aurion_criptografi::PublicKeyBytes,
-    ) -> Result<Option<Account>, LedgerError> {
-        let read_txn = self
-            .db
-            .begin_read()
-            .map_err(|e| LedgerError::TransactionError(e.to_string()))?;
-        let table = read_txn
-            .open_table(ACCOUNTS_TABLE)
-            .map_err(|e| LedgerError::TableError(e.to_string()))?;
-        if let Some(val) = table
-            .get(pubkey)
-            .map_err(|e| LedgerError::StorageError(e.to_string()))?
-        {
-            let bytes: [u8; 16] = *val.value();
-            Ok(Some(Codec::decode_account(&bytes)))
-        } else {
-            Ok(None)
-        }
+    pub fn get_account(&self, pubkey: &PublicKeyBytes) -> Result<Option<Account>, LedgerError> {
+        self.read_snapshot()?.get_account(pubkey)
     }
 
     /// Ambil blok berdasarkan nomor tinggi (Block Height).
@@ -73,22 +77,7 @@ impl LedgerStore {
     /// # Errors
     /// Mengembalikan error bila transaksi baca, tabel, atau data blok gagal dibaca.
     pub fn get_block_by_height(&self, height: u64) -> Result<Option<Block>, LedgerError> {
-        let read_txn = self
-            .db
-            .begin_read()
-            .map_err(|e| LedgerError::TransactionError(e.to_string()))?;
-        let table = read_txn
-            .open_table(BLOCKS_TABLE)
-            .map_err(|e| LedgerError::TableError(e.to_string()))?;
-        if let Some(val) = table
-            .get(height)
-            .map_err(|e| LedgerError::StorageError(e.to_string()))?
-        {
-            let block = Codec::decode_block(val.value())?;
-            Ok(Some(block))
-        } else {
-            Ok(None)
-        }
+        self.read_snapshot()?.get_block_by_height(height)
     }
 
     /// Ambil nomor tinggi blok terakhir yang sudah tersimpan permanen.
@@ -96,43 +85,34 @@ impl LedgerStore {
     /// # Errors
     /// Mengembalikan error bila metadata ledger tidak dapat dibaca atau rusak.
     pub fn get_latest_height(&self) -> Result<u64, LedgerError> {
-        let read_txn = self
-            .db
-            .begin_read()
-            .map_err(|e| LedgerError::TransactionError(e.to_string()))?;
-        let table = read_txn
-            .open_table(METADATA_TABLE)
-            .map_err(|e| LedgerError::TableError(e.to_string()))?;
-        if let Some(val) = table
-            .get("latest_height")
-            .map_err(|e| LedgerError::StorageError(e.to_string()))?
-        {
-            let bytes = val.value();
-            let height_bytes: [u8; 8] = bytes.try_into().map_err(|_| LedgerError::MalformedData)?;
-            Ok(u64::from_le_bytes(height_bytes))
-        } else {
-            Ok(0)
-        }
+        self.read_snapshot()?.get_latest_height()
     }
 
-    /// Commit blok secara atomik: eksekusi transaksi, perbarui saldo, dan simpan blok.
+    /// Ambil state root terakhir yang dicatat dalam metadata.
     ///
     /// # Errors
-    /// Mengembalikan error bila eksekusi blok atau transaksi ACID gagal.
+    /// Mengembalikan error bila metadata rusak atau gagal dibaca.
+    pub fn get_latest_state_root(&self) -> Result<Option<Hash256>, LedgerError> {
+        self.read_snapshot()?.get_latest_state_root()
+    }
+
+    /// Commit blok append-only secara atomik ke state memory dan seluruh tabel ledger.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila tinggi blok bukan urutan berikutnya, blok sudah ada,
+    /// eksekusi state gagal, atau transaksi ACID redb gagal.
     pub fn commit_block(&self, block: &Block, state: &mut State) -> Result<(), LedgerError> {
         tracing::info!(
             height = block.header.height,
             txs = block.transactions.len(),
             "Menulis blok permanen ke redb"
         );
-        // 1. Eksekusi blok terhadap State FSM in-memory
-        block.execute(state)?;
 
-        // 2. Buka Write Transaction tunggal (ACID - rollback otomatis jika error)
         let write_txn = self
             .db
             .begin_write()
             .map_err(|e| LedgerError::TransactionError(e.to_string()))?;
+        let mut next_state = state.clone();
         {
             let mut accounts_table = write_txn
                 .open_table(ACCOUNTS_TABLE)
@@ -147,44 +127,43 @@ impl LedgerStore {
                 .open_table(METADATA_TABLE)
                 .map_err(|e| LedgerError::TableError(e.to_string()))?;
 
-            // Simpan pembaruan saldo akun dari transaksi blok ini ke disk
-            // Jika blok adalah Genesis (tinggi 0) tanpa transaksi, simpan seluruh akun state
+            validate_block_position(block, &blocks_table, &meta_table)?;
+
+            // Eksekusi pada salinan: error atau abort redb tidak mencemari state pemanggil.
+            block.execute(&mut next_state)?;
+
             if block.header.height == 0 && block.transactions.is_empty() {
-                for (pubkey, acc) in state.accounts() {
-                    let enc = Codec::encode_account(acc);
+                for (pubkey, account) in next_state.accounts() {
+                    let encoded = Codec::encode_account(account);
                     accounts_table
-                        .insert(pubkey, &enc)
+                        .insert(pubkey, &encoded)
                         .map_err(|e| LedgerError::StorageError(e.to_string()))?;
                 }
             } else {
                 for tx in &block.transactions {
-                    if let Some(sender_acc) = state.get_account(&tx.sender) {
-                        let enc = Codec::encode_account(sender_acc);
+                    if let Some(sender_account) = next_state.get_account(&tx.sender) {
+                        let encoded = Codec::encode_account(sender_account);
                         accounts_table
-                            .insert(&tx.sender, &enc)
+                            .insert(&tx.sender, &encoded)
                             .map_err(|e| LedgerError::StorageError(e.to_string()))?;
                     }
-                    if let Some(recipient_acc) = state.get_account(&tx.recipient) {
-                        let enc = Codec::encode_account(recipient_acc);
+                    if let Some(recipient_account) = next_state.get_account(&tx.recipient) {
+                        let encoded = Codec::encode_account(recipient_account);
                         accounts_table
-                            .insert(&tx.recipient, &enc)
+                            .insert(&tx.recipient, &encoded)
                             .map_err(|e| LedgerError::StorageError(e.to_string()))?;
                     }
                 }
             }
 
-            // Simpan bita blok dan indeks hash blok
             let block_bytes = Codec::encode_block(block);
             let block_hash = block.header.hash();
-
             blocks_table
                 .insert(block.header.height, block_bytes.as_slice())
                 .map_err(|e| LedgerError::StorageError(e.to_string()))?;
             index_table
                 .insert(&block_hash, block.header.height)
                 .map_err(|e| LedgerError::StorageError(e.to_string()))?;
-
-            // Perbarui metadata rantai
             meta_table
                 .insert("latest_height", &block.header.height.to_le_bytes()[..])
                 .map_err(|e| LedgerError::StorageError(e.to_string()))?;
@@ -193,13 +172,138 @@ impl LedgerStore {
                 .map_err(|e| LedgerError::StorageError(e.to_string()))?;
         }
 
-        // Commit fisik ke piringan disk
         write_txn.commit().map_err(|e| {
             tracing::error!(height = block.header.height, error = %e, "Gagal commit blok ke disk");
             LedgerError::CommitError(e.to_string())
         })?;
+        *state = next_state;
         Ok(())
     }
+}
+
+impl LedgerSnapshot {
+    /// Membaca akun dari versi database pada saat snapshot dibuka.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila tabel atau data akun gagal dibaca.
+    pub fn get_account(&self, pubkey: &PublicKeyBytes) -> Result<Option<Account>, LedgerError> {
+        let table = self
+            .read_txn
+            .open_table(ACCOUNTS_TABLE)
+            .map_err(|e| LedgerError::TableError(e.to_string()))?;
+        let account = table
+            .get(pubkey)
+            .map_err(|e| LedgerError::StorageError(e.to_string()))?
+            .map(|value| {
+                let bytes: [u8; 16] = *value.value();
+                Codec::decode_account(&bytes)
+            });
+        Ok(account)
+    }
+
+    /// Membaca blok dari versi database pada saat snapshot dibuka.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila tabel atau data blok gagal dibaca.
+    pub fn get_block_by_height(&self, height: u64) -> Result<Option<Block>, LedgerError> {
+        let table = self
+            .read_txn
+            .open_table(BLOCKS_TABLE)
+            .map_err(|e| LedgerError::TableError(e.to_string()))?;
+        table
+            .get(height)
+            .map_err(|e| LedgerError::StorageError(e.to_string()))?
+            .map(|value| Codec::decode_block(value.value()))
+            .transpose()
+    }
+
+    /// Membaca latest height dari versi database pada saat snapshot dibuka.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila metadata rusak atau gagal dibaca.
+    pub fn get_latest_height(&self) -> Result<u64, LedgerError> {
+        let table = self
+            .read_txn
+            .open_table(METADATA_TABLE)
+            .map_err(|e| LedgerError::TableError(e.to_string()))?;
+        table
+            .get("latest_height")
+            .map_err(|e| LedgerError::StorageError(e.to_string()))?
+            .map(|value| decode_height(value.value()))
+            .transpose()
+            .map(|height| height.unwrap_or(0))
+    }
+
+    /// Membaca state root terakhir dari versi database pada saat snapshot dibuka.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila metadata memiliki panjang tidak valid atau gagal dibaca.
+    pub fn get_latest_state_root(&self) -> Result<Option<Hash256>, LedgerError> {
+        let table = self
+            .read_txn
+            .open_table(METADATA_TABLE)
+            .map_err(|e| LedgerError::TableError(e.to_string()))?;
+        table
+            .get("latest_state_root")
+            .map_err(|e| LedgerError::StorageError(e.to_string()))?
+            .map(|value| {
+                value
+                    .value()
+                    .try_into()
+                    .map_err(|_| LedgerError::MalformedData)
+            })
+            .transpose()
+    }
+}
+
+fn validate_block_position(
+    block: &Block,
+    blocks_table: &Table<'_, u64, &[u8]>,
+    meta_table: &Table<'_, &str, &[u8]>,
+) -> Result<(), LedgerError> {
+    if blocks_table
+        .get(block.header.height)
+        .map_err(|e| LedgerError::StorageError(e.to_string()))?
+        .is_some()
+    {
+        return Err(LedgerError::BlockAlreadyExists(block.header.height));
+    }
+
+    let latest_height = meta_table
+        .get("latest_height")
+        .map_err(|e| LedgerError::StorageError(e.to_string()))?
+        .map(|value| decode_height(value.value()))
+        .transpose()?;
+    let expected_height = match latest_height {
+        Some(height) => height.checked_add(1).ok_or(LedgerError::HeightOverflow)?,
+        None => 0,
+    };
+    if block.header.height != expected_height {
+        return Err(LedgerError::NonSequentialBlock {
+            expected: expected_height,
+            actual: block.header.height,
+        });
+    }
+
+    let expected_prev_hash = if block.header.height == 0 {
+        [0; 32]
+    } else {
+        let previous_height = block.header.height - 1;
+        let previous_block = blocks_table
+            .get(previous_height)
+            .map_err(|e| LedgerError::StorageError(e.to_string()))?
+            .ok_or(LedgerError::BlockNotFound(previous_height))?;
+        Codec::decode_block(previous_block.value())?.header.hash()
+    };
+    if block.header.prev_hash != expected_prev_hash {
+        return Err(LedgerError::PreviousHashMismatch(block.header.height));
+    }
+    Ok(())
+}
+
+fn decode_height(bytes: &[u8]) -> Result<u64, LedgerError> {
+    let height_bytes: [u8; 8] = bytes.try_into().map_err(|_| LedgerError::MalformedData)?;
+    Ok(u64::from_le_bytes(height_bytes))
 }
 
 #[cfg(test)]
@@ -220,6 +324,18 @@ mod tests {
         let alice_pk = alice.public_key_bytes();
         let bob_pk = bob.public_key_bytes();
         state.insert_account(alice_pk, Account::new(1_000_000, 0));
+        let genesis = Block {
+            header: aurion_core::BlockHeader {
+                height: 0,
+                prev_hash: [0; 32],
+                state_root: state.compute_state_root(),
+                tx_count: 0,
+            },
+            transactions: Vec::new(),
+        };
+        store
+            .commit_block(&genesis, &mut state)
+            .expect("test operation should succeed");
         let unsigned = Transaction::new(alice_pk, bob_pk, 200_000, 0, [0u8; 64]);
         let sig = alice.sign(&unsigned.digest());
         let tx = Transaction::new(alice_pk, bob_pk, 200_000, 0, sig);
@@ -231,7 +347,7 @@ mod tests {
         let block = Block {
             header: BlockHeader {
                 height: 1,
-                prev_hash: [0u8; 32],
+                prev_hash: genesis.header.hash(),
                 state_root: expected_root,
                 tx_count: 1,
             },

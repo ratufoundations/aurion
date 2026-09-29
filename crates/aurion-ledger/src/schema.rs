@@ -12,3 +12,6 @@ pub const BLOCK_INDEX_TABLE: TableDefinition<&[u8; 32], u64> =
 
 /// Metadata: String Key -> Value Bytes (misal: "`latest_height`", "`state_root`")
 pub const METADATA_TABLE: TableDefinition<&str, &[u8]> = TableDefinition::new("chain_metadata");
+
+/// Partisi key/value untuk data modul dengan kunci biner namespaced.
+pub const MODULE_KV_TABLE: TableDefinition<&[u8], &[u8]> = TableDefinition::new("module_kv");

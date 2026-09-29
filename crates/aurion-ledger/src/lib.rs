@@ -7,4 +7,4 @@ pub mod store;
 
 pub use codec::Codec;
 pub use error::LedgerError;
-pub use store::LedgerStore;
+pub use store::{LedgerSnapshot, LedgerStore};
