@@ -1,13 +1,32 @@
 #![forbid(unsafe_code)]
 
+pub mod address;
+pub mod delegation;
 pub mod error;
+pub mod lifecycle;
+pub mod multisig;
 pub mod policy;
 pub mod role;
+pub mod rotation;
 pub mod state;
 
+pub use address::{
+    derive_account_id, derive_account_id_with_domain, parse_account_id, AccountId, ACCOUNT_ID_LEN,
+    ADDRESS_DOMAIN_TAG,
+};
+pub use delegation::{
+    DelegatedApproval, DelegationContext, DelegationLedger, DELEGATION_DOMAIN_TAG,
+};
 pub use error::AccountError;
-pub use policy::SpendingPolicy;
-pub use role::{DeviceRecord, DeviceRole};
+pub use lifecycle::{AccountLifecycle, AdmissionOutcome, MIN_ACCOUNT_RESERVE_QUANTA};
+pub use multisig::{MultiSigApproval, MultiSigPolicy};
+pub use policy::{
+    meets_integer_quorum, SpendingPolicy, DAILY_QUOTA_WINDOW_SECONDS, QUORUM_THRESHOLD_PERCENT,
+};
+pub use role::{
+    DeviceRecord, DeviceRole, Role, RoleAction, RolePromotion, MIN_VALIDATOR_STAKE_QUANTA,
+};
+pub use rotation::KeyRotationProof;
 pub use state::{SovereignAccount, MAX_DEVICES_PER_ACCOUNT};
 
 #[cfg(test)]

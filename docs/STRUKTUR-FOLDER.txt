@@ -6,7 +6,7 @@ aurion/
 │   └── aurion-cli/                # [AKTIF] CLI operasional (keygen/status/balance/monitor via Zenoh)
 ├── config/                        # [AKTIF] crate aurion-config (workspace member): AurionSettings (TOML), AppMode, validasi startup, init_central_logging; data: node.dev.toml / node.prod.toml
 ├── crates/
-│   ├── aurion-account/            # [AKTIF] SovereignAccount, role, policy
+│   ├── aurion-account/            # [AKTIF] SovereignAccount, derivasi alamat berdaulat (A0), Role/RBAC (A1), rotasi kunci & multi-sig (A2), anti-replay delegasi (A3), dust/state-bloat (A4), kuota nir-pecahan (A5); tes A0–A5
 │   ├── aurion-consensus/          # [AKTIF] ValidatorSet, RoundState, signed votes/QC, equivocation evidence, timeout/view change; tes B0–B5
 │   ├── aurion-contract/           # [AKTIF] VM eksperimental (baseline penelitian, BUKAN keputusan final)
 │   ├── aurion-core/               # [AKTIF] Account, Transaction, Block, State; ST0–ST3 dan ST5 linkage tests; fee/timestamp protocol pending
@@ -23,6 +23,7 @@ aurion/
 │   ├── RFC-001.md                  # arah desain modul komposabel (Draft / Proposed)
 │   ├── STRUKTUR-FOLDER.txt        # file ini (diperbarui 2026-09-29; snapshot lama sebelum 2026-09-28 sudah kedaluwarsa)
 │   └── task-register/
+│       ├── TASK-aurion-account.md                # identitas & kebijakan akun A0–A5 (COMPLETED)
 │       ├── TASK-aurion-criptografi.md           # invarian kriptografi C0–C7 (COMPLETE)
 │       ├── TASK-aurion-consensus.md             # invarian konsensus B0–B5 (COMPLETED)
 │       ├── TASK-aurion-core.md                  # state transition ST0–ST5 (COMPLETED)
