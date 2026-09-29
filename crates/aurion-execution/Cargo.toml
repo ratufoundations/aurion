@@ -1,0 +1,23 @@
+[package]
+name = "aurion-execution"
+version = "0.1.0"
+edition = "2021"
+authors = ["Aurion Foundation"]
+license = "MIT OR Apache-2.0"
+description = "Mesin eksekusi logika bisnis berbasis Capability-Keeper dan Transactional Cache untuk Aurion"
+
+[dependencies]
+aurion-core = { path = "../aurion-core" }
+aurion-criptografi = { path = "../aurion-criptografi" }
+aurion-account = { path = "../aurion-account" }
+aurion-ledger = { path = "../aurion-ledger" }
+
+blake3 = "1.5"
+thiserror = "1.0"
+tracing = "0.1"
+
+[dev-dependencies]
+tokio = { version = "1.38", features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true

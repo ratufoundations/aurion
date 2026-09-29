@@ -363,6 +363,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurion-execution"
+version = "0.1.0"
+dependencies = [
+ "aurion-account",
+ "aurion-core",
+ "aurion-criptografi",
+ "aurion-ledger",
+ "blake3",
+ "thiserror 1.0.69",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "aurion-explorer"
 version = "0.1.0"
 dependencies = [

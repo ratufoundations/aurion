@@ -1,3 +1,13 @@
+## 2026-09-30 — Implementasi modul aurion-execution RFC-001 Capability-Keeper E0–E5
+- Mendaftarkan `docs/task-register/TASK-aurion-execution.md` dengan matriks invarian E0–E5 (StoreKey namespace isolation, Transactional Cache CoW rollback, inter-Keeper capability authorization, multi-action compositional reversibility, zero-float fuel metering, deterministic state delta & replay) dan memperbarui `docs/STRUKTUR-FOLDER.txt`.
+- Permukaan produksi: `src/{error,store_key,fuel,cache,capability,keeper,action,envelope,state_root,engine,lib}.rs` (11 modul terpisah) dengan dependensi `aurion-core`, `aurion-criptografi`, `aurion-account`, `aurion-ledger`.
+- Membuat `crates/aurion-execution/tests/execution_invariants.rs` berisi 5 suite pengujian E0–E5 (anti-collision namespace, rollback parsial, otorisasi capability expired/forged, komposabilitas reversibel, fuel exhaustion zero-float, determinisme replay).
+- Menambah `verifikasi_tanda_tangan` ke `aurion-criptografi/lib.rs` untuk kompatibilitas envelope signature verification.
+- Memperbarui workspace `Cargo.toml` menambahkan `aurion-execution` ke members.
+- Verifikasi: `cargo check -p aurion-execution` lulus; `cargo test -p aurion-execution` lulus (1 unit + 5 integrasi E0–E5); pemindaian statis `src/` bebas `f32`/`f64`.
+- Status task register: COMPLETED. Batas lanjutan: integrasi `ExecutionEngine` ke `apps/aurion-node` untuk eksekusi transaksi produksi.
+- Berkas diubah/ditambah: `docs/task-register/TASK-aurion-execution.md` (baru), `docs/STRUKTUR-FOLDER.txt`, `crates/aurion-execution/` (direktori baru lengkap), `crates/aurion-criptografi/src/lib.rs`, `Cargo.toml` (workspace), `logs/WORK_LOG.md`.
+
 ## 2026-09-29 — Pengujian invarian aurion-validator V0–V5 (siklus hidup validator)
 - Mendaftarkan `docs/task-register/TASK-aurion-validator.md` (matriks V0–V5: gerbang penerimaan PoP/stake/peran, pipeline probation jendela K, rotasi epoch deterministik, auto-jail liveness + cooldown unjail, kuota endorsement anti-Sybil + taint, aritmetika BPS nir-pecahan) dan memperbarui `docs/STRUKTUR-FOLDER.txt`.
 - Permukaan produksi yang dikunci suite: `src/{status,proof,scoring,liveness,record,epoch,endorsement,error,lib}.rs` serta orkestrator `src/lifecycle.rs` (`ValidatorLifecycle`: register/graduate/activate/rotate_epoch/report_block/request_unjail/suspend/slash/endorse), `Cargo.toml` diperluas dengan dependensi `aurion-account`.
