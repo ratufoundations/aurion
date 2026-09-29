@@ -1,0 +1,15 @@
+[package]
+name = "aurion-config"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing-appender = { workspace = true }
+serde = { version = "1.0", features = ["derive"] }
+toml = { workspace = true }
+thiserror = "1.0"
+
+[lints]
+workspace = true

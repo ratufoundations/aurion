@@ -1,0 +1,9 @@
+mode = "developer"
+db_path = "target/dev_db"
+log_dir = "logs"
+
+[network]
+chain_id = 1001
+p2p_bind_addr = "127.0.0.1:8080"
+rpc_bind_addr = "127.0.0.1:8545"
+block_time_ms = 2000

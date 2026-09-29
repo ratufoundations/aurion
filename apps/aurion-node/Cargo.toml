@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+aurion-config = { path = "../../config" }
+tracing = { workspace = true }
 aurion-criptografi = { path = "../../crates/aurion-criptografi" }
 aurion-core = { path = "../../crates/aurion-core" }
 aurion-consensus = { path = "../../crates/aurion-consensus" }

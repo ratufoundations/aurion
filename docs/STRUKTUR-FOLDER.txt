@@ -4,7 +4,7 @@ aurion/
 │   ├── aurion-node/               # [AKTIF] biner simpul validator (TCP + consensus + ledger + mempool)
 │   ├── aurion-explorer/           # [AKTIF] backend API explorer (axum) — baca LedgerStore
 │   └── aurion-cli/                # [AKTIF] CLI operasional (keygen/status/balance/monitor via Zenoh)
-├── config/                        # [KOSONG] rencana config TOML/YAML (belum ada file)
+├── config/                        # [AKTIF] crate aurion-config (workspace member): AppMode, NetworkConfig, AurionConfig (TOML), init_central_logging; data: node.dev.toml / node.prod.toml
 ├── crates/
 │   ├── aurion-account/            # [AKTIF] SovereignAccount, role, policy
 │   ├── aurion-consensus/          # [AKTIF] ValidatorSet, RoundState, Vote, QC
@@ -32,7 +32,7 @@ aurion/
 │   └── audit.sh                   # audit suite: clippy + cargo audit + cargo deny + grep unsafe/float
 ├── clippy.toml                    # larangan f32/f64 (alasan: determinisme consensus)
 ├── deny.toml                      # kebijakan advisories/licenses/bans/sources
-├── Cargo.toml                     # [workspace] resolver=3, 16 members (13 crates + 3 apps), [workspace.lints] unsafe forbid + float deny + unwrap_used deny
+├── Cargo.toml                     # [workspace] resolver=3, 17 members (config + 13 crates + 3 apps), [workspace.dependencies] tracing/tracing-subscriber/tracing-appender/toml, [workspace.lints] unsafe forbid + float deny + unwrap_used deny
 ├── Cargo.lock                     # lockfile
 └── target/                        # [GENERATED] build artifacts cargo, jangan di-commit
 

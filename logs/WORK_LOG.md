@@ -1,5 +1,10 @@
 # Catatan Kerja Aurion
 
+## 2026-09-29 — Push commit guard dan aturan agen
+- Setelah konfirmasi eksplisit pengguna, push commit `10c5198` berhasil dikirim ke `https://github.com/ratufoundations/aurion.git`, branch `main`.
+- Isi `logs/WORK_LOG.md` diperiksa; tidak ditemukan token GitHub, kredensial VPS, atau kunci privat.
+- Perubahan lokal lain yang sudah ada sebelum commit tidak ikut dikirim.
+
 ## 2026-09-29 — Commit perubahan aturan agen dan guard
 - Membuat commit lokal `5815c92` pada branch `main`, berisi `.cargo/config.toml`, `Agents.md`, `logs/WORK_LOG.md`, dan `tools/aurion_guard.py`; perubahan lain yang sudah ada di working tree tidak ikut staged.
 - `git push origin main` ditolak oleh auto-review: push akan mengekspor isi repositori privat ke tujuan GitHub eksternal yang belum diverifikasi secara spesifik. Push belum dilakukan.

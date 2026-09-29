@@ -11,6 +11,7 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 
+use aurion_config::{init_central_logging, AurionConfig};
 use aurion_consensus::{RoundState, ValidatorSet, Vote, VoteType};
 use aurion_core::{Account, Block, BlockHeader, State, Transaction};
 use aurion_criptografi::{Hash256, Keypair, PublicKeyBytes};
@@ -64,8 +65,57 @@ struct NodeContext {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // 1. Muat konfigurasi terpusat (fallback ke default bila berkas belum ada)
+    let file_config = AurionConfig::load_from_file("config/node.dev.toml").ok();
     let cli = Cli::parse();
+    // 2. Nilai CLI menimpa berkas bila flag terkait diberikan eksplisit
+    let config = apply_cli_overrides(file_config.unwrap_or_default(), &cli);
+
+    // 3. Pasang logging terpusat sesuai mode
+    let _guard = init_central_logging(config.mode, &config.log_dir, "aurion-node");
+
+    tracing::info!(
+        chain_id = config.network.chain_id,
+        db_path = %config.db_path,
+        "Simpul Aurion berhasil diinisialisasi dari konfigurasi terpusat"
+    );
+    run_node(cli, config).await
+}
+
+/// Nilai CLI (`--port/--chain-id/--data-dir`) menimpa konfigurasi berkas
+/// hanya bila flag tersebut diberikan eksplisit di baris perintah.
+fn apply_cli_overrides(mut config: AurionConfig, cli: &Cli) -> AurionConfig {
+    use std::env::args;
+    let raw: Vec<String> = args().collect();
+    let has = |flag: &str| {
+        raw.iter()
+            .any(|a| a == flag || a.starts_with(&format!("{flag}=")))
+    };
+    if has("--port") {
+        let mut net = config.network.clone();
+        if let Some(host) = net
+            .p2p_bind_addr
+            .rsplit_once(':')
+            .map(|(h, _)| h.to_string())
+        {
+            net.p2p_bind_addr = format!("{host}:{}", cli.port);
+            config.network = net;
+        }
+    }
+    if has("--chain-id") {
+        config.network.chain_id = cli.chain_id;
+    }
+    if has("--data-dir") || has("--data_dir") {
+        config.db_path = cli.data_dir.to_string_lossy().into_owned();
+    }
+    config
+}
+
+async fn run_node(
+    cli: Cli,
+    config: AurionConfig,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("============================================================");
     println!("               AURION BLOCKCHAIN VALIDATOR NODE             ");
     println!("============================================================");
@@ -75,18 +125,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Identitas Validator (Pubkey): {:02X?}",
         &validator_pubkey[0..8]
     );
-    println!("Chain ID                     : {}", cli.chain_id);
-    println!("P2P Listen Port              : {}", cli.port);
-    if let Some(parent) = cli.data_dir.parent() {
+    println!("Chain ID                     : {}", config.network.chain_id);
+    println!(
+        "P2P Bind Addr                : {}",
+        config.network.p2p_bind_addr
+    );
+    let db_path = std::path::PathBuf::from(&config.db_path);
+    if let Some(parent) = db_path.parent() {
         if !parent.as_os_str().is_empty() && !parent.exists() {
             fs::create_dir_all(parent)?;
         }
     }
-    let ledger = LedgerStore::open(&cli.data_dir)?;
-    println!(
-        "Ledger Store                 : Terbuka di {:?}",
-        cli.data_dir
-    );
+    let ledger = LedgerStore::open(&db_path)?;
+    println!("Ledger Store                 : Terbuka di {:?}", db_path);
     let mut state = State::new();
     let current_height = ledger.get_latest_height()?;
     println!("Ledger Block Height Saat Ini : {}", current_height);
@@ -103,13 +154,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mempool = Mempool::new(MempoolConfig::default());
     let ctx = Arc::new(NodeContext {
         validator_keypair,
-        chain_id: cli.chain_id,
+        chain_id: config.network.chain_id,
         state: Mutex::new(state),
         ledger,
         mempool: Mutex::new(mempool),
         validator_set,
     });
-    let listen_addr = SocketAddr::from(([0, 0, 0, 0], cli.port));
+    let listen_addr: SocketAddr = match config.network.p2p_bind_addr.parse() {
+        Ok(addr) => addr,
+        Err(e) => {
+            eprintln!(
+                "[CONFIG ERROR] p2p_bind_addr tidak valid ({}): {}",
+                config.network.p2p_bind_addr, e
+            );
+            SocketAddr::from(([0, 0, 0, 0], cli.port))
+        }
+    };
     let listener = TcpListener::bind(listen_addr).await?;
     println!("\n[NETWORK] Listener P2P aktif pada: {}", listen_addr);
     let net_ctx = Arc::clone(&ctx);
