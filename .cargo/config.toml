@@ -1,0 +1,4 @@
+[alias]
+guard-check = "!python3 tools/aurion_guard.py check"
+guard-build = "!python3 tools/aurion_guard.py cargo build"
+guard-test  = "!python3 tools/aurion_guard.py cargo test"
