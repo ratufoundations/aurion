@@ -153,7 +153,7 @@ fn a0_account_id_parser_is_lossless_and_rejects_malformed_lengths() {
         let bytes = vec![0_u8; length];
         match parse_account_id(&bytes) {
             Err(AccountError::InvalidAccountIdLength { got }) => {
-                assert_eq!(got, length, "panjang yang dilaporkan wajib sesuai input")
+                assert_eq!(got, length, "panjang yang dilaporkan wajib sesuai input");
             }
             other => panic!("panjang {length} seharusnya ditolak, diterima {other:?}"),
         }
