@@ -1,3 +1,9 @@
+## 2026-09-29 — RFC-001 capability-keeper
+- Menambahkan `docs/RFC-001.md` dari draf terlampir tentang StoreKey/namespace, keeper dan capability grants, cache state transaksional, kontrak modul, generalized transaction envelope, serta rencana migrasi empat fase.
+- Mendaftarkan RFC dalam peta folder dan `Agents.md` sebagai acuan arah desain yang berstatus Draft / Proposed; implementasi yang belum ada tidak dinyatakan sebagai perilaku runtime aktif.
+- Pemeriksaan dokumentasi: `git diff --check` lulus. Tidak ada perubahan kode runtime atau tes yang diperlukan untuk penempatan draf ini.
+- Tindak lanjut: implementasi fase RFC perlu instruksi/perubahan tersendiri, dengan keputusan API, determinisme, dan adapter ledger divalidasi pada setiap fase.
+
 ## 2026-09-29 — Perbaikan fondasi eksternal repositori
 - Menyelaraskan `scripts/audit.sh` agar menjalankan guard pada `crates/`, `apps/`, dan `config/`, format, Clippy ketat, tes workspace, serta cargo-deny/audit secara opsional tanpa instalasi otomatis. Menambahkan workflow GitHub Actions untuk push/PR ke `main`, hook pre-commit lokal, aturan ignore log/data/build bersarang, dan `.gitkeep` untuk placeholder harness integrasi kriptografi.
 - Memperbarui `Agents.md` dan `docs/STRUKTUR-FOLDER.txt` agar otoritas float, anggota workspace, ledger redb, tools, logs, audit script, CI, serta status harness sesuai implementasi. Memperbaiki lint Clippy ketat yang terbuka di API workspace dan beberapa konversi angka; membatasi pengecualian panjang fungsi pada orkestrator node dan dispatch VM. Menghapus artefak build `tools/guard-cli/target/` dari working tree.

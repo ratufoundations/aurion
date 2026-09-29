@@ -118,3 +118,4 @@ Ketika menerima instruksi teknis dari pengguna, agen wajib bekerja dengan metodo
 * **Penerimaan Validator Baru:** Wajib masa probation 1 minggu (7 hari heartbeat liveness $\ge 99\%$) + surat dukungan kriptografis dari minimal 3 validator aktif.
 * **Konsensus BFT:** Ambang batas finalisasi blok adalah kuorum super-mayoritas $2f + 1$.
 * **Penyimpanan:** Format serialisasi biner kanonikal deterministik berbasis B-Tree ACID (`redb`).
+* **Arah modul komposabel:** `docs/RFC-001.md` adalah acuan desain yang diusulkan untuk isolasi capability-keeper, cache transaksi atomik, dan envelope transaksi umum. Status RFC dan fase implementasi di dalam dokumen tetap berlaku; jangan menganggap API atau fase yang belum diimplementasikan sebagai perilaku runtime yang sudah tersedia.

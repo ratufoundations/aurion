@@ -20,6 +20,7 @@ aurion/
 │   ├── aurion-validator/          # [AKTIF] registry, probation, endorsement
 │   └── aurion-wallet/            # [AKTIF] AurionWallet, domain separation wallet-level, delegation
 ├── docs/
+│   ├── RFC-001.md                  # arah desain modul komposabel (Draft / Proposed)
 │   ├── STRUKTUR-FOLDER.txt        # file ini (diperbarui 2026-09-29; snapshot lama sebelum 2026-09-28 sudah kedaluwarsa)
 │   └── task-register/
 │       ├── TASK-002-crypto-testing-standards.md  # kerangka C0–C7, status DRAFT
