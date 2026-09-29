@@ -7,7 +7,7 @@ aurion/
 ├── config/                        # [AKTIF] crate aurion-config (workspace member): AurionSettings (TOML), AppMode, validasi startup, init_central_logging; data: node.dev.toml / node.prod.toml
 ├── crates/
 │   ├── aurion-account/            # [AKTIF] SovereignAccount, role, policy
-│   ├── aurion-consensus/          # [AKTIF] ValidatorSet, RoundState, Vote, QC
+│   ├── aurion-consensus/          # [AKTIF] ValidatorSet, RoundState, signed votes/QC, equivocation evidence, timeout/view change; tes B0–B5
 │   ├── aurion-contract/           # [AKTIF] VM eksperimental (baseline penelitian, BUKAN keputusan final)
 │   ├── aurion-core/               # [AKTIF] tipe inti: Account, Transaction, Block, State
 │   ├── aurion-criptografi/        # [AKTIF] hash BLAKE3 + Ed25519; tes integrasi invarian C0–C7 di crates/aurion-criptografi/tests/
@@ -24,6 +24,7 @@ aurion/
 │   ├── STRUKTUR-FOLDER.txt        # file ini (diperbarui 2026-09-29; snapshot lama sebelum 2026-09-28 sudah kedaluwarsa)
 │   └── task-register/
 │       ├── TASK-aurion-criptografi.md           # invarian kriptografi C0–C7 (COMPLETE)
+│       ├── TASK-aurion-consensus.md             # invarian konsensus B0–B5 (COMPLETED)
 │       ├── TASK-aurion-ledger.md                # invarian persistensi L0–L5 (COMPLETED)
 │       ├── TASK-aurion-mempool.md               # invarian admission M0–M5 (COMPLETED)
 │       ├── TASK-002-crypto-testing-standards.md  # kerangka C0–C7, status DRAFT

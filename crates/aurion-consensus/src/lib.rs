@@ -6,6 +6,6 @@ pub mod validator;
 pub mod vote;
 
 pub use error::ConsensusError;
-pub use state::{QuorumCertificate, RoundState};
+pub use state::{EquivocationEvidence, QuorumCertificate, RoundState, TimeoutCertificate};
 pub use validator::ValidatorSet;
-pub use vote::{Vote, VoteType};
+pub use vote::{TimeoutVote, Vote, VoteType};

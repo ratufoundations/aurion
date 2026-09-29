@@ -1,7 +1,7 @@
 use crate::error::ConsensusError;
 use aurion_criptografi::{Hash256, PublicKeyBytes, SignatureBytes, SignatureVerifier};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum VoteType {
     Prevote,
     Precommit,
@@ -61,6 +61,51 @@ impl Vote {
     pub fn verify(&self) -> Result<(), ConsensusError> {
         let digest = self.digest();
         SignatureVerifier::verify_single(&self.validator, &digest, &self.signature)
+            .map_err(|_| ConsensusError::InvalidVoteSignature)
+    }
+}
+
+/// Signed timeout announcement for one consensus height and round.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TimeoutVote {
+    pub validator: PublicKeyBytes,
+    pub height: u64,
+    pub round: u32,
+    pub signature: SignatureBytes,
+}
+
+impl TimeoutVote {
+    #[must_use]
+    pub const fn new(
+        validator: PublicKeyBytes,
+        height: u64,
+        round: u32,
+        signature: SignatureBytes,
+    ) -> Self {
+        Self {
+            validator,
+            height,
+            round,
+            signature,
+        }
+    }
+
+    #[must_use]
+    pub fn digest(&self) -> Hash256 {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(b"AURION_BFT_TIMEOUT_V1");
+        hasher.update(&self.validator);
+        hasher.update(&self.height.to_le_bytes());
+        hasher.update(&self.round.to_le_bytes());
+        *hasher.finalize().as_bytes()
+    }
+
+    /// Verify the cryptographic signature on this timeout announcement.
+    ///
+    /// # Errors
+    /// Returns `InvalidVoteSignature` when the signer or signature is invalid.
+    pub fn verify(&self) -> Result<(), ConsensusError> {
+        SignatureVerifier::verify_single(&self.validator, &self.digest(), &self.signature)
             .map_err(|_| ConsensusError::InvalidVoteSignature)
     }
 }

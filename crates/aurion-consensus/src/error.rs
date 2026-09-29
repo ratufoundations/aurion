@@ -12,6 +12,21 @@ pub enum ConsensusError {
     #[error("Vote duplikat dari validator yang sama pada ronde ini")]
     DuplicateVote(PublicKeyBytes),
 
+    #[error("Validator mengirim vote bertentangan pada height, round, dan fase yang sama")]
+    EquivocationDetected(PublicKeyBytes),
+
+    #[error("Vote atau timeout vote berasal dari height/round yang sudah lewat")]
+    StaleVote,
+
+    #[error("Timeout vote duplikat dari validator yang sama")]
+    DuplicateTimeoutVote(PublicKeyBytes),
+
+    #[error("Ronde atau perhitungan kuorum melampaui batas integer")]
+    ArithmeticOverflow,
+
+    #[error("Tidak ada validator untuk memilih leader")]
+    EmptyValidatorSet,
+
     #[error("Tinggi blok atau ronde tidak cocok")]
     HeightRoundMismatch,
 

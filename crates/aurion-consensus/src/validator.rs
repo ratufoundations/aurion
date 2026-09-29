@@ -35,9 +35,42 @@ impl ValidatorSet {
         }
     }
 
-    /// Kuorum BFT standar: 2f + 1
-    #[must_use]
-    pub fn quorum_threshold(&self) -> usize {
-        2 * self.max_faulty_nodes() + 1
+    /// Hitung kuorum BFT `2f + 1` dengan checked arithmetic.
+    ///
+    /// # Errors
+    /// Mengembalikan `ArithmeticOverflow` jika ambang tidak dapat direpresentasikan.
+    pub fn quorum_threshold(&self) -> Result<usize, crate::ConsensusError> {
+        self.max_faulty_nodes()
+            .checked_mul(2)
+            .and_then(|faulty| faulty.checked_add(1))
+            .ok_or(crate::ConsensusError::ArithmeticOverflow)
+    }
+
+    /// Select the deterministic round-robin leader at a given height and round.
+    ///
+    /// # Errors
+    /// Returns an error for an empty validator set or when the index arithmetic overflows.
+    pub fn leader_for(
+        &self,
+        height: u64,
+        round: u32,
+    ) -> Result<PublicKeyBytes, crate::ConsensusError> {
+        let member_count = u64::try_from(self.members.len())
+            .map_err(|_| crate::ConsensusError::ArithmeticOverflow)?;
+        if member_count == 0 {
+            return Err(crate::ConsensusError::EmptyValidatorSet);
+        }
+        let round = u64::from(round);
+        let index = height
+            .checked_add(round)
+            .ok_or(crate::ConsensusError::ArithmeticOverflow)?
+            % member_count;
+        let index =
+            usize::try_from(index).map_err(|_| crate::ConsensusError::ArithmeticOverflow)?;
+        self.members
+            .iter()
+            .nth(index)
+            .copied()
+            .ok_or(crate::ConsensusError::EmptyValidatorSet)
     }
 }
