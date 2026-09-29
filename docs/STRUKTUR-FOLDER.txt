@@ -10,7 +10,7 @@ aurion/
 │   ├── aurion-consensus/          # [AKTIF] ValidatorSet, RoundState, Vote, QC
 │   ├── aurion-contract/           # [AKTIF] VM eksperimental (baseline penelitian, BUKAN keputusan final)
 │   ├── aurion-core/               # [AKTIF] tipe inti: Account, Transaction, Block, State
-│   ├── aurion-criptografi/        # [AKTIF] hash BLAKE3 + Ed25519 (workspace member pertama)
+│   ├── aurion-criptografi/        # [AKTIF] hash BLAKE3 + Ed25519; tes integrasi invarian C0–C7 di crates/aurion-criptografi/tests/
 │   ├── aurion-gateway/            # [AKTIF] GatewayRoutes + AurionGateway (Zenoh boundary)
 │   ├── aurion-genesis/            # [AKTIF] GenesisSpec, bootstrap blok 0 (QUANTA_PER_AUR = 1_000_000 — nilai eksplorasi, BUKAN kebijakan moneter terkunci)
 │   ├── aurion-guard/              # [AKTIF] GuardCouncil, election, evidence, verdict
@@ -23,10 +23,9 @@ aurion/
 │   ├── RFC-001.md                  # arah desain modul komposabel (Draft / Proposed)
 │   ├── STRUKTUR-FOLDER.txt        # file ini (diperbarui 2026-09-29; snapshot lama sebelum 2026-09-28 sudah kedaluwarsa)
 │   └── task-register/
+│       ├── TASK-aurion-criptografi.md           # invarian kriptografi C0–C7 (COMPLETE)
 │       ├── TASK-002-crypto-testing-standards.md  # kerangka C0–C7, status DRAFT
 │       └── TASK-003-peta-tes-fondasi-aurion-v0.md # working test map, status WORKING-MAP (bukan aturan final)
-├── tests/
-│   └── aurion-criptografi-tests/  # [PLACEHOLDER] .gitkeep; harness belum dibuat, tes saat ini inline #[cfg(test)]
 ├── logs/                          # [AKTIF] WORK_LOG.md terlacak; log runtime diabaikan Git
 ├── tools/                         # [AKTIF] aurion_guard.py (security guard) dan guard-cli runner Cargo
 ├── scripts/

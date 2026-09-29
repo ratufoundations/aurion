@@ -1,3 +1,10 @@
+## 2026-09-29 — Pengujian invarian aurion-criptografi C0–C7
+- Mendaftarkan task `task-aurion-criptografi` dan membuat integration test terisolasi di `crates/aurion-criptografi/tests/crypto_invariants.rs`; delapan skenario mencakup determinisme 1.000 iterasi pada empat ukuran payload, avalanche seluruh 512 bit input, Ed25519 round-trip, tamper, wrong signer, mutasi dan scalar non-kanonikal `S == L`, encoding cacat, derivasi seed, dan redaksi Debug.
+- Semua input uji deterministik dan suite hanya menggunakan API crate serta pustaka standar; tidak ada dependensi modul bisnis atau RNG. Task register ditutup COMPLETE setelah C0–C7 lulus. Indeks folder diperbarui dan placeholder root `tests/aurion-criptografi-tests` yang tidak digunakan dihapus; suite kanonis berada di dalam crate.
+- Batas API: verifier menerima fixed-size arrays (`[u8; 32]` / `[u8; 64]`), sehingga panjang salah tidak dapat diteruskan sebagai input dan belum ada parser slice variabel untuk diuji. Encoding byte cacat tetap diverifikasi menghasilkan `CryptoError` tanpa panic.
+- Pemeriksaan: `cargo test -p aurion-criptografi` lulus (11 unit/integration tests total; 8 skenario C0–C7); `cargo clippy -p aurion-criptografi --all-targets --all-features -- -D warnings`, `python3 tools/aurion_guard.py check`, dan `cargo fmt --all --check` lulus.
+- Tindak lanjut: tidak ada untuk cakupan C0–C7; penambahan API parser variabel, bila diperlukan, perlu task terpisah.
+
 ## 2026-09-29 — RFC-001 capability-keeper
 - Menambahkan `docs/RFC-001.md` dari draf terlampir tentang StoreKey/namespace, keeper dan capability grants, cache state transaksional, kontrak modul, generalized transaction envelope, serta rencana migrasi empat fase.
 - Mendaftarkan RFC dalam peta folder dan `Agents.md` sebagai acuan arah desain yang berstatus Draft / Proposed; implementasi yang belum ada tidak dinyatakan sebagai perilaku runtime aktif.
