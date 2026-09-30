@@ -87,8 +87,8 @@ impl ValidatorStatus {
     }
 
     /// `true` bila status bersifat terminal: tidak ada transisi keluar
-    /// (`Retired`), atau satu-satunya transisi keluar hanyalah arsip ke
-    /// `Retired` (`Tombstoned`). Keduanya tidak pernah ikut kuorum.
+    /// sama sekali (`Retired` dan `Tombstoned`). Keduanya tidak pernah
+    /// ikut kuorum.
     #[must_use]
     pub const fn is_terminal(self) -> bool {
         matches!(self, Self::Retired | Self::Tombstoned)
@@ -115,11 +115,12 @@ impl ValidatorStatus {
     /// Matriks transisi sah (V1/V3).
     ///
     /// `Probation` tidak pernah boleh melompat langsung ke `ActiveSet`, dan
-    /// `Jailed`/`Suspended`/`Tombstoned` memiliki batasan transisi khusus.
-    /// `Tombstoned` adalah status terminal karantina; transisi keluar
-    /// satu-satunya ialah arsip ke `Retired`. Kandidat `Probation` yang
-    /// terbukti double-signing dapat langsung di-tombstone (karantina
-    /// ireversibel) tanpa menunggu lulus probation.
+    /// `Jailed`/`Suspended` memiliki batasan transisi khusus. `Tombstoned`
+    /// ialah terminal absolut: **nol transisi keluar** — validator yang terbukti
+    /// double-signing tidak berhak pensiun secara terhormat, dan keanggotaannya
+    /// tidak pernah diarsipkan. Kandidat `Probation` maupun slot `Eligible` yang
+    /// terbukti double-signing dapat langsung di-tombstone (karantina ireversibel)
+    /// tanpa menunggu promosi.
     #[must_use]
     pub const fn can_transition_to(self, next: Self) -> bool {
         matches!(
@@ -130,7 +131,7 @@ impl ValidatorStatus {
             ) | (Self::Suspended, Self::Eligible | Self::Retired)
                 | (
                     Self::Eligible,
-                    Self::ActiveSet | Self::Suspended | Self::Retired
+                    Self::ActiveSet | Self::Suspended | Self::Tombstoned | Self::Retired
                 )
                 | (
                     Self::ActiveSet,
@@ -144,7 +145,6 @@ impl ValidatorStatus {
                     Self::Jailed,
                     Self::Eligible | Self::Suspended | Self::Tombstoned | Self::Retired
                 )
-                | (Self::Tombstoned, Self::Retired)
         )
     }
 

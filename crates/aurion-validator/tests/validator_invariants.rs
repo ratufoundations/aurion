@@ -30,6 +30,9 @@ const PROBATION_BLOCKS: u64 = 100;
 /// Panjang epoch kecil agar rotasi mudah diuji pada batas blok.
 const EPOCH_BLOCKS: u64 = 10;
 
+/// Tinggi bukti (evidence) semu yang memicu karantina ireversibel pada uji.
+const TOMBSTONE_EVIDENCE_HEIGHT: u64 = 31;
+
 /// Kebijakan uji dengan kapasitas aktif 3 kursi dan kuota endorsement aktif.
 fn test_policy() -> ValidatorPolicy {
     ValidatorPolicy {
@@ -450,13 +453,16 @@ fn v1_transition_matrix_is_exhaustive_and_probation_cannot_jump() {
     // adalah rujukan tunggal; `authorize_transition` harus selalu sinkron
     // dengannya. Status `Tombstoned` (pelanggaran kritis) ditambahkan pada
     // commit f617f8f (14->17), dan jalur karantina `Probation -> Tombstoned`
-    // untuk double-signing menambah satu pasangan (17->18).
+    // untuk double-signing menambah satu pasangan (17->18). `Tombstoned`
+    // adalah terminal absolut: `Eligible -> Tombstoned` dibuka sementara
+    // `Tombstoned -> Retired` dicabut, sehingga total tetap 18 pasangan.
     let expected_matrix: Vec<(ValidatorStatus, ValidatorStatus)> = vec![
         (ValidatorStatus::Probation, ValidatorStatus::Eligible),
         (ValidatorStatus::Probation, ValidatorStatus::Tombstoned),
         (ValidatorStatus::Probation, ValidatorStatus::Retired),
         (ValidatorStatus::Eligible, ValidatorStatus::ActiveSet),
         (ValidatorStatus::Eligible, ValidatorStatus::Suspended),
+        (ValidatorStatus::Eligible, ValidatorStatus::Tombstoned),
         (ValidatorStatus::Eligible, ValidatorStatus::Retired),
         (ValidatorStatus::ActiveSet, ValidatorStatus::Eligible),
         (ValidatorStatus::ActiveSet, ValidatorStatus::Jailed),
@@ -469,7 +475,6 @@ fn v1_transition_matrix_is_exhaustive_and_probation_cannot_jump() {
         (ValidatorStatus::Jailed, ValidatorStatus::Retired),
         (ValidatorStatus::Suspended, ValidatorStatus::Eligible),
         (ValidatorStatus::Suspended, ValidatorStatus::Retired),
-        (ValidatorStatus::Tombstoned, ValidatorStatus::Retired),
     ];
 
     let mut allowed: Vec<(ValidatorStatus, ValidatorStatus)> = Vec::new();
@@ -1442,7 +1447,7 @@ fn v4_tombstone_quarantines_probation_double_signer() {
     // Kandidat probation yang terbukti double-signing dapat langsung
     // di-karantina ireversibel tanpa menunggu lulus probation.
     lifecycle
-        .tombstone(&account.account_id)
+        .tombstone_validator(&account.account_id, TOMBSTONE_EVIDENCE_HEIGHT)
         .expect("karantina probation sah");
     let record = lifecycle.record(&account.account_id).expect("rekaman sah");
     assert_eq!(record.status, ValidatorStatus::Tombstoned);
@@ -1454,10 +1459,12 @@ fn v4_tombstone_quarantines_probation_double_signer() {
     // Karantina mengunci stake tanpa mencairkannya.
     assert_eq!(record.stake_quanta, stake_before);
     assert!(lifecycle.is_endorser_tainted(&account.account_id));
+    // Jejak audit: tinggi bukti yang memicu karantina diabadikan pada rekaman.
+    assert_eq!(record.tombstone_evidence_height, TOMBSTONE_EVIDENCE_HEIGHT);
 
     // Tidak ada jalan kembali: tombstone kedua dan pemulihan apapun ditolak.
     assert_eq!(
-        lifecycle.tombstone(&account.account_id),
+        lifecycle.tombstone_validator(&account.account_id, TOMBSTONE_EVIDENCE_HEIGHT),
         Err(ValidatorError::InvalidStatusTransition {
             from: ValidatorStatus::Tombstoned,
             to: ValidatorStatus::Tombstoned,
@@ -1477,18 +1484,53 @@ fn v4_tombstone_rejects_statuses_outside_the_matrix() {
         ValidatorStatus::Eligible
     );
 
-    // Eligible tidak berhak langsung di-karantina; transisi ditolak dan state
-    // tetap utuh (masih Eligible).
+    // Eligible (slot lulus probation, belum di himpunan aktif) berhak langsung
+    // di-karantina: double-signer yang lolos masa uji tidak lepas dari tombstone.
+    lifecycle
+        .tombstone_validator(&account.account_id, TOMBSTONE_EVIDENCE_HEIGHT)
+        .expect("karantina slot eligible sah");
     assert_eq!(
-        lifecycle.tombstone(&account.account_id),
+        status_of(&lifecycle, &account.account_id),
+        ValidatorStatus::Tombstoned
+    );
+
+    // `Suspended` menunggu jalur pengampunan tata kelola; karantina langsung
+    // dilarang dan state tetap utuh (masih Suspended).
+    let (_master2, suspended) = candidate_account(3, MIN_VALIDATOR_STAKE_QUANTA);
+    register_validator(&mut lifecycle, &suspended, &key(101), 0).expect("penerimaan validator");
+    drive_probation(&mut lifecycle, &suspended.account_id);
+    lifecycle
+        .slash(&suspended.account_id, SEVERE_SLASH_RATE_BPS, 1)
+        .expect("slash berat sah");
+    assert_eq!(
+        status_of(&lifecycle, &suspended.account_id),
+        ValidatorStatus::Suspended
+    );
+    assert_eq!(
+        lifecycle.tombstone_validator(&suspended.account_id, TOMBSTONE_EVIDENCE_HEIGHT),
         Err(ValidatorError::InvalidStatusTransition {
-            from: ValidatorStatus::Eligible,
+            from: ValidatorStatus::Suspended,
             to: ValidatorStatus::Tombstoned,
         })
     );
     assert_eq!(
-        status_of(&lifecycle, &account.account_id),
-        ValidatorStatus::Eligible
+        status_of(&lifecycle, &suspended.account_id),
+        ValidatorStatus::Suspended
+    );
+
+    // `Retired` (keluar terhormat) juga bukan kandidat tombstone.
+    let (_master3, retired) = candidate_account(4, MIN_VALIDATOR_STAKE_QUANTA);
+    register_validator(&mut lifecycle, &retired, &key(102), 0).expect("penerimaan validator");
+    drive_probation(&mut lifecycle, &retired.account_id);
+    lifecycle
+        .retire(&retired.account_id)
+        .expect("pensiun terhormat sah");
+    assert_eq!(
+        lifecycle.tombstone_validator(&retired.account_id, TOMBSTONE_EVIDENCE_HEIGHT),
+        Err(ValidatorError::InvalidStatusTransition {
+            from: ValidatorStatus::Retired,
+            to: ValidatorStatus::Tombstoned,
+        })
     );
 }
 
@@ -1508,7 +1550,7 @@ fn v4_tombstone_evicts_active_set_and_drops_quorum_count() {
 
     let target = accounts[0].account_id;
     lifecycle
-        .tombstone(&target)
+        .tombstone_validator(&target, TOMBSTONE_EVIDENCE_HEIGHT)
         .expect("karantina anggota himpunan aktif sah");
     assert_eq!(status_of(&lifecycle, &target), ValidatorStatus::Tombstoned);
     assert_eq!(lifecycle.active_validator_count(), 2);
@@ -1518,20 +1560,30 @@ fn v4_tombstone_evicts_active_set_and_drops_quorum_count() {
 #[test]
 fn v4_tombstone_by_consensus_key_bridges_guard_domain() {
     let mut lifecycle = ValidatorLifecycle::new(test_policy()).expect("kebijakan valid");
-    let (_master, account) = candidate_account(4, MIN_VALIDATOR_STAKE_QUANTA);
+    let (_master, account) = candidate_account(5, MIN_VALIDATOR_STAKE_QUANTA);
     let consensus = key(100);
     register_validator(&mut lifecycle, &account, &consensus, 0).expect("penerimaan validator");
 
     // Guard menandai pelaku dengan kunci konsensus, bukan AccountId.
     let found = lifecycle
-        .tombstone_by_consensus_key(&consensus.public_key_bytes())
+        .tombstone_by_consensus_key(&consensus.public_key_bytes(), TOMBSTONE_EVIDENCE_HEIGHT)
         .expect("karantina via kunci konsensus");
     assert_eq!(found, account.account_id);
+    assert!(lifecycle.is_tombstoned_key(&consensus.public_key_bytes()));
+    assert!(!lifecycle.is_tombstoned_key(&key(9).public_key_bytes()));
+    assert_eq!(
+        lifecycle
+            .record(&account.account_id)
+            .expect("rekaman sah")
+            .tombstone_evidence_height,
+        TOMBSTONE_EVIDENCE_HEIGHT
+    );
 
     // Kunci konsensus yang tidak dikenal ditolak tanpa mutasi.
     let stranger = key(200);
     assert_eq!(
-        lifecycle.tombstone_by_consensus_key(&stranger.public_key_bytes()),
+        lifecycle
+            .tombstone_by_consensus_key(&stranger.public_key_bytes(), TOMBSTONE_EVIDENCE_HEIGHT),
         Err(ValidatorError::NotRegistered(stranger.public_key_bytes()))
     );
 }
@@ -1539,10 +1591,10 @@ fn v4_tombstone_by_consensus_key_bridges_guard_domain() {
 #[test]
 fn v4_severe_slash_does_not_resurrect_tombstoned() {
     let mut lifecycle = ValidatorLifecycle::new(test_policy()).expect("kebijakan valid");
-    let (_master, account) = candidate_account(5, MIN_VALIDATOR_STAKE_QUANTA);
+    let (_master, account) = candidate_account(6, MIN_VALIDATOR_STAKE_QUANTA);
     register_validator(&mut lifecycle, &account, &key(100), 0).expect("penerimaan validator");
     lifecycle
-        .tombstone(&account.account_id)
+        .tombstone_validator(&account.account_id, TOMBSTONE_EVIDENCE_HEIGHT)
         .expect("karantina sah");
     let stake_before = lifecycle
         .record(&account.account_id)

@@ -704,16 +704,23 @@ impl ValidatorLifecycle {
     /// Karantina ireversibel validator penipu ke status `Tombstoned`.
     ///
     /// Hak karantina hanya sah bila matriks transisi mengizinkan status asal
-    /// menuju `Tombstoned` (kini: `Probation`, `ActiveSet`, `Jailed`). Setelah
-    /// tombstone, validator tidak pernah ikut kuorum, tidak lagi dihitung
-    /// stake-nya, dan seluruh hak pengesahannya dicabut. Stake tetap terkunci
-    /// pada rekaman (karantina); tidak ada jalur pencairan maupun pemulihan.
+    /// menuju `Tombstoned` (kini: `Probation`, `Eligible`, `ActiveSet`,
+    /// `Jailed`). Setelah tombstone, validator tidak pernah ikut kuorum, tidak
+    /// lagi dihitung stake-nya, dan seluruh hak pengesahannya dicabut. Stake
+    /// tetap terkunci pada rekaman (karantina); tidak ada jalur pencairan,
+    /// pemulihan, maupun arsip ke `Retired` — `Tombstoned` adalah terminal
+    /// absolut. Tinggi bukti `evidence_height` yang memicu karantina diabadikan
+    /// pada rekaman sebagai jejak audit.
     ///
     /// # Errors
     /// Mengembalikan `ValidatorError::NotRegistered` bila akun tidak terdaftar,
     /// atau `ValidatorError::InvalidStatusTransition` bila status asal tidak
     /// berhak langsung di-tombstone.
-    pub fn tombstone(&mut self, account: &AccountId) -> Result<(), ValidatorError> {
+    pub fn tombstone_validator(
+        &mut self,
+        account: &AccountId,
+        evidence_height: u64,
+    ) -> Result<(), ValidatorError> {
         let record = self
             .records
             .get_mut(account)
@@ -724,12 +731,23 @@ impl ValidatorLifecycle {
         let revoked = self.endorsements.taint_endorser(account);
         record.status = ValidatorStatus::Tombstoned;
         record.active_since_block = 0;
+        record.tombstone_evidence_height = evidence_height;
         tracing::error!(
             account = ?account,
+            evidence_height,
             endorsements_revoked = revoked,
             "Validator di-tombstone: karantina ireversibel"
         );
         Ok(())
+    }
+
+    /// `true` bila kunci konsensus sudah di-tombstone (daftar cekal permanen
+    /// domain guard). Dipakai untuk menolak pelaporan ulang dan petisi pemulihan.
+    #[must_use]
+    pub fn is_tombstoned_key(&self, consensus_key: &PublicKeyBytes) -> bool {
+        self.records.values().any(|record| {
+            record.consensus_pubkey == *consensus_key && record.status.is_tombstoned()
+        })
     }
 
     /// Varian tombstone melalui kunci konsensus (domain penegakan guard).
@@ -737,7 +755,7 @@ impl ValidatorLifecycle {
     /// Penegakan di lapangan (guard) menandai pelaku double-signing dengan
     /// kunci konsensus `PublicKeyBytes`, sedangkan rekaman validator dikunci
     /// oleh `AccountId` berdaulat. Metode ini menemukan rekaman yang
-    /// `consensus_pubkey`-nya cocok lalu menerapkan `tombstone`.
+    /// `consensus_pubkey`-nya cocok lalu menerapkan `tombstone_validator`.
     ///
     /// # Errors
     /// Mengembalikan `ValidatorError::NotRegistered` bila tidak ada rekaman
@@ -747,6 +765,7 @@ impl ValidatorLifecycle {
     pub fn tombstone_by_consensus_key(
         &mut self,
         consensus_key: &PublicKeyBytes,
+        evidence_height: u64,
     ) -> Result<AccountId, ValidatorError> {
         let account = self
             .records
@@ -754,7 +773,7 @@ impl ValidatorLifecycle {
             .find(|record| record.consensus_pubkey == *consensus_key)
             .map(|record| record.account)
             .ok_or(ValidatorError::NotRegistered(*consensus_key))?;
-        self.tombstone(&account)?;
+        self.tombstone_validator(&account, evidence_height)?;
         Ok(account)
     }
 

@@ -50,6 +50,9 @@ pub struct ValidatorRecord {
     pub unjail_nonce: u64,
     /// Akumulasi stake yang telah dipotong (`slashing`).
     pub slashed_quanta: u64,
+    /// Tinggi bukti (evidence) yang memicu karantina ireversibel; `0` bila
+    /// rekaman tidak pernah di-tombstone.
+    pub tombstone_evidence_height: u64,
 }
 
 impl ValidatorRecord {
@@ -81,6 +84,7 @@ impl ValidatorRecord {
             suspension_reason: None,
             unjail_nonce: 0,
             slashed_quanta: 0,
+            tombstone_evidence_height: 0,
         }
     }
 
@@ -133,6 +137,7 @@ impl ValidatorRecord {
         hasher.update(&self.jail_start_block.to_le_bytes());
         hasher.update(&self.unjail_nonce.to_le_bytes());
         hasher.update(&self.slashed_quanta.to_le_bytes());
+        hasher.update(&self.tombstone_evidence_height.to_le_bytes());
         hasher.update(&[match self.suspension_reason {
             Some(reason) => reason.code(),
             None => u8::MAX,
