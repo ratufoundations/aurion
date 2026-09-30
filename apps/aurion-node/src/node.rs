@@ -376,7 +376,7 @@ impl ChainNode {
                     "Guard memerintahkan tombstone: validator berstatus double-signing"
                 ),
                 Err(err) => {
-                    tracing::warn!(?target, error = %err, "Tombstone sudah tercatat sebelumnya")
+                    tracing::warn!(?target, error = %err, "Tombstone sudah tercatat sebelumnya");
                 }
             }
         }
