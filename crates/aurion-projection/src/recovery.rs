@@ -11,8 +11,8 @@
 //! membandingkan nilai skalar.
 
 use aurion_core::{Block, State};
-use aurion_ledger::LedgerStore;
 use aurion_criptografi::Hash256;
+use aurion_ledger::LedgerStore;
 use std::sync::Arc;
 
 use crate::error::ProjectionError;
@@ -57,7 +57,11 @@ impl ProjectionRecovery {
     /// - `ProjectionError::NonSequentialBlock` jika rentang tidak valid atau
     ///   blok yang dibaca tidak berurutan
     /// - `ProjectionError::Execution` jika transaksi gagal dieksekusi
-    pub fn cold_rebuild(&self, from_height: u64, to_height: u64) -> Result<ReadSnapshot, ProjectionError> {
+    pub fn cold_rebuild(
+        &self,
+        from_height: u64,
+        to_height: u64,
+    ) -> Result<ReadSnapshot, ProjectionError> {
         self.cold_rebuild_with_genesis(from_height, to_height, State::new())
     }
 
@@ -121,7 +125,11 @@ impl ProjectionRecovery {
             final_height = height;
         }
 
-        Ok(Self::snapshot_from_state(final_height, final_state_root, &state))
+        Ok(Self::snapshot_from_state(
+            final_height,
+            final_state_root,
+            &state,
+        ))
     }
 
     /// Ambil blok pada ketinggian tertentu dari ledger.
@@ -372,7 +380,10 @@ mod tests {
 
         assert_eq!(snapshot.height(), 9);
         assert_eq!(*snapshot.state_root(), roots[9]);
-        assert_eq!(snapshot.get_balance(&alice_pk), Some(1_000_000 - 1_000 - 10));
+        assert_eq!(
+            snapshot.get_balance(&alice_pk),
+            Some(1_000_000 - 1_000 - 10)
+        );
         assert_eq!(snapshot.get_balance(&bob_pk), Some(1_000));
     }
 
@@ -428,13 +439,17 @@ mod tests {
 
     #[test]
     fn test_cold_rebuild_rejects_inverted_range() {
-        let recovery = ProjectionRecovery::new(Arc::new(LedgerStore::open(
-            std::env::temp_dir().join("aurion-projection-range-test"),
-        ).expect("ledger sementara harus dapat dibuat")));
+        let recovery = ProjectionRecovery::new(Arc::new(
+            LedgerStore::open(std::env::temp_dir().join("aurion-projection-range-test"))
+                .expect("ledger sementara harus dapat dibuat"),
+        ));
 
         assert!(matches!(
             recovery.cold_rebuild(10, 5),
-            Err(ProjectionError::NonSequentialBlock { expected: 10, got: 5 })
+            Err(ProjectionError::NonSequentialBlock {
+                expected: 10,
+                got: 5
+            })
         ));
     }
 

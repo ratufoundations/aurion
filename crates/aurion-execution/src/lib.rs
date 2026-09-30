@@ -16,9 +16,7 @@ pub mod store_key;
 
 pub use action::{Action, ActionBatch};
 pub use cache::{TransactionalCache, WriteSet};
-pub use capability::{
-    Capability, CapabilityGrant, CapabilityHandle, CapabilityRegistry, ModuleId,
-};
+pub use capability::{Capability, CapabilityGrant, CapabilityHandle, CapabilityRegistry, ModuleId};
 pub use engine::{ExecutionContext, ExecutionEngine, ExecutionOutcome, ExecutionPolicy};
 pub use envelope::TransactionEnvelope;
 pub use error::ExecutionError;

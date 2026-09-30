@@ -2,34 +2,39 @@
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 #![allow(clippy::cast_possible_truncation)]
 
-use aurion_projection::{
-    ProjectionCursor, AddressIndex, ProjectionMetrics,
-    PruningManager, PruningConfig, SnapshotManager,
-    ProjectionError, ProjectionRecovery
-};
-use aurion_core::{
-    Account, Block, BlockHeader, State, Transaction
-};
+use aurion_core::{Account, Block, BlockHeader, State, Transaction};
 use aurion_criptografi::{Hash256, Keypair, PublicKeyBytes};
 use aurion_ledger::LedgerStore;
+use aurion_projection::{
+    AddressIndex, ProjectionCursor, ProjectionError, ProjectionMetrics, ProjectionRecovery,
+    PruningConfig, PruningManager, SnapshotManager,
+};
 use std::sync::Arc;
-
 
 #[test]
 fn test_p0_ingestion_idempotency() {
     let mut cursor = ProjectionCursor::new();
-    
+
     // Test sequential ingestion
     assert!(cursor.advance(1, [1u8; 32]).is_ok());
     assert_eq!(cursor.height(), 1);
-    
+
     // Test rejection of non-sequential blocks
     let result = cursor.advance(3, [3u8; 32]);
-    assert!(matches!(result, Err(ProjectionError::NonSequentialBlock { expected: 2, got: 3 })));
-    
+    assert!(matches!(
+        result,
+        Err(ProjectionError::NonSequentialBlock {
+            expected: 2,
+            got: 3
+        })
+    ));
+
     // Test idempotency (re-applying same block)
     let result = cursor.validate_next_height(1);
-    assert!(matches!(result, Err(ProjectionError::BlockAlreadyProjected { height: 1 })));
+    assert!(matches!(
+        result,
+        Err(ProjectionError::BlockAlreadyProjected { height: 1 })
+    ));
 }
 
 #[test]
@@ -37,22 +42,22 @@ fn test_p1_address_indexing() -> Result<(), Box<dyn std::error::Error>> {
     let index = AddressIndex::new();
     let alice = [1u8; 32];
     let bob = [2u8; 32];
-    
+
     // Add 15 transactions
     for i in 1..=15 {
         let tx = Transaction::new(alice, bob, 100, i, 0, [0u8; 64]);
         index.add_transaction(&tx, [(i % 256) as u8; 32], i);
     }
-    
+
     assert_eq!(index.get_transaction_count(&alice), 15);
     assert_eq!(index.get_outbound_count(&alice), 15);
     assert_eq!(index.get_inbound_count(&bob), 15);
-    
+
     // Pagination test (limit 10)
     let page1 = index.get_transaction_history(&alice, 10, 0)?;
     assert_eq!(page1.len(), 10);
     assert_eq!(page1[0].block_height, 15); // Reverse chronological
-    
+
     let page2 = index.get_transaction_history(&alice, 10, 10)?;
     assert_eq!(page2.len(), 5);
 
@@ -64,12 +69,12 @@ fn test_p2_snapshot_consistency_and_lag() {
     let manager = SnapshotManager::new();
     manager.update_ledger_height(100);
     manager.update_projection_height(95);
-    
+
     assert_eq!(manager.projection_lag(), 5);
-    
+
     // Test consistency check
     assert!(manager.verify_consistency().is_ok());
-    
+
     manager.update_ledger_height(90);
     manager.update_projection_height(95);
     assert!(manager.verify_consistency().is_err());
@@ -79,15 +84,15 @@ fn test_p2_snapshot_consistency_and_lag() {
 fn test_p3_pruning_and_retention() -> Result<(), Box<dyn std::error::Error>> {
     let config = PruningConfig::with_retention_window(1000)?;
     let manager = PruningManager::new(config);
-    
+
     manager.update_projection_height(1500);
-    
+
     let bound = manager.retention_bound();
     assert_eq!(bound, 500);
-    
+
     // Pruning exactly at current height is fine
     assert!(manager.prune(Some(1500)).is_ok());
-    
+
     // Pruning ahead of projection cursor must be rejected
     assert!(matches!(
         manager.prune(Some(2000)),
@@ -100,17 +105,17 @@ fn test_p3_pruning_and_retention() -> Result<(), Box<dyn std::error::Error>> {
 #[test]
 fn test_p5_zero_float_metrics() {
     let metrics = ProjectionMetrics::new();
-    
+
     for _ in 0..75 {
         metrics.record_cache_hit();
     }
     for _ in 0..25 {
         metrics.record_cache_miss();
     }
-    
+
     // 75% hit rate = 7500 BPS
     assert_eq!(metrics.cache_hit_rate_bps(), 7500);
-    
+
     metrics.record_block_processing(2000);
     metrics.record_block_processing(4000);
     assert_eq!(metrics.avg_block_processing_time_us(), 3000);
@@ -274,7 +279,8 @@ fn test_p4_cold_rebuild_is_deterministic_and_crash_recoverable() {
 #[test]
 fn test_p4_cold_rebuild_detects_unavailable_blocks() {
     let dir = tempfile::TempDir::new().expect("direktori sementara harus tersedia");
-    let store = LedgerStore::open(dir.path().join("short.redb")).expect("ledger harus dapat dibuka");
+    let store =
+        LedgerStore::open(dir.path().join("short.redb")).expect("ledger harus dapat dibuka");
     seed_chain(&store, 5);
 
     let recovery = ProjectionRecovery::new(Arc::new(store));

@@ -13,12 +13,12 @@ pub type SignatureBytes = [u8; 64];
 pub type PrivateKeyBytes = [u8; 32];
 
 /// Verifikasi tanda tangan Ed25519 untuk kompatibilitas dengan modul eksekusi.
-/// 
+///
 /// # Arguments
 /// * `public_key` - Kunci publik 32-byte dari pengirim
 /// * `message` - Pesan/preimage yang ditandatangani
 /// * `signature` - Tanda tangan digital 64-byte
-/// 
+///
 /// # Errors
 /// Mengembalikan `CryptoError` jika verifikasi gagal
 pub fn verifikasi_tanda_tangan(

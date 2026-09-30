@@ -6,7 +6,6 @@ pub enum GatewayError {
     // ========================================================================
     // [GW0] Sanitasi Ingress & Penolakan Data Cacat
     // ========================================================================
-
     #[error("Payload kosong: tidak ada data yang diterima")]
     EmptyPayload,
 
@@ -34,7 +33,6 @@ pub enum GatewayError {
     // ========================================================================
     // [GW1] Pemisahan Tegas Jalur CQRS
     // ========================================================================
-
     #[error("Endpoint write-only dipanggil melalui jalur read: {endpoint}")]
     WriteEndpointOnReadPath { endpoint: String },
 
@@ -47,7 +45,6 @@ pub enum GatewayError {
     // ========================================================================
     // [GW2] Pertahanan Batas Ukuran & Anti-DoS
     // ========================================================================
-
     #[error("Ukuran frame melebihi batas aman: {size} > {max}")]
     FrameTooLarge { size: u64, max: u64 },
 
@@ -57,7 +54,6 @@ pub enum GatewayError {
     // ========================================================================
     // [GW3] Pembatasan Laju Nir-Pecahan (Token Bucket)
     // ========================================================================
-
     #[error("Rate limit terlampaui: silakan coba lagi setelah {retry_after_ms} ms")]
     RateLimitExceeded { retry_after_ms: u64 },
 
@@ -67,7 +63,6 @@ pub enum GatewayError {
     // ========================================================================
     // [GW4] Isolasi Kegagalan Klien & Penutupan Galat Internal
     // ========================================================================
-
     #[error("Galat internal: {trace_id}")]
     InternalError { trace_id: String },
 
@@ -80,14 +75,12 @@ pub enum GatewayError {
     // ========================================================================
     // [GW5] Metrik Operasional & Kuota Ingress Nir-Pecahan
     // ========================================================================
-
     #[error("Akumulasi metrik overflow: {field}")]
     MetricsOverflow { field: String },
 
     // ========================================================================
     // Sistem & Integrasi
     // ========================================================================
-
     #[error("Kesalahan Zenoh: {0}")]
     Zenoh(#[from] zenoh::Error),
 
@@ -117,7 +110,10 @@ impl GatewayError {
     /// Periksa apakah galat ini berhubungan dengan rate limiting (GW3).
     #[must_use]
     pub fn is_rate_limited(&self) -> bool {
-        matches!(self, Self::RateLimitExceeded { .. } | Self::TokenBucketExhausted { .. })
+        matches!(
+            self,
+            Self::RateLimitExceeded { .. } | Self::TokenBucketExhausted { .. }
+        )
     }
 
     /// Periksa apakah galat ini berhubungan dengan ukuran payload (GW2).
@@ -125,7 +121,9 @@ impl GatewayError {
     pub fn is_size_related(&self) -> bool {
         matches!(
             self,
-            Self::PayloadTooLarge { .. } | Self::FrameTooLarge { .. } | Self::BufferAllocationFailed { .. }
+            Self::PayloadTooLarge { .. }
+                | Self::FrameTooLarge { .. }
+                | Self::BufferAllocationFailed { .. }
         )
     }
 

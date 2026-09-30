@@ -2,9 +2,9 @@
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 
 use aurion_execution::{
-    compute_state_root, AccountKeeper, Action, ActionBatch, ArbitraryModule,
-    CapabilityHandle, ExecutionContext, ExecutionEngine, ExecutionError,
-    ExecutionPolicy, Keeper, NamespaceStore, StakingKeeper, StoreKey, TransactionalCache,
+    compute_state_root, AccountKeeper, Action, ActionBatch, ArbitraryModule, CapabilityHandle,
+    ExecutionContext, ExecutionEngine, ExecutionError, ExecutionPolicy, Keeper, NamespaceStore,
+    StakingKeeper, StoreKey, TransactionalCache,
 };
 
 // ==============================================================================
@@ -61,8 +61,12 @@ fn test_e1_transactional_cache_rollback_on_failure() {
     let dead_addr = [0xEE; 32]; // Alamat terlarang
 
     // Saldo awal: Alice = 1.000, Bob = 500
-    engine.set_balance_genesis(&alice, 1_000).expect("should succeed");
-    engine.set_balance_genesis(&bob, 500).expect("should succeed");
+    engine
+        .set_balance_genesis(&alice, 1_000)
+        .expect("should succeed");
+    engine
+        .set_balance_genesis(&bob, 500)
+        .expect("should succeed");
 
     let ctx = ExecutionContext {
         block_height: 1,
@@ -118,7 +122,9 @@ fn test_e2_inter_keeper_capability_authorization() {
         ExecutionEngine::new(ExecutionPolicy::default(), [0xBB; 32]).expect("Engine gagal dibuat");
 
     let alice = [1u8; 32];
-    engine.set_balance_genesis(&alice, 5_000).expect("should succeed");
+    engine
+        .set_balance_genesis(&alice, 5_000)
+        .expect("should succeed");
 
     let account_keeper = AccountKeeper::new().expect("should succeed");
     let staking_keeper = StakingKeeper::new().expect("should succeed");
@@ -153,7 +159,12 @@ fn test_e2_inter_keeper_capability_authorization() {
             1_000,
         );
         assert!(res.is_ok(), "Pemanggilan berkapabilitas sah wajib diterima");
-        assert_eq!(account_keeper.balance(&mut acc_store, &alice).expect("should succeed"), 4_000);
+        assert_eq!(
+            account_keeper
+                .balance(&mut acc_store, &alice)
+                .expect("should succeed"),
+            4_000
+        );
     }
 
     // 3. Modul liar memalsukan handle tanpa grant -> Ditolak CapabilityMissing
@@ -203,7 +214,9 @@ fn test_e3_multi_action_compositional_reversibility() {
 
     let alice = [1u8; 32];
     let bob = [2u8; 32];
-    engine.set_balance_genesis(&alice, 10_000).expect("should succeed");
+    engine
+        .set_balance_genesis(&alice, 10_000)
+        .expect("should succeed");
 
     let ctx = ExecutionContext {
         block_height: 5,
@@ -230,13 +243,24 @@ fn test_e3_multi_action_compositional_reversibility() {
     });
 
     let res = engine.execute(&ctx, &batch);
-    assert!(res.is_err(), "Batch majemuk wajib gagal jika satu aksi gagal");
+    assert!(
+        res.is_err(),
+        "Batch majemuk wajib gagal jika satu aksi gagal"
+    );
 
     // Verifikasi pemulihan total:
     // Saldo Alice tetap 10.000, saldo Bob tetap 0, dan metadata Bob tidak pernah terbit
-    assert_eq!(engine.query_balance(&alice).expect("should succeed"), 10_000);
+    assert_eq!(
+        engine.query_balance(&alice).expect("should succeed"),
+        10_000
+    );
     assert_eq!(engine.query_balance(&bob).expect("should succeed"), 0);
-    assert_eq!(engine.query_metadata(&bob, "alias").expect("should succeed"), None);
+    assert_eq!(
+        engine
+            .query_metadata(&bob, "alias")
+            .expect("should succeed"),
+        None
+    );
 }
 
 // ==============================================================================
@@ -250,12 +274,13 @@ fn test_e4_zero_float_fuel_metering_exhaustion() {
         fuel_limit: 80,
         max_actions_per_tx: 5,
     };
-    let mut engine =
-        ExecutionEngine::new(strict_policy, [0xDD; 32]).expect("Engine gagal dibuat");
+    let mut engine = ExecutionEngine::new(strict_policy, [0xDD; 32]).expect("Engine gagal dibuat");
 
     let alice = [1u8; 32];
     let bob = [2u8; 32];
-    engine.set_balance_genesis(&alice, 1_000).expect("should succeed");
+    engine
+        .set_balance_genesis(&alice, 1_000)
+        .expect("should succeed");
 
     let ctx = ExecutionContext {
         block_height: 1,
@@ -326,8 +351,12 @@ fn test_e5_state_delta_determinism_and_replay_invariance() {
     let charlie = [3u8; 32];
 
     // Setup state awal identik pada kedua instance
-    engine_a.set_balance_genesis(&alice, 100_000).expect("should succeed");
-    engine_b.set_balance_genesis(&alice, 100_000).expect("should succeed");
+    engine_a
+        .set_balance_genesis(&alice, 100_000)
+        .expect("should succeed");
+    engine_b
+        .set_balance_genesis(&alice, 100_000)
+        .expect("should succeed");
 
     let initial_snapshot = engine_a.committed_snapshot();
 
@@ -351,8 +380,12 @@ fn test_e5_state_delta_determinism_and_replay_invariance() {
         timestamp: 2_000_000,
     };
 
-    let outcome_a = engine_a.execute(&ctx, &batch).expect("engine_a execution should succeed");
-    let outcome_b = engine_b.execute(&ctx, &batch).expect("engine_b execution should succeed");
+    let outcome_a = engine_a
+        .execute(&ctx, &batch)
+        .expect("engine_a execution should succeed");
+    let outcome_b = engine_b
+        .execute(&ctx, &batch)
+        .expect("engine_b execution should succeed");
 
     // 1. Determinisme Antar-Instance: Write-set digest dan State root wajib identik 100%
     assert_eq!(outcome_a.delta.digest(), outcome_b.delta.digest());

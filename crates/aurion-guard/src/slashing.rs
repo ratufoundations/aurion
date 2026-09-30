@@ -95,7 +95,7 @@ impl ViolationSeverity {
         match self {
             Self::Severe => SEVERE_SLASH_BPS,
             Self::Moderate => 1_000, // 10%
-            Self::Minor => 500,    // 5%
+            Self::Minor => 500,      // 5%
         }
     }
 
@@ -104,7 +104,7 @@ impl ViolationSeverity {
     #[must_use]
     pub const fn reporter_reward_bps(self) -> u64 {
         match self {
-            Self::Severe => 500,   // 5% of slash
+            Self::Severe => 500, // 5% of slash
             Self::Moderate => 200,
             Self::Minor => 100,
         }
@@ -115,7 +115,7 @@ impl ViolationSeverity {
     #[must_use]
     pub const fn burn_bps(self) -> u64 {
         match self {
-            Self::Severe => 500,   // 5% of slash
+            Self::Severe => 500, // 5% of slash
             Self::Moderate => 300,
             Self::Minor => 100,
         }
@@ -126,7 +126,7 @@ impl ViolationSeverity {
     #[must_use]
     pub const fn treasury_bps(self) -> u64 {
         match self {
-            Self::Severe => 9_000,  // 90% of slash (30% + 500 + 500 + 9000 = 10000)
+            Self::Severe => 9_000, // 90% of slash (30% + 500 + 500 + 9000 = 10000)
             Self::Moderate => 9_500,
             Self::Minor => 9_800,
         }
@@ -256,7 +256,8 @@ mod tests {
         assert_eq!(result.treasury_amount, 27_000_000);
 
         // Verifikasi konservasi: 1.5M + 1.5M + 27M = 30M
-        let total_allocated = result.reporter_reward + result.burned_amount + result.treasury_amount;
+        let total_allocated =
+            result.reporter_reward + result.burned_amount + result.treasury_amount;
         assert_eq!(total_allocated, result.total_slash);
     }
 
@@ -268,6 +269,4 @@ mod tests {
         let result = SlashCalculator::calculate(staked, severity);
         assert!(result.is_err(), "Should overflow with u64::MAX");
     }
-
-
 }

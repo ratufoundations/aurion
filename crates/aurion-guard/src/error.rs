@@ -7,7 +7,6 @@ pub enum GuardError {
     // ========================================================================
     // [G0] Verifikasi Bukti Kriptografis Equivocation
     // ========================================================================
-
     #[error("Tanda tangan bukti equivocation tidak valid: {0}")]
     InvalidEvidenceSignature(String),
 
@@ -33,7 +32,6 @@ pub enum GuardError {
     // ========================================================================
     // [G1] Proteksi Replay & Kedaluwarsa Bukti
     // ========================================================================
-
     #[error("Bukti dengan digest {digest:?} sudah pernah dieksekusi sebelumnya")]
     EvidenceAlreadyExecuted { digest: [u8; 32] },
 
@@ -50,7 +48,6 @@ pub enum GuardError {
     // ========================================================================
     // [G2] Eksekusi Slashing Bertingkat & Konservasi Solvensi
     // ========================================================================
-
     #[error("Saldo stake validator {validator:?} tidak mencukupi untuk pemotongan: tersedia {available}, dibutuhkan {required}")]
     InsufficientStakeForSlashing {
         validator: PublicKeyBytes,
@@ -70,7 +67,6 @@ pub enum GuardError {
     // ========================================================================
     // [G3] Isolasi Status: Tombstoning & Auto-Jail
     // ========================================================================
-
     #[error("Validator {0:?} sudah berada dalam status Tombstoned")]
     AlreadyTombstoned(PublicKeyBytes),
 
@@ -80,8 +76,9 @@ pub enum GuardError {
     // ========================================================================
     // [G4] Otorisasi & Kuorum Dewan Pengawas
     // ========================================================================
-
-    #[error("Jumlah Guard aktif kurang dari batas minimum (terdaftar {current}, butuh minimal {min})")]
+    #[error(
+        "Jumlah Guard aktif kurang dari batas minimum (terdaftar {current}, butuh minimal {min})"
+    )]
     InsufficientGuardCount { current: usize, min: usize },
 
     #[error("Guard {0:?} tidak terdaftar dalam Guard Council")]
@@ -114,7 +111,6 @@ pub enum GuardError {
     // ========================================================================
     // [G5] Akuntansi Denda Nir-Pecahan Berbasis BPS
     // ========================================================================
-
     #[error("Rasio BPS tidak valid: {bps} (harus <= 10000)")]
     InvalidBpsRatio { bps: u64 },
 
@@ -124,7 +120,6 @@ pub enum GuardError {
     // ========================================================================
     // Sistem & Operasional
     // ========================================================================
-
     #[error("Keputusan pemutusan jaringan gagal: butuh kesepakatan mutlak ({required}/{required}), baru terkumpul {collected}")]
     UnanimousConsentNotMet { collected: usize, required: usize },
 

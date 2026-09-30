@@ -17,8 +17,8 @@ pub use error::GuardError;
 pub use evidence::{RaidEvidence, RehabilitationPetition, ViolationType};
 pub use evidence_ledger::{EvidenceContext, ExecutedEvidenceLedger, MAX_EVIDENCE_AGE_BLOCKS};
 pub use slashing::{
-    BPS_SCALE, BURN_RATE_BPS, REPORTER_REWARD_BPS, SEVERE_SLASH_BPS, TREASURY_RATE_BPS,
-    SlashAllocation, SlashCalculator, ViolationSeverity,
+    SlashAllocation, SlashCalculator, ViolationSeverity, BPS_SCALE, BURN_RATE_BPS,
+    REPORTER_REWARD_BPS, SEVERE_SLASH_BPS, TREASURY_RATE_BPS,
 };
 pub use verdict::{BlacklistVerdict, PardonVerdict};
 

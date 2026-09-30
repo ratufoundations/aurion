@@ -61,7 +61,8 @@ impl ProjectionMetrics {
     /// # Arguments
     /// * `time_us` - Waktu pemrosesan dalam mikrodetik
     pub fn record_block_processing(&self, time_us: u64) {
-        self.block_processing_time_us.fetch_add(time_us, Ordering::Relaxed);
+        self.block_processing_time_us
+            .fetch_add(time_us, Ordering::Relaxed);
         self.blocks_processed.fetch_add(1, Ordering::Relaxed);
     }
 
@@ -228,7 +229,7 @@ mod tests {
     #[test]
     fn test_cache_hit_rate_bps() {
         let metrics = ProjectionMetrics::new();
-        
+
         // 75 hits, 25 misses = 75% hit rate
         // (75 * 10000) / 100 = 7500 BPS
         for _ in 0..75 {
@@ -237,7 +238,7 @@ mod tests {
         for _ in 0..25 {
             metrics.record_cache_miss();
         }
-        
+
         assert_eq!(metrics.cache_hit_rate_bps(), 7500);
     }
 
@@ -272,7 +273,7 @@ mod tests {
         let metrics = ProjectionMetrics::new();
         metrics.record_block_processing(1000);
         metrics.record_block_processing(2000);
-        
+
         assert_eq!(metrics.block_processing_time_us(), 3000);
         assert_eq!(metrics.blocks_processed(), 2);
         assert_eq!(metrics.avg_block_processing_time_us(), 1500);
@@ -289,7 +290,7 @@ mod tests {
         let metrics = ProjectionMetrics::new();
         metrics.record_pruning(5000);
         metrics.record_pruning(3000);
-        
+
         assert_eq!(metrics.pruning_time_us(), 8000);
         assert_eq!(metrics.pruning_operations(), 2);
         assert_eq!(metrics.avg_pruning_time_us(), 4000);
@@ -308,9 +309,9 @@ mod tests {
         metrics.record_cache_miss();
         metrics.record_block_processing(1000);
         metrics.record_pruning(5000);
-        
+
         metrics.reset();
-        
+
         assert_eq!(metrics.cache_hits(), 0);
         assert_eq!(metrics.cache_misses(), 0);
         assert_eq!(metrics.block_processing_time_us(), 0);
@@ -322,7 +323,7 @@ mod tests {
         let metrics = ProjectionMetrics::new();
         metrics.record_address_index_size(1024);
         metrics.record_snapshot_size(2048);
-        
+
         assert_eq!(metrics.address_index_size(), 1024);
         assert_eq!(metrics.snapshot_size(), 2048);
     }
@@ -331,14 +332,18 @@ mod tests {
     fn test_zero_float_guarantee() {
         // Audit statis: Tidak ada tipe f32/f64 di modul ini
         let src = include_str!("../src/metrics.rs");
-        
-        let patterns = [" f32", "f32:", "f32,", "f32(", " f64", "f64:", "f64,", "f64("];
+
+        let patterns = [
+            " f32", "f32:", "f32,", "f32(", " f64", "f64:", "f64,", "f64(",
+        ];
         let has_float_type = patterns.iter().any(|p| src.contains(p));
-        
+
         // Izinkan string literal "f32/f64" dan "F32/f64"
         let has_comment_literal = src.contains("f32/f64");
-        
-        assert!(!has_float_type || has_comment_literal, 
-            "Pelanggaran Zero-Float P5: f32/f64 ditemukan di metrics.rs");
+
+        assert!(
+            !has_float_type || has_comment_literal,
+            "Pelanggaran Zero-Float P5: f32/f64 ditemukan di metrics.rs"
+        );
     }
 }

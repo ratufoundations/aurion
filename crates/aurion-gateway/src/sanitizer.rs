@@ -5,7 +5,7 @@
 
 use crate::error::GatewayError;
 use aurion_criptografi::PublicKeyBytes;
-use serde_json::{Value, Number};
+use serde_json::{Number, Value};
 use std::str;
 
 /// Batas ukuran payload default: 128 KB
@@ -151,7 +151,7 @@ impl HexSanitizer {
     /// Mengembalikan error jika hex string tidak valid atau panjang tidak 32 byte.
     pub fn validate_public_key(hex_str: &str) -> Result<PublicKeyBytes, GatewayError> {
         let bytes = Self::validate_hex(hex_str, Some(64))?;
-        
+
         if bytes.len() != 32 {
             return Err(GatewayError::InvalidEncoding(format!(
                 "Panjang public key harus 32 byte, ditemukan {}",
@@ -286,7 +286,9 @@ mod tests {
     fn test_safe_to_allocate() {
         assert!(FrameSanitizer::is_safe_to_allocate(1024));
         assert!(FrameSanitizer::is_safe_to_allocate(u64::from(u32::MAX)));
-        assert!(!FrameSanitizer::is_safe_to_allocate(u64::from(u32::MAX) + 1));
+        assert!(!FrameSanitizer::is_safe_to_allocate(
+            u64::from(u32::MAX) + 1
+        ));
     }
 
     #[test]
@@ -295,7 +297,7 @@ mod tests {
         let valid_pk = "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2";
         let result = HexSanitizer::validate_public_key(valid_pk);
         assert!(result.is_ok());
-        
+
         // Invalid length
         let short_pk = "a1b2";
         let result = HexSanitizer::validate_public_key(short_pk);
@@ -307,15 +309,19 @@ mod tests {
         // Audit statis: Tidak ada tipe f32/f64 di modul ini
         // Izinkan: is_f64(), is_f32() (method serde_json)
         let src = include_str!("../src/sanitizer.rs");
-        
+
         // Cari pola penggunaan tipe (bukan method call)
-        let patterns = [" f32", "f32:", "f32,", "f32(", " f64", "f64:", "f64,", "f64("];
+        let patterns = [
+            " f32", "f32:", "f32,", "f32(", " f64", "f64:", "f64,", "f64(",
+        ];
         let has_float_type = patterns.iter().any(|p| src.contains(p));
-        
+
         // Izinkan method is_f64()
         let has_allowed_methods = src.contains("is_f64()") || src.contains("is_f32()");
-        
-        assert!(!has_float_type || has_allowed_methods, 
-            "Pelanggaran Zero-Float: f32/f64 ditemukan di sanitizer.rs");
+
+        assert!(
+            !has_float_type || has_allowed_methods,
+            "Pelanggaran Zero-Float: f32/f64 ditemukan di sanitizer.rs"
+        );
     }
 }

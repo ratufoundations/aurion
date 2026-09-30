@@ -4,8 +4,8 @@ use crate::capability::CapabilityRegistry;
 use crate::error::ExecutionError;
 use crate::fuel::FUEL_COST_ACTION_BASE;
 use crate::keeper::{AccountKeeper, GovernanceKeeper, Keeper, StakingKeeper, ValidatorKeeper};
-use crate::store_key::NamespaceStore;
 use crate::state_root::compute_state_root;
+use crate::store_key::NamespaceStore;
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,11 +78,13 @@ impl ExecutionEngine {
 
         match self.committed.get(&qualified) {
             Some(bytes) => {
-                let slice: [u8; 8] = bytes.as_slice().try_into().map_err(|_| {
-                    ExecutionError::MalformedState {
-                        reason: "Format byte saldo tidak valid (bukan 8 byte u64)",
-                    }
-                })?;
+                let slice: [u8; 8] =
+                    bytes
+                        .as_slice()
+                        .try_into()
+                        .map_err(|_| ExecutionError::MalformedState {
+                            reason: "Format byte saldo tidak valid (bukan 8 byte u64)",
+                        })?;
                 Ok(u64::from_be_bytes(slice))
             }
             None => Ok(0),
@@ -129,7 +131,8 @@ impl ExecutionEngine {
     ) -> Result<(), ExecutionError> {
         let raw_key = self.accounts.balance_key(account);
         let qualified = self.accounts.store_key().qualify(&raw_key);
-        self.committed.insert(qualified, amount.to_be_bytes().to_vec());
+        self.committed
+            .insert(qualified, amount.to_be_bytes().to_vec());
         Ok(())
     }
 
@@ -147,8 +150,7 @@ impl ExecutionEngine {
             });
         }
 
-        let mut cache =
-            TransactionalCache::new(self.committed.clone(), self.policy.fuel_limit);
+        let mut cache = TransactionalCache::new(self.committed.clone(), self.policy.fuel_limit);
 
         // Eksekusi aksi berurutan
         for action in batch.actions() {
@@ -188,8 +190,7 @@ impl ExecutionEngine {
     ) -> Result<(), ExecutionError> {
         match action {
             Action::Transfer { from, to, amount } => {
-                let mut store =
-                    NamespaceStore::new(self.accounts.store_key().clone(), cache);
+                let mut store = NamespaceStore::new(self.accounts.store_key().clone(), cache);
                 self.accounts.transfer(&mut store, from, to, *amount)
             }
             Action::LockStake { staker, amount } => {
@@ -210,12 +211,12 @@ impl ExecutionEngine {
                         *amount,
                     )?;
                 }
-                
+
                 // Then, update staking store
                 {
                     let mut staking_store =
                         NamespaceStore::new(self.staking.store_key().clone(), cache);
-                    
+
                     // Manually replicate the staking logic
                     let mut key = Vec::with_capacity(6 + 32);
                     key.extend_from_slice(b"stake:");
@@ -238,20 +239,23 @@ impl ExecutionEngine {
                         .ok_or(ExecutionError::ArithmeticOverflow)?;
                     staking_store.set(&key, &new_stake.to_be_bytes())?;
                 }
-                
+
                 Ok(())
             }
-            Action::UpdateMetadata { account, key, value } => {
-                let mut store =
-                    NamespaceStore::new(self.accounts.store_key().clone(), cache);
+            Action::UpdateMetadata {
+                account,
+                key,
+                value,
+            } => {
+                let mut store = NamespaceStore::new(self.accounts.store_key().clone(), cache);
                 self.accounts.set_metadata(&mut store, account, key, value)
             }
             Action::SetProposal {
                 proposal_id, title, ..
             } => {
-                let mut store =
-                    NamespaceStore::new(self.governance.store_key().clone(), cache);
-                self.governance.set_proposal(&mut store, *proposal_id, title)
+                let mut store = NamespaceStore::new(self.governance.store_key().clone(), cache);
+                self.governance
+                    .set_proposal(&mut store, *proposal_id, title)
             }
             Action::FailExplicitly { reason } => Err(ExecutionError::ExplicitFailure {
                 reason: reason.clone(),

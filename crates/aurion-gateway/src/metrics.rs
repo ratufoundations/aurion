@@ -49,13 +49,15 @@ impl GatewayMetrics {
     /// Catat request masuk.
     pub fn record_request(&self, payload_size: u64) {
         self.total_requests.fetch_add(1, Ordering::Relaxed);
-        self.ingress_bytes.fetch_add(payload_size, Ordering::Relaxed);
+        self.ingress_bytes
+            .fetch_add(payload_size, Ordering::Relaxed);
     }
 
     /// Catat request berhasil.
     pub fn record_success(&self, response_size: u64) {
         self.success_count.fetch_add(1, Ordering::Relaxed);
-        self.egress_bytes.fetch_add(response_size, Ordering::Relaxed);
+        self.egress_bytes
+            .fetch_add(response_size, Ordering::Relaxed);
     }
 
     /// Catat request gagal.
@@ -197,7 +199,7 @@ mod tests {
     fn test_record_request() {
         let metrics = GatewayMetrics::new();
         metrics.record_request(1000);
-        
+
         assert_eq!(metrics.total_requests(), 1);
         assert_eq!(metrics.ingress_bytes(), 1000);
     }
@@ -207,7 +209,7 @@ mod tests {
         let metrics = GatewayMetrics::new();
         metrics.record_request(500);
         metrics.record_success(200);
-        
+
         assert_eq!(metrics.success_count(), 1);
         assert_eq!(metrics.egress_bytes(), 200);
     }
@@ -217,14 +219,14 @@ mod tests {
         let metrics = GatewayMetrics::new();
         metrics.record_request(500);
         metrics.record_error();
-        
+
         assert_eq!(metrics.error_count(), 1);
     }
 
     #[test]
     fn test_rejection_rate_bps() {
         let metrics = GatewayMetrics::new();
-        
+
         // 11 total: 7 success, 2 errors, 1 rate limited, 1 payload too large
         for _ in 0..7 {
             metrics.record_request(100);
@@ -238,7 +240,7 @@ mod tests {
         metrics.record_rate_limited();
         metrics.record_request(100);
         metrics.record_payload_too_large();
-        
+
         // Total = 11, rejected = 4 (2 errors + 1 rate limited + 1 payload too large)
         // Rate = (4 * 10000) / 11 = 3636 BPS (floor division)
         assert_eq!(metrics.total_requests(), 11);
@@ -250,16 +252,20 @@ mod tests {
         // Audit statis: Tidak ada tipe f32/f64 di modul ini
         // Izinkan string literal "f32/f64" di komentar dan error messages
         let src = include_str!("../src/metrics.rs");
-        
+
         // Cari pola penggunaan tipe (bukan string literal atau comment)
-        let patterns = [" f32", "f32:", "f32,", "f32(", " f64", "f64:", "f64,", "f64("];
+        let patterns = [
+            " f32", "f32:", "f32,", "f32(", " f64", "f64:", "f64,", "f64(",
+        ];
         let has_float_type = patterns.iter().any(|p| src.contains(p));
-        
+
         // Izinkan string literal "f32/f64" dan "F32/f64"
         let has_comment_literal = src.contains("f32/f64");
-        
-        assert!(!has_float_type || has_comment_literal, 
-            "Pelanggaran Zero-Float: f32/f64 ditemukan di metrics.rs");
+
+        assert!(
+            !has_float_type || has_comment_literal,
+            "Pelanggaran Zero-Float: f32/f64 ditemukan di metrics.rs"
+        );
     }
 
     #[test]
@@ -269,9 +275,9 @@ mod tests {
         metrics.record_success(500);
         metrics.record_error();
         metrics.record_rate_limited();
-        
+
         metrics.reset();
-        
+
         assert_eq!(metrics.total_requests(), 0);
         assert_eq!(metrics.success_count(), 0);
         assert_eq!(metrics.error_count(), 0);

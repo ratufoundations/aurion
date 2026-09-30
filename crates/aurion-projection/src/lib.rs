@@ -1,4 +1,10 @@
-#![allow(clippy::doc_markdown, clippy::missing_panics_doc, clippy::missing_errors_doc, clippy::clone_on_copy, clippy::cast_possible_truncation)]
+#![allow(
+    clippy::doc_markdown,
+    clippy::missing_panics_doc,
+    clippy::missing_errors_doc,
+    clippy::clone_on_copy,
+    clippy::cast_possible_truncation
+)]
 //! # Aurion Projection Engine
 //!
 //! Modul `aurion-projection` adalah mesin pengelola model baca (*Read Model*)

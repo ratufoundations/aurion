@@ -150,9 +150,12 @@ impl SnapshotManager {
     /// Dapatkan snapshot terbaru.
     #[must_use]
     pub fn latest_snapshot(&self) -> ReadSnapshot {
-        self.latest_snapshot.read().unwrap_or_else(|_| {
-            panic!("SnapshotManager latest_snapshot mutex poisoned");
-        }).clone()
+        self.latest_snapshot
+            .read()
+            .unwrap_or_else(|_| {
+                panic!("SnapshotManager latest_snapshot mutex poisoned");
+            })
+            .clone()
     }
 
     /// Perbarui snapshot terbaru.
@@ -160,11 +163,11 @@ impl SnapshotManager {
         let mut latest = self.latest_snapshot.write().unwrap_or_else(|_| {
             panic!("SnapshotManager latest_snapshot mutex poisoned");
         });
-        
+
         let mut history = self.snapshot_history.write().unwrap_or_else(|_| {
             panic!("SnapshotManager snapshot_history mutex poisoned");
         });
-        
+
         // Simpan snapshot lama ke riwayat
         history.push(latest.clone());
         *latest = snapshot;
@@ -181,23 +184,23 @@ impl SnapshotManager {
         let history = self.snapshot_history.read().unwrap_or_else(|_| {
             panic!("SnapshotManager snapshot_history mutex poisoned");
         });
-        
+
         // Cari snapshot dengan ketinggian yang cocok
         for snapshot in history.iter() {
             if snapshot.height() == height {
                 return Ok(snapshot.clone());
             }
         }
-        
+
         // Cek snapshot terbaru
         let latest = self.latest_snapshot.read().unwrap_or_else(|_| {
             panic!("SnapshotManager latest_snapshot mutex poisoned");
         });
-        
+
         if latest.height() == height {
             return Ok(latest.clone());
         }
-        
+
         Err(ProjectionError::SnapshotNotFound { height })
     }
 
@@ -246,7 +249,7 @@ impl SnapshotManager {
         let mut snapshot_history = self.snapshot_history.write().unwrap_or_else(|_| {
             panic!("SnapshotManager snapshot_history mutex poisoned");
         });
-        
+
         *ledger_height = 0;
         *projection_height = 0;
         *latest_snapshot = ReadSnapshot::new(0, [0u8; 32]);
@@ -275,7 +278,7 @@ mod tests {
     fn test_snapshot_balance() {
         let alice: AccountId = [1u8; 32];
         let mut snapshot = ReadSnapshot::new(100, [42u8; 32]);
-        
+
         snapshot.set_balance(alice, 1000);
         assert_eq!(snapshot.get_balance(&alice), Some(1000));
     }
@@ -283,22 +286,22 @@ mod tests {
     #[test]
     fn test_snapshot_manager_lag() {
         let manager = SnapshotManager::new();
-        
+
         manager.update_ledger_height(100);
         manager.update_projection_height(95);
-        
+
         assert_eq!(manager.projection_lag(), 5);
     }
 
     #[test]
     fn test_snapshot_manager_consistency() {
         let manager = SnapshotManager::new();
-        
+
         // Consistent: `ledger_height` >= `projection_height`
         manager.update_ledger_height(100);
         manager.update_projection_height(95);
         assert!(manager.verify_consistency().is_ok());
-        
+
         // Inconsistent: ledger_height < projection_height
         manager.update_ledger_height(90);
         manager.update_projection_height(95);
@@ -311,46 +314,46 @@ mod tests {
     #[test]
     fn test_lag_zero_when_synced() {
         let manager = SnapshotManager::new();
-        
+
         manager.update_ledger_height(100);
         manager.update_projection_height(100);
-        
+
         assert_eq!(manager.projection_lag(), 0);
     }
 
     #[test]
     fn test_snapshot_update() {
         let manager = SnapshotManager::new();
-        
+
         let snapshot1 = ReadSnapshot::new(1, [1u8; 32]);
         manager.update_latest_snapshot(snapshot1);
-        
+
         assert_eq!(manager.latest_snapshot().height(), 1);
-        
+
         let snapshot2 = ReadSnapshot::new(2, [2u8; 32]);
         manager.update_latest_snapshot(snapshot2);
-        
+
         assert_eq!(manager.latest_snapshot().height(), 2);
     }
 
     #[test]
     fn test_get_snapshot_at() {
         let manager = SnapshotManager::new();
-        
+
         let snapshot1 = ReadSnapshot::new(1, [1u8; 32]);
         manager.update_latest_snapshot(snapshot1);
-        
+
         let snapshot2 = ReadSnapshot::new(2, [2u8; 32]);
         manager.update_latest_snapshot(snapshot2);
-        
+
         // Should find snapshot at height 2 (latest)
         let found = manager.get_snapshot_at(2).unwrap();
         assert_eq!(found.height(), 2);
-        
+
         // Should find snapshot at height 1 (in history)
         let found = manager.get_snapshot_at(1).unwrap();
         assert_eq!(found.height(), 1);
-        
+
         // Should not find snapshot at height 3
         assert!(matches!(
             manager.get_snapshot_at(3),
@@ -361,18 +364,18 @@ mod tests {
     #[test]
     fn test_reset() {
         let manager = SnapshotManager::new();
-        
+
         manager.update_ledger_height(100);
         manager.update_projection_height(95);
         let snapshot = ReadSnapshot::new(100, [42u8; 32]);
         manager.update_latest_snapshot(snapshot);
-        
+
         assert_eq!(manager.ledger_height(), 100);
         assert_eq!(manager.projection_height(), 95);
         assert_eq!(manager.latest_snapshot().height(), 100);
-        
+
         manager.reset();
-        
+
         assert_eq!(manager.ledger_height(), 0);
         assert_eq!(manager.projection_height(), 0);
         assert_eq!(manager.latest_snapshot().height(), 0);

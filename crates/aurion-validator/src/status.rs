@@ -131,10 +131,7 @@ impl ValidatorStatus {
             ) | (
                 Self::Jailed,
                 Self::Eligible | Self::Suspended | Self::Tombstoned | Self::Retired
-            ) | (
-                Self::Tombstoned,
-                Self::Retired
-            )
+            ) | (Self::Tombstoned, Self::Retired)
         )
     }
 

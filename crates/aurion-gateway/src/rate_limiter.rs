@@ -124,13 +124,16 @@ impl RateLimiter {
     /// Mengembalikan `Err(GatewayError::InternalError)` jika mutex poisoned,
     /// atau `Err(GatewayError::RateLimitExceeded)` jika token habis.
     pub fn check_rate(&self, identity: &str) -> Result<(), GatewayError> {
-        let mut buckets = self.buckets.lock().map_err(|_| GatewayError::InternalError {
-            trace_id: "mutex_poisoned".to_string(),
-        })?;
+        let mut buckets = self
+            .buckets
+            .lock()
+            .map_err(|_| GatewayError::InternalError {
+                trace_id: "mutex_poisoned".to_string(),
+            })?;
 
-        let bucket = buckets.entry(identity.to_string()).or_insert_with(|| {
-            TokenBucket::new(self.capacity)
-        });
+        let bucket = buckets
+            .entry(identity.to_string())
+            .or_insert_with(|| TokenBucket::new(self.capacity));
 
         match bucket.try_consume(self.capacity, self.refill_rate_ms) {
             Ok(()) => Ok(()),
@@ -150,17 +153,19 @@ impl RateLimiter {
 
     /// Bersihkan bucket untuk identitas.
     pub fn clear(&self, identity: &str) {
-        let mut buckets = self.buckets.lock().unwrap_or_else(|_| {
-            std::panic::panic_any("RateLimiter mutex poisoned")
-        });
+        let mut buckets = self
+            .buckets
+            .lock()
+            .unwrap_or_else(|_| std::panic::panic_any("RateLimiter mutex poisoned"));
         buckets.remove(identity);
     }
 
     /// Bersihkan semua bucket.
     pub fn clear_all(&self) {
-        let mut buckets = self.buckets.lock().unwrap_or_else(|_| {
-            std::panic::panic_any("RateLimiter mutex poisoned")
-        });
+        let mut buckets = self
+            .buckets
+            .lock()
+            .unwrap_or_else(|_| std::panic::panic_any("RateLimiter mutex poisoned"));
         buckets.clear();
     }
 
@@ -209,17 +214,17 @@ mod tests {
     #[test]
     fn test_token_bucket_consume() {
         let mut bucket = TokenBucket::new(3);
-        
+
         // Konsumsi 3 token
         assert!(bucket.try_consume(3, 100).is_ok());
         assert_eq!(bucket.tokens(), 2);
-        
+
         assert!(bucket.try_consume(3, 100).is_ok());
         assert_eq!(bucket.tokens(), 1);
-        
+
         assert!(bucket.try_consume(3, 100).is_ok());
         assert_eq!(bucket.tokens(), 0);
-        
+
         // Token habis
         assert!(bucket.try_consume(3, 100).is_err());
     }

@@ -14,7 +14,6 @@ pub enum ProjectionError {
     // ========================================================================
     // [P0] Konsumsi Delta & Idempotensi Proyeksi
     // ========================================================================
-
     #[error("Ketinggian blok tidak berurutan: diharapkan {expected}, diterima {got}")]
     NonSequentialBlock { expected: u64, got: u64 },
 
@@ -39,7 +38,6 @@ pub enum ProjectionError {
     // ========================================================================
     // [P1] Indeksasi Riwayat Transaksi Berbasis Alamat
     // ========================================================================
-
     #[error("Batas paginasi tidak valid: limit {limit} di luar rentang 1..={max}")]
     InvalidPaginationLimit { limit: u64, max: u64 },
 
@@ -49,7 +47,6 @@ pub enum ProjectionError {
     // ========================================================================
     // [P2] Konsistensi Snapshot Model Baca & Deteksi Lag
     // ========================================================================
-
     #[error("State root proyeksi tidak cocok pada tinggi {height}: diharapkan {expected}, ditemukan {got}")]
     StateRootMismatch {
         height: u64,
@@ -69,7 +66,6 @@ pub enum ProjectionError {
     // ========================================================================
     // [P3] Batas Retensi & Pembersihan Aman Histori Usang
     // ========================================================================
-
     #[error("Jendela retensi tidak valid: {window} (harus lebih besar dari nol)")]
     InvalidRetentionWindow { window: u64 },
 
@@ -82,7 +78,6 @@ pub enum ProjectionError {
     // ========================================================================
     // [P4] Pemulihan Kerusakan & Rekonstruksi Dingin Deterministik
     // ========================================================================
-
     #[error("Data blok tidak tersedia pada tinggi {height}")]
     BlockUnavailable { height: u64 },
 
@@ -95,14 +90,12 @@ pub enum ProjectionError {
     // ========================================================================
     // [P5] Metrik Kinerja & Rasio Kuota Nir-Pecahan
     // ========================================================================
-
     #[error("Akumulasi metrik meluap pada field {field}")]
     MetricsOverflow { field: String },
 
     // ========================================================================
     // Sistem & Integrasi
     // ========================================================================
-
     #[error("Kunci baca-tulis gagal untuk {context} akibat panik pada thread sebelumnya")]
     LockPoisoned { context: &'static str },
 

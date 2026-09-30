@@ -31,10 +31,7 @@ impl TransactionEnvelope {
         *hasher.finalize().as_bytes()
     }
 
-    pub fn verify_signature(
-        &self,
-        expected_chain_id: u64,
-    ) -> Result<(), ExecutionError> {
+    pub fn verify_signature(&self, expected_chain_id: u64) -> Result<(), ExecutionError> {
         if self.chain_id != expected_chain_id {
             return Err(ExecutionError::InvalidChainId {
                 expected: expected_chain_id,

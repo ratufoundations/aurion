@@ -7,8 +7,8 @@ pub mod rate_limiter;
 pub mod routes;
 pub mod sanitizer;
 
-pub use error::GatewayError;
 pub use engine::AurionGateway;
+pub use error::GatewayError;
 pub use metrics::GatewayMetrics;
 pub use rate_limiter::RateLimiter;
 pub use routes::GatewayRoutes;

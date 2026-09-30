@@ -4,8 +4,8 @@
 //! paginasi berbatas untuk mendukung kueri cepat tanpa memindai seluruh
 //! riwayat blok (P1).
 
-use aurion_criptografi::Hash256;
 use aurion_core::Transaction;
+use aurion_criptografi::Hash256;
 use std::collections::BTreeMap;
 use std::sync::{Arc, RwLock};
 
@@ -157,9 +157,9 @@ impl AddressIndex {
         let index = self.index.read().unwrap_or_else(|_| {
             panic!("AddressIndex mutex poisoned");
         });
-        index
-            .get(account_id)
-            .map_or(0, |entries| entries.iter().filter(|e| e.is_outbound).count())
+        index.get(account_id).map_or(0, |entries| {
+            entries.iter().filter(|e| e.is_outbound).count()
+        })
     }
 
     /// Dapatkan jumlah total transaksi masuk untuk sebuah alamat.
@@ -168,9 +168,9 @@ impl AddressIndex {
         let index = self.index.read().unwrap_or_else(|_| {
             panic!("AddressIndex mutex poisoned");
         });
-        index
-            .get(account_id)
-            .map_or(0, |entries| entries.iter().filter(|e| !e.is_outbound).count())
+        index.get(account_id).map_or(0, |entries| {
+            entries.iter().filter(|e| !e.is_outbound).count()
+        })
     }
 
     /// Bersihkan indeks.
@@ -191,10 +191,9 @@ impl Default for AddressIndex {
 #[cfg(test)]
 #[allow(clippy::expect_used, clippy::unwrap_used)]
 mod tests {
+    use crate::{AddressIndex, ProjectionError, MAX_PAGE_LIMIT};
     use aurion_core::Transaction;
     use aurion_criptografi::Hash256 as AccountId;
-    use crate::{AddressIndex, MAX_PAGE_LIMIT, ProjectionError};
-    
 
     #[test]
     fn test_address_index_creation() {
@@ -205,16 +204,16 @@ mod tests {
     #[test]
     fn test_add_transaction() {
         let index = AddressIndex::new();
-        
+
         // Create test accounts
         let alice = [1u8; 32];
         let bob = [2u8; 32];
-        
+
         // Create a transaction from Alice to Bob
         let tx = Transaction::new(alice, bob, 100, 0, 0, [0u8; 64]);
-        
+
         index.add_transaction(&tx, [1u8; 32], 1);
-        
+
         // Alice should have 1 outbound transaction
         assert_eq!(index.get_outbound_count(&alice), 1);
         // Bob should have 1 inbound transaction
@@ -228,21 +227,21 @@ mod tests {
     #[test]
     fn test_transaction_history_pagination() {
         let index = AddressIndex::new();
-        
+
         let alice = [1u8; 32];
         let bob = [2u8; 32];
-        
+
         // Add multiple transactions
         for i in 1..=10 {
             let tx = Transaction::new(alice, bob, 100, i, 0, [0u8; 64]);
             let hash = [u8::try_from(i % 256).unwrap(); 32];
             index.add_transaction(&tx, hash, i);
         }
-        
+
         // Get history with limit
         let history = index.get_transaction_history(&alice, 5, 0).unwrap();
         assert_eq!(history.len(), 5);
-        
+
         // Check ordering (should be reverse chronological)
         for (i, entry) in history.iter().enumerate() {
             // The first entry should be height 10, second 9, etc.
@@ -254,7 +253,7 @@ mod tests {
     fn test_empty_history_for_new_address() {
         let index = AddressIndex::new();
         let alice = [1u8; 32];
-        
+
         let history = index.get_transaction_history(&alice, 10, 0).unwrap();
         assert!(history.is_empty());
     }
@@ -263,17 +262,20 @@ mod tests {
     fn test_invalid_pagination_limit() {
         let index = AddressIndex::new();
         let alice = [1u8; 32];
-        
+
         // Limit exceeds MAX_PAGE_LIMIT
         let result = index.get_transaction_history(&alice, MAX_PAGE_LIMIT + 1, 0);
-        assert!(matches!(result, Err(ProjectionError::InvalidPaginationLimit { .. })));
+        assert!(matches!(
+            result,
+            Err(ProjectionError::InvalidPaginationLimit { .. })
+        ));
     }
 
     #[test]
     fn test_zero_limit_returns_empty() {
         let index = AddressIndex::new();
         let alice = [1u8; 32];
-        
+
         let history = index.get_transaction_history(&alice, 0, 0).unwrap();
         assert!(history.is_empty());
     }
@@ -281,17 +283,17 @@ mod tests {
     #[test]
     fn test_clear() {
         let index = AddressIndex::new();
-        
+
         let alice = [1u8; 32];
         let bob = [2u8; 32];
-        
+
         let tx = Transaction::new(alice, bob, 100, 0, 0, [0u8; 64]);
         index.add_transaction(&tx, [1u8; 32], 1);
-        
+
         assert_eq!(index.get_transaction_count(&alice), 1);
-        
+
         index.clear();
-        
+
         assert_eq!(index.get_transaction_count(&alice), 0);
     }
 }

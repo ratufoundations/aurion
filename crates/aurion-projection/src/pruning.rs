@@ -126,7 +126,7 @@ impl PruningManager {
     /// - `ProjectionError::NothingToPrune` jika tidak ada data yang memenuhi syarat
     pub fn prune(&self, current_height: Option<u64>) -> Result<(), ProjectionError> {
         let current_height = current_height.unwrap_or_else(|| self.projection_height());
-        
+
         // Validasi: current_height tidak boleh melebihi ketinggian proyeksi
         if current_height > self.projection_height() {
             return Err(ProjectionError::PruneHeightExceedsCursor {
@@ -138,13 +138,15 @@ impl PruningManager {
         // Periksa apakah ada data yang memenuhi syarat
         let bound = self.config.retention_bound(current_height);
         if bound == 0 {
-            return Err(ProjectionError::NothingToPrune { height: current_height });
+            return Err(ProjectionError::NothingToPrune {
+                height: current_height,
+            });
         }
 
         // Simulasikan pembersihan (implementasi nyata akan menghapus dari storage)
         // Dalam modul ini, kami hanya melacak logika pembersihan
         // Pembersihan sebenarnya akan diimplementasikan di storage adapter
-        
+
         Ok(())
     }
 
@@ -196,21 +198,24 @@ mod tests {
     #[test]
     fn test_pruning_config_invalid_zero() {
         let result = PruningConfig::with_retention_window(0);
-        assert!(matches!(result, Err(ProjectionError::InvalidRetentionWindow { .. })));
+        assert!(matches!(
+            result,
+            Err(ProjectionError::InvalidRetentionWindow { .. })
+        ));
     }
 
     #[test]
     fn test_retention_bound() {
         let config = PruningConfig::with_retention_window(1000).unwrap();
-        
+
         // current_height = 1500, retention_window = 1000
         // retention_bound = 1500 - 1000 = 500
         assert_eq!(config.retention_bound(1500), 500);
-        
+
         // current_height = 1000, retention_window = 1000
         // retention_bound = 1000 - 1000 = 0
         assert_eq!(config.retention_bound(1000), 0);
-        
+
         // current_height = 500, retention_window = 1000
         // retention_bound = 500 - 1000 = 0 (saturating_sub)
         assert_eq!(config.retention_bound(500), 0);
@@ -220,15 +225,15 @@ mod tests {
     fn test_should_prune() {
         let config = PruningConfig::with_retention_window(1000).unwrap();
         let manager = PruningManager::new(config);
-        
+
         manager.update_projection_height(1500);
-        
+
         // Data at height 400 should be pruned (400 < 1500 - 1000 = 500)
         assert!(manager.should_prune(400));
-        
+
         // Data at height 500 should NOT be pruned (500 >= 500)
         assert!(!manager.should_prune(500));
-        
+
         // Data at height 1000 should NOT be pruned
         assert!(!manager.should_prune(1000));
     }
@@ -237,9 +242,9 @@ mod tests {
     fn test_prune_success() {
         let config = PruningConfig::with_retention_window(1000).unwrap();
         let manager = PruningManager::new(config);
-        
+
         manager.update_projection_height(1500);
-        
+
         // Prune with current_height = 1500
         let result = manager.prune(Some(1500));
         assert!(result.is_ok());
@@ -249,21 +254,24 @@ mod tests {
     fn test_prune_nothing_to_prune() {
         let config = PruningConfig::with_retention_window(1000).unwrap();
         let manager = PruningManager::new(config);
-        
+
         manager.update_projection_height(100);
-        
+
         // Prune when current_height <= retention_window
         let result = manager.prune(Some(100));
-        assert!(matches!(result, Err(ProjectionError::NothingToPrune { .. })));
+        assert!(matches!(
+            result,
+            Err(ProjectionError::NothingToPrune { .. })
+        ));
     }
 
     #[test]
     fn test_prune_height_exceeds_cursor() {
         let config = PruningConfig::with_retention_window(1000).unwrap();
         let manager = PruningManager::new(config);
-        
+
         manager.update_projection_height(1000);
-        
+
         // Try to prune at height 2000 (exceeds projection cursor)
         let result = manager.prune(Some(2000));
         assert!(matches!(
@@ -276,9 +284,9 @@ mod tests {
     fn test_prune_with_none_uses_projection_height() {
         let config = PruningConfig::with_retention_window(1000).unwrap();
         let manager = PruningManager::new(config);
-        
+
         manager.update_projection_height(1500);
-        
+
         // Prune with None (uses projection height)
         let result = manager.prune(None);
         assert!(result.is_ok());
@@ -287,7 +295,7 @@ mod tests {
     #[test]
     fn test_retention_bound_zero_window() {
         let config = PruningConfig::with_retention_window(1).unwrap();
-        
+
         // current_height = 10, retention_window = 1
         // retention_bound = 10 - 1 = 9
         assert_eq!(config.retention_bound(10), 9);

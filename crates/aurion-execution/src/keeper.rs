@@ -47,11 +47,13 @@ impl AccountKeeper {
         let key = self.balance_key(account);
         match store.get(&key)? {
             Some(bytes) => {
-                let slice: [u8; 8] = bytes.as_slice().try_into().map_err(|_| {
-                    ExecutionError::MalformedState {
-                        reason: "Format saldo rusak (bukan 8-byte u64)",
-                    }
-                })?;
+                let slice: [u8; 8] =
+                    bytes
+                        .as_slice()
+                        .try_into()
+                        .map_err(|_| ExecutionError::MalformedState {
+                            reason: "Format saldo rusak (bukan 8-byte u64)",
+                        })?;
                 Ok(u64::from_be_bytes(slice))
             }
             None => Ok(0),
@@ -84,12 +86,13 @@ impl AccountKeeper {
         }
 
         let from_bal = self.balance(store, from)?;
-        let new_from_bal = from_bal
-            .checked_sub(amount)
-            .ok_or(ExecutionError::InsufficientBalance {
-                available: from_bal,
-                required: amount,
-            })?;
+        let new_from_bal =
+            from_bal
+                .checked_sub(amount)
+                .ok_or(ExecutionError::InsufficientBalance {
+                    available: from_bal,
+                    required: amount,
+                })?;
 
         let to_bal = self.balance(store, to)?;
         let new_to_bal = to_bal
@@ -114,12 +117,13 @@ impl AccountKeeper {
         registry.authorize(handle, current_block)?;
 
         let current_bal = self.balance(store, owner)?;
-        let new_bal = current_bal
-            .checked_sub(amount)
-            .ok_or(ExecutionError::InsufficientBalance {
-                available: current_bal,
-                required: amount,
-            })?;
+        let new_bal =
+            current_bal
+                .checked_sub(amount)
+                .ok_or(ExecutionError::InsufficientBalance {
+                    available: current_bal,
+                    required: amount,
+                })?;
 
         self.set_balance(store, owner, new_bal)?;
         Ok(())
@@ -194,17 +198,18 @@ impl StakingKeeper {
         key.extend_from_slice(b"stake:");
         key.extend_from_slice(staker);
 
-        let current_stake = match staking_store.get(&key)? {
-            Some(bytes) => {
-                let slice: [u8; 8] = bytes.as_slice().try_into().map_err(|_| {
-                    ExecutionError::MalformedState {
-                        reason: "Format stake rusak",
-                    }
-                })?;
-                u64::from_be_bytes(slice)
-            }
-            None => 0,
-        };
+        let current_stake =
+            match staking_store.get(&key)? {
+                Some(bytes) => {
+                    let slice: [u8; 8] = bytes.as_slice().try_into().map_err(|_| {
+                        ExecutionError::MalformedState {
+                            reason: "Format stake rusak",
+                        }
+                    })?;
+                    u64::from_be_bytes(slice)
+                }
+                None => 0,
+            };
 
         let new_stake = current_stake
             .checked_add(amount)

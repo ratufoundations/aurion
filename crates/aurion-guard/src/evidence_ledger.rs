@@ -142,9 +142,6 @@ mod tests {
             current_block_height: 100_000 + MAX_EVIDENCE_AGE_BLOCKS + 1,
         };
         assert!(!ctx_expired.is_valid());
-        assert_eq!(
-            ctx_expired.age_blocks(),
-            MAX_EVIDENCE_AGE_BLOCKS + 1
-        );
+        assert_eq!(ctx_expired.age_blocks(), MAX_EVIDENCE_AGE_BLOCKS + 1);
     }
 }
