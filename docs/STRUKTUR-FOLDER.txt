@@ -17,7 +17,7 @@ aurion/
 │   ├── aurion-gateway/            # [AKTIF] GatewayRoutes + AurionGateway (Zenoh boundary); CQRS ingress/sanitasi/rate-limiting; tes GW0–GW5 (COMPLETED)
 │   ├── aurion-genesis/            # [AKTIF] GenesisSpec, bootstrap blok 0 (QUANTA_PER_AUR = 10^10 kanonikal dari aurion-core: 66 juta AUR = 6,6×10^17 Quanta)
 │   ├── aurion-guard/              # [AKTIF] GuardCouncil, evidence verification, slashing, tombstoning, council governance; tes G0–G5 (COMPLETED)
-│   ├── aurion-ledger/             # [AKTIF] redb LedgerStore, codec, module KV, append-only commits, read snapshots; tes L0–L5
+│   ├── aurion-ledger/             # [AKTIF] redb LedgerStore, codec, module KV, append-only commits, read snapshots; archive ZIP epoch + pruner (AR0–AR5); tes L0–L5
 │   ├── aurion-mempool/            # [AKTIF] Mempool, signature/fee/nonce/solvency, deterministic selection and bounded eviction; M0–M5 tests
 │   ├── aurion-network/            # [AKTIF] facade NetworkService + AurionBehaviour (libp2p gossipsub/noise/identify/yamux/tcp), wire codec, handshake gate, metrik u64; tes N0-N5
 │   ├── aurion-projection/         # [AKTIF] CQRS Read Model, delta ingestion, address indexing, snapshot consistency, pruning, cold rebuild; tes P0–P5

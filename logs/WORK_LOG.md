@@ -1,3 +1,14 @@
+## 2026-09-30 — Implementasi Epoch ZIP Archiver & Pruner di `crates/aurion-ledger` (AR0–AR5)
+- Mendaftarkan `docs/task-register/TASK-aurion-archive.md` (status IN_PROGRESS/ACTIVE) dan menambahkan modul `src/archive/` ke `aurion-ledger`.
+- Membangun `manifest.rs` (`EpochManifest` serde zero-float), `packer.rs` (pack range blok → `blocks.bin` + checksum BLAKE3), `zipper.rs` (tulis ZIP atomik: manifest.json + blocks.bin + checksum.blake3), dan `pruner.rs` (prune atomik dari redb dengan safety horizon).
+- Menambahkan method `db()` ke `LedgerStore` untuk akses database langsung dari modul archive.
+- Menambahkan error variant `ArchiveError`, `ChecksumMismatch`, `PruneTooEarly` ke `LedgerError`.
+- Menambahkan dependensi `zip = "2.1"`, `serde = { version = "1", features = ["derive"] }`, `serde_json = "1"` ke `crates/aurion-ledger/Cargo.toml`.
+- **Koreksi guard scanner:** file test `tests/archive_invariants.rs` tidak boleh mengandung `.unwrap()` — guard scanner memindai semua `.rs` di `crates/` tanpa membedakan `#[cfg(test)]` dan integration tests. Test ditulis ulang dengan `Result<(), Box<dyn Error>>` + `?`.
+- **Koreksi clippy:** `FileOptions` butuh type annotation eksplisit `FileOptions<'_, ()>`; `map().flatten()` → `and_then()`; `map().unwrap_or()` → `map_or()`; `PackedArchive` butuh `#[derive(Debug)]`.
+- Hasil verifikasi faktual: `cargo check --workspace --all-targets` sukses; `cargo clippy --workspace --all-targets --all-features -- -D warnings` sukses; `cargo test -p aurion-ledger` 12 passed/0 failed (5 archive + 6 existing + 1 doc); `cargo fmt --all --check` bersih; `python3 tools/aurion_guard.py check` exit 0.
+- Status task: ACTIVE (Fase 1 selesai; backlog: integrasi node/daemon, recovery/fast-replay dari ZIP).
+
 ## 2026-09-30 — Pembersihan `crates/aurion-contract` (digantikan `aurion-channel`)
 - Menghapus `crates/aurion-contract/` dari workspace dan dari `[workspace.members]` di `Cargo.toml` (kembali ke 17 members: config + 13 crates + 3 apps).
 - Memperbarui `docs/STRUKTUR-FOLDER.txt` (entri aurion-contract dihapus), `docs/task-register/TASK-aurion-channel.md` (item 8: DIHAPUS), dan `docs/task-register/TASK-aurion-sdk.md` (item 7: DIHAPUS).

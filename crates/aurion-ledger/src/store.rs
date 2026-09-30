@@ -52,6 +52,12 @@ impl LedgerStore {
         Ok(Self { db: Arc::new(db) })
     }
 
+    /// Akses ke underlying `redb::Database` untuk operasi archive/prune.
+    #[must_use]
+    pub fn db(&self) -> &Database {
+        &self.db
+    }
+
     /// Membuka snapshot baca untuk beberapa kueri yang harus melihat versi sama.
     ///
     /// # Errors

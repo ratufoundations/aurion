@@ -52,4 +52,17 @@ pub enum LedgerError {
 
     #[error("Eksekusi blok gagal: {0}")]
     ExecutionFailed(#[from] aurion_core::ExecutionError),
+
+    #[error("Operasi arsip gagal: {0}")]
+    ArchiveError(String),
+
+    #[error("Checksum BLAKE3 tidak cocok dengan arsip")]
+    ChecksumMismatch,
+
+    #[error("Prune ditolak: end_height {end_height} + safety_horizon {safety_horizon} >= latest_height {latest_height}")]
+    PruneTooEarly {
+        end_height: u64,
+        latest_height: u64,
+        safety_horizon: u64,
+    },
 }
