@@ -365,14 +365,20 @@ impl ChainNode {
             tracing::warn!(?target, "Putusan guard ditolak, proposer tetap aktif");
         }
         // Pelanggaran akut (double-signing) memerintahkan karantina ireversibel
-        // ke `Tombstoned`. Status tersebut diterapkan oleh mesin siklus hidup
-        // validator milik orkestrator saat admisi akun/PoP tersedia.
+        // ke `Tombstoned`. Kunci konsensus pelaku dicatat di daftar cekal
+        // permanen dewan; status `Tombstoned` pada mesin siklus hidup validator
+        // diterapkan terpisah oleh orkestrator melalui `tombstone_validator`.
         let tombstone_requested = blacklisted && verdict.requires_tombstone();
         if tombstone_requested {
-            tracing::error!(
-                ?target,
-                "Guard memerintahkan tombstone: validator berstatus double-signing"
-            );
+            match self.council.record_tombstone(&target) {
+                Ok(()) => tracing::error!(
+                    ?target,
+                    "Guard memerintahkan tombstone: validator berstatus double-signing"
+                ),
+                Err(err) => {
+                    tracing::warn!(?target, error = %err, "Tombstone sudah tercatat sebelumnya")
+                }
+            }
         }
         let _ = events.try_send(ChainEvent::GuardVerdictApplied {
             target,

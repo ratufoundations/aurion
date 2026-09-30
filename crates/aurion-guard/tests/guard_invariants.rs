@@ -9,13 +9,13 @@ use aurion_consensus::{EquivocationEvidence, Vote, VoteType};
 use aurion_criptografi::{Keypair, PublicKeyBytes};
 use aurion_guard::{
     error::GuardError,
-    evidence::{RaidEvidence, ViolationType},
+    evidence::{RaidEvidence, RehabilitationPetition, ViolationType},
     evidence_ledger::{EvidenceContext, ExecutedEvidenceLedger, MAX_EVIDENCE_AGE_BLOCKS},
     slashing::{
         SlashCalculator, ViolationSeverity, BPS_SCALE, BURN_RATE_BPS, REPORTER_REWARD_BPS,
         SEVERE_SLASH_BPS, TREASURY_RATE_BPS,
     },
-    verdict::BlacklistVerdict,
+    verdict::{BlacklistVerdict, PardonVerdict},
     GuardCouncil,
 };
 use aurion_validator::ValidatorStatus;
@@ -420,10 +420,13 @@ fn test_g3_tombstoned_status() {
     assert!(!tombstoned.counts_toward_quorum());
     assert!(!tombstoned.is_selectable());
 
-    // Tombstoned hanya dapat bertransisi ke Retired
-    assert!(tombstoned.can_transition_to(ValidatorStatus::Retired));
+    // Tombstoned adalah terminal absolut: NOL transisi keluar. Validator yang
+    // terbukti double-signing tidak berhak pensiun secara terhormat maupun
+    // diarsipkan.
+    assert!(!tombstoned.can_transition_to(ValidatorStatus::Retired));
     assert!(!tombstoned.can_transition_to(ValidatorStatus::ActiveSet));
     assert!(!tombstoned.can_transition_to(ValidatorStatus::Eligible));
+    assert!(!tombstoned.can_transition_to(ValidatorStatus::Tombstoned));
 
     // (G3: Validator Tombstoned dicabut seluruh hak suaranya)
 }
@@ -493,6 +496,82 @@ fn test_g3_only_equivocation_requires_tombstone() {
         !liveness.requires_tombstone(),
         "verdict liveness tidak boleh mengarantina validator"
     );
+}
+
+#[test]
+fn test_g3_council_tombstone_registry_is_irreversible() {
+    let guard_keys: Vec<Keypair> = (0..5).map(|_| Keypair::generate()).collect();
+    let guard_pks: Vec<PublicKeyBytes> = guard_keys.iter().map(|k| k.public_key_bytes()).collect();
+    let mut council =
+        GuardCouncil::new(guard_pks.clone()).expect("Council creation should succeed");
+
+    let target = Keypair::generate().public_key_bytes();
+    assert!(!council.is_tombstoned(&target));
+
+    // Alur produksi: vonis aklamasi double-signing memblokir kunci, lalu
+    // orkestrator mencatatnya ke daftar cekal permanen via `record_tombstone`.
+    let mut verdict = BlacklistVerdict {
+        evidence: RaidEvidence::new(
+            target,
+            ViolationType::DoubleSigning,
+            142,
+            b"EQUIVOCATION_PAYLOAD",
+        ),
+        signatures: BTreeMap::new(),
+    };
+    assert!(verdict.requires_tombstone());
+    let digest = verdict.digest();
+    for key in &guard_keys {
+        verdict
+            .signatures
+            .insert(key.public_key_bytes(), key.sign(&digest));
+    }
+
+    council
+        .execute_blacklist(&verdict)
+        .expect("vonis aklamasi sah");
+    assert!(council.is_blacklisted(&target));
+    council
+        .record_tombstone(&target)
+        .expect("cekalan permanen dicatat");
+    assert!(council.is_tombstoned(&target));
+    // Blokir jaringan tetap berlaku; pengampunan bagi yang di-cekal permanen
+    // ditolak keras (`TombstonedIrreversible`).
+    assert!(council.is_blacklisted(&target));
+
+    // Pelaporan ulang untuk kunci yang sudah tombstone ditolak.
+    let mut re_verdict = BlacklistVerdict {
+        evidence: RaidEvidence::new(target, ViolationType::DoubleSigning, 143, b"RE_ATTEMPT"),
+        signatures: BTreeMap::new(),
+    };
+    let re_digest = re_verdict.digest();
+    for key in &guard_keys {
+        re_verdict
+            .signatures
+            .insert(key.public_key_bytes(), key.sign(&re_digest));
+    }
+    assert!(matches!(
+        council.execute_blacklist(&re_verdict),
+        Err(GuardError::AlreadyTombstoned(t)) if t == target
+    ));
+
+    // Petisi pemulihan untuk validator tombstone ditolak permanen.
+    let mut pardon = PardonVerdict {
+        petition: RehabilitationPetition::new(target, "saya tidak double-signing", 999),
+        signatures: BTreeMap::new(),
+    };
+    let pardon_digest = pardon.digest();
+    for key in &guard_keys {
+        pardon
+            .signatures
+            .insert(key.public_key_bytes(), key.sign(&pardon_digest));
+    }
+    assert!(matches!(
+        council.execute_pardon(&pardon),
+        Err(GuardError::TombstonedIrreversible(t)) if t == target
+    ));
+    assert!(council.is_tombstoned(&target));
+    assert_eq!(council.total_guards(), 5);
 }
 
 // ==============================================================================

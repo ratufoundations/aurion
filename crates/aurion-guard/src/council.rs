@@ -11,6 +11,7 @@ pub const MINIMUM_GUARD_QUORUM: usize = 5;
 pub struct GuardCouncil {
     guards: BTreeSet<PublicKeyBytes>,
     blacklisted_validators: BTreeSet<PublicKeyBytes>,
+    tombstoned_validators: BTreeSet<PublicKeyBytes>,
 }
 
 impl GuardCouncil {
@@ -31,6 +32,7 @@ impl GuardCouncil {
         Ok(Self {
             guards: guard_set,
             blacklisted_validators: BTreeSet::new(),
+            tombstoned_validators: BTreeSet::new(),
         })
     }
 
@@ -49,6 +51,29 @@ impl GuardCouncil {
         self.blacklisted_validators.contains(validator)
     }
 
+    /// `true` bila validator sudah di-tombstone (daftar cekal permanen).
+    #[must_use]
+    pub fn is_tombstoned(&self, validator: &PublicKeyBytes) -> bool {
+        self.tombstoned_validators.contains(validator)
+    }
+
+    /// Catat kunci konsensus ke daftar cekal permanen (tombstone).
+    ///
+    /// Dipanggil setelah vonis aklamasi untuk pelanggaran yang mewajibkan
+    /// tombstone (double-signing). Registri ini ireversibel: kunci yang sudah
+    /// tombstone tidak dapat di-blacklist ulang maupun dipulihkan.
+    ///
+    /// # Errors
+    /// Mengembalikan `GuardError::AlreadyTombstoned` bila kunci sudah tercatat.
+    pub fn record_tombstone(&mut self, validator: &PublicKeyBytes) -> Result<(), GuardError> {
+        if self.tombstoned_validators.contains(validator) {
+            return Err(GuardError::AlreadyTombstoned(*validator));
+        }
+        self.tombstoned_validators.insert(*validator);
+        tracing::error!(node = ?validator, penalty = "tombstone", "Cekal permanen dijatuhkan");
+        Ok(())
+    }
+
     /// EKSEKUSI PEMUTUSAN JARINGAN (BLACKLIST):
     /// Wajib diverifikasi tanda tangan seluruh anggota Guard (100% konsensus)
     ///
@@ -58,6 +83,9 @@ impl GuardCouncil {
     /// bulat, ada penanda tangan yang bukan guard, atau tanda tangannya tidak valid.
     pub fn execute_blacklist(&mut self, verdict: &BlacklistVerdict) -> Result<(), GuardError> {
         let target = verdict.evidence.target_validator;
+        if self.tombstoned_validators.contains(&target) {
+            return Err(GuardError::AlreadyTombstoned(target));
+        }
         if self.blacklisted_validators.contains(&target) {
             return Err(GuardError::AlreadyBlacklisted(target));
         }
@@ -99,6 +127,9 @@ impl GuardCouncil {
     /// bulat, ada penanda tangan yang bukan guard, atau tanda tangannya tidak valid.
     pub fn execute_pardon(&mut self, verdict: &PardonVerdict) -> Result<(), GuardError> {
         let target = verdict.petition.target_validator;
+        if self.tombstoned_validators.contains(&target) {
+            return Err(GuardError::TombstonedIrreversible(target));
+        }
         if !self.blacklisted_validators.contains(&target) {
             return Err(GuardError::ValidatorNotBlacklisted(target));
         }
