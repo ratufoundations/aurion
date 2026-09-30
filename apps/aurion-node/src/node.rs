@@ -115,6 +115,8 @@ pub enum ChainCommand {
         account: PublicKeyBytes,
         reply: oneshot::Sender<Option<Quanta>>,
     },
+    /// Kueri tinggi blok terakhir yang tercatat di ledger.
+    HeightQuery { reply: oneshot::Sender<u64> },
     /// Pesan jaringan dari actor swarm.
     Gossip(NetworkMessage),
     /// Putusan deferensi dari subsistem guard.
@@ -306,6 +308,9 @@ impl ChainNode {
                         Some(ChainCommand::ProduceBlock) => self.produce_block(&events),
                         Some(ChainCommand::BalanceQuery { account, reply }) => {
                             let _ = reply.send(self.balance(&account));
+                        }
+                        Some(ChainCommand::HeightQuery { reply }) => {
+                            let _ = reply.send(self.last_height());
                         }
                         Some(ChainCommand::Gossip(message)) => self.on_gossip(message, &events),
                         Some(ChainCommand::GuardVerdict(verdict)) => self.on_verdict(&verdict, &events),
@@ -619,6 +624,23 @@ impl NodeHandle {
         let (reply, wait) = oneshot::channel();
         self.commands
             .try_send(ChainCommand::BalanceQuery { account, reply })
+            .map_err(|e| match e {
+                mpsc::error::TrySendError::Full(_) => IngressError::ChannelFull {
+                    capacity: self.commands.max_capacity(),
+                },
+                mpsc::error::TrySendError::Closed(_) => IngressError::NodeStopping,
+            })?;
+        wait.await.map_err(|_| IngressError::NodeStopping)
+    }
+
+    /// Kueri tinggi blok terakhir yang tercatat di ledger.
+    ///
+    /// # Errors
+    /// Mengembalikan galat bila actor berhenti sebelum membalas.
+    pub async fn latest_height(&self) -> Result<u64, IngressError> {
+        let (reply, wait) = oneshot::channel();
+        self.commands
+            .try_send(ChainCommand::HeightQuery { reply })
             .map_err(|e| match e {
                 mpsc::error::TrySendError::Full(_) => IngressError::ChannelFull {
                     capacity: self.commands.max_capacity(),

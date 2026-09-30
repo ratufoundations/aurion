@@ -37,9 +37,11 @@
 //! ```
 
 pub mod node;
+pub mod p2p;
 
 pub use node::{
     ChainCommand, ChainEvent, ChainNode, IngressError, NodeConfig, NodeHandle, Quanta,
     DEFAULT_BLOCK_TIME_MS, DEFAULT_MAX_TX_PER_BLOCK, EVENT_CHANNEL_CAPACITY,
     GOSSIP_CHANNEL_CAPACITY, INGRESS_CHANNEL_CAPACITY, PREFIX_BALANCE,
 };
+pub use p2p::{P2PConfig, P2PHandle, P2PRuntime, P2pCommand};
