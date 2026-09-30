@@ -19,6 +19,13 @@ impl BlacklistVerdict {
         hasher.update(&self.evidence.proof_hash);
         *hasher.finalize().as_bytes()
     }
+
+    /// `true` bila pelanggaran pada verdict mewajibkan karantina ireversibel
+    /// validator (`Tombstoned`), mengikuti `ViolationType::requires_tombstone`.
+    #[must_use]
+    pub const fn requires_tombstone(&self) -> bool {
+        self.evidence.violation.requires_tombstone()
+    }
 }
 
 /// Sertifikat Pemulihan & Hapus Blacklist (Pardon) - Wajib 5/5 Suara Guard

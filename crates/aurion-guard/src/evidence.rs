@@ -12,6 +12,19 @@ pub enum ViolationType {
     UnresponsiveLivenessFailure,
 }
 
+impl ViolationType {
+    /// `true` bila pelanggaran ini bermuatan penipuan akut yang wajib diikuti
+    /// karantina ireversibel validator (`Tombstoned`), bukan sekadar hukuman.
+    ///
+    /// Kebijakan saat ini konservatif: hanya `DoubleSigning` yang memicu
+    /// tombstone. Peta dapat diperluas bila mekanisme slashing dan karantina
+    /// stake untuk pelanggaran berat lain sudah berdampingan di orkestrator.
+    #[must_use]
+    pub const fn requires_tombstone(&self) -> bool {
+        matches!(self, Self::DoubleSigning)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RaidEvidence {
     pub target_validator: PublicKeyBytes,

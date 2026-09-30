@@ -215,8 +215,9 @@ fn o1_actor_source_contains_no_shared_mutex_state() {
 fn unanimous_verdict(
     guards: &BTreeMap<PublicKeyBytes, Keypair>,
     target: PublicKeyBytes,
+    violation: ViolationType,
 ) -> BlacklistVerdict {
-    let evidence = RaidEvidence::new(target, ViolationType::DoubleSigning, 12, &[0xEE; 32]);
+    let evidence = RaidEvidence::new(target, violation, 12, &[0xEE; 32]);
     let mut signatures: BTreeMap<PublicKeyBytes, SignatureBytes> = BTreeMap::new();
     let digest = {
         let probe = BlacklistVerdict {
@@ -257,7 +258,11 @@ async fn o2_guard_blacklist_blocks_block_production() {
     let recipient = Keypair::generate().public_key_bytes();
 
     handle
-        .submit_verdict(unanimous_verdict(&guards, proposer))
+        .submit_verdict(unanimous_verdict(
+            &guards,
+            proposer,
+            ViolationType::DoubleSigning,
+        ))
         .expect("kirim putusan");
     let event = wait_for(&mut runtime, |e| {
         matches!(e, ChainEvent::GuardVerdictApplied { .. })
@@ -268,8 +273,9 @@ async fn o2_guard_blacklist_blocks_block_production() {
         ChainEvent::GuardVerdictApplied {
             target: proposer,
             blacklisted: true,
+            tombstone_requested: true,
         },
-        "putusan bulat harus mengeksekusi blacklist"
+        "putusan bulat double-signing harus diblokir sekaligus meminta tombstone"
     );
 
     handle
@@ -310,7 +316,7 @@ async fn o2_non_unanimous_verdict_is_rejected() {
     let mut runtime = NodeHandle::spawn(ChainNode::bootstrap(config).expect("bootstrap"));
     let handle = runtime.handle.clone();
 
-    let mut verdict = unanimous_verdict(&guards, proposer);
+    let mut verdict = unanimous_verdict(&guards, proposer, ViolationType::DoubleSigning);
     let dropped = *verdict.signatures.keys().next().expect("ada tanda tangan");
     verdict.signatures.remove(&dropped);
 
@@ -324,8 +330,54 @@ async fn o2_non_unanimous_verdict_is_rejected() {
         ChainEvent::GuardVerdictApplied {
             target: proposer,
             blacklisted: false,
+            tombstone_requested: false,
         },
         "verdict tanpa konsensus bulat harus ditolak"
+    );
+    handle.shutdown();
+}
+
+/// O2: pelanggaran liveness diblokir namun tidak memicu tombstone; hanya
+/// pelanggaran akut (double-signing) yang memerintahkan karantina ireversibel.
+#[tokio::test]
+async fn o2_liveness_verdict_blacklists_without_tombstone() {
+    let dir = test_dir("o2-liveness");
+    let treasury = Keypair::generate();
+    let proposer = Keypair::generate().public_key_bytes();
+
+    let mut guards = BTreeMap::new();
+    for _ in 0..5 {
+        let kp = Keypair::generate();
+        guards.insert(kp.public_key_bytes(), kp);
+    }
+
+    let mut config = config_with(&dir, treasury.public_key_bytes());
+    config.initial_guards = guards.keys().copied().collect();
+    config.block_proposer = proposer;
+    config.initial_validators = vec![proposer];
+
+    let mut runtime = NodeHandle::spawn(ChainNode::bootstrap(config).expect("bootstrap"));
+    let handle = runtime.handle.clone();
+
+    handle
+        .submit_verdict(unanimous_verdict(
+            &guards,
+            proposer,
+            ViolationType::UnresponsiveLivenessFailure,
+        ))
+        .expect("kirim putusan");
+    let event = wait_for(&mut runtime, |e| {
+        matches!(e, ChainEvent::GuardVerdictApplied { .. })
+    })
+    .await;
+    assert_eq!(
+        event,
+        ChainEvent::GuardVerdictApplied {
+            target: proposer,
+            blacklisted: true,
+            tombstone_requested: false,
+        },
+        "pelanggaran liveness hanya memblokir, tidak mengarantina validator"
     );
     handle.shutdown();
 }

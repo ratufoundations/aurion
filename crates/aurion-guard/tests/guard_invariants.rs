@@ -456,6 +456,45 @@ fn test_g3_active_to_tombstoned_transition() {
     assert!(active.can_transition_to(tombstoned));
 }
 
+#[test]
+fn test_g3_only_equivocation_requires_tombstone() {
+    // Hanya pelanggaran akut (double-signing) yang memerintahkan karantina
+    // ireversibel; pelanggaran liveness/jaringan cukup diblokir.
+    assert!(ViolationType::DoubleSigning.requires_tombstone());
+    assert!(!ViolationType::InvalidStateRootProposal.requires_tombstone());
+    assert!(!ViolationType::NetworkSabotage.requires_tombstone());
+    assert!(!ViolationType::UnresponsiveLivenessFailure.requires_tombstone());
+
+    let target = Keypair::generate().public_key_bytes();
+    let double_signing = BlacklistVerdict {
+        evidence: RaidEvidence::new(
+            target,
+            ViolationType::DoubleSigning,
+            142,
+            b"EQUIVOCATION_PAYLOAD",
+        ),
+        signatures: BTreeMap::new(),
+    };
+    assert!(
+        double_signing.requires_tombstone(),
+        "verdict double-signing harus memerintahkan tombstone"
+    );
+
+    let liveness = BlacklistVerdict {
+        evidence: RaidEvidence::new(
+            target,
+            ViolationType::UnresponsiveLivenessFailure,
+            142,
+            b"LIVENESS_EVIDENCE",
+        ),
+        signatures: BTreeMap::new(),
+    };
+    assert!(
+        !liveness.requires_tombstone(),
+        "verdict liveness tidak boleh mengarantina validator"
+    );
+}
+
 // ==============================================================================
 // [G4] OTORISASI & KUORUM DEWAN PENGAWAS
 // ==============================================================================

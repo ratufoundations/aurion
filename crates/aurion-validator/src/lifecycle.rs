@@ -701,12 +701,74 @@ impl ValidatorLifecycle {
         Ok(())
     }
 
+    /// Karantina ireversibel validator penipu ke status `Tombstoned`.
+    ///
+    /// Hak karantina hanya sah bila matriks transisi mengizinkan status asal
+    /// menuju `Tombstoned` (kini: `Probation`, `ActiveSet`, `Jailed`). Setelah
+    /// tombstone, validator tidak pernah ikut kuorum, tidak lagi dihitung
+    /// stake-nya, dan seluruh hak pengesahannya dicabut. Stake tetap terkunci
+    /// pada rekaman (karantina); tidak ada jalur pencairan maupun pemulihan.
+    ///
+    /// # Errors
+    /// Mengembalikan `ValidatorError::NotRegistered` bila akun tidak terdaftar,
+    /// atau `ValidatorError::InvalidStatusTransition` bila status asal tidak
+    /// berhak langsung di-tombstone.
+    pub fn tombstone(&mut self, account: &AccountId) -> Result<(), ValidatorError> {
+        let record = self
+            .records
+            .get_mut(account)
+            .ok_or(ValidatorError::NotRegistered(*account))?;
+        record
+            .status
+            .authorize_transition(ValidatorStatus::Tombstoned)?;
+        let revoked = self.endorsements.taint_endorser(account);
+        record.status = ValidatorStatus::Tombstoned;
+        record.active_since_block = 0;
+        tracing::error!(
+            account = ?account,
+            endorsements_revoked = revoked,
+            "Validator di-tombstone: karantina ireversibel"
+        );
+        Ok(())
+    }
+
+    /// Varian tombstone melalui kunci konsensus (domain penegakan guard).
+    ///
+    /// Penegakan di lapangan (guard) menandai pelaku double-signing dengan
+    /// kunci konsensus `PublicKeyBytes`, sedangkan rekaman validator dikunci
+    /// oleh `AccountId` berdaulat. Metode ini menemukan rekaman yang
+    /// `consensus_pubkey`-nya cocok lalu menerapkan `tombstone`.
+    ///
+    /// # Errors
+    /// Mengembalikan `ValidatorError::NotRegistered` bila tidak ada rekaman
+    /// dengan kunci konsensus tersebut, atau
+    /// `ValidatorError::InvalidStatusTransition` bila status asal tidak
+    /// berhak langsung di-tombstone.
+    pub fn tombstone_by_consensus_key(
+        &mut self,
+        consensus_key: &PublicKeyBytes,
+    ) -> Result<AccountId, ValidatorError> {
+        let account = self
+            .records
+            .values()
+            .find(|record| record.consensus_pubkey == *consensus_key)
+            .map(|record| record.account)
+            .ok_or(ValidatorError::NotRegistered(*consensus_key))?;
+        self.tombstone(&account)?;
+        Ok(account)
+    }
+
     /// Status tujuan setelah pemotongan berat.
     ///
+    /// Status yang sudah terminal (`Retired`/`Tombstoned`) tidak pernah
+    /// berubah oleh slashing; validator yang di-tombstone tetap tombstone.
     /// `Suspended` bila transisinya sah dari status saat ini, `Retired` bila
     /// tidak (mis. validator masih `Probation`), dan `None` bila status sudah
     /// terminal sehingga hanya stake yang terpengaruh.
     fn post_slash_status(status: ValidatorStatus) -> Option<ValidatorStatus> {
+        if status.is_terminal() {
+            return None;
+        }
         if status.can_transition_to(ValidatorStatus::Suspended) {
             Some(ValidatorStatus::Suspended)
         } else if status.can_transition_to(ValidatorStatus::Retired) {

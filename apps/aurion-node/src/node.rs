@@ -95,6 +95,9 @@ pub enum ChainEvent {
     GuardVerdictApplied {
         target: PublicKeyBytes,
         blacklisted: bool,
+        /// `true` bila verdict menandai pelanggaran akut (double-signing) yang
+        /// memerintahkan karantina ireversibel validator ke `Tombstoned`.
+        tombstone_requested: bool,
     },
     /// Node berhenti anggun pada tinggi terakhir yang tercatat.
     ShutdownComplete { last_height: u64 },
@@ -361,9 +364,20 @@ impl ChainNode {
         if !blacklisted {
             tracing::warn!(?target, "Putusan guard ditolak, proposer tetap aktif");
         }
+        // Pelanggaran akut (double-signing) memerintahkan karantina ireversibel
+        // ke `Tombstoned`. Status tersebut diterapkan oleh mesin siklus hidup
+        // validator milik orkestrator saat admisi akun/PoP tersedia.
+        let tombstone_requested = blacklisted && verdict.requires_tombstone();
+        if tombstone_requested {
+            tracing::error!(
+                ?target,
+                "Guard memerintahkan tombstone: validator berstatus double-signing"
+            );
+        }
         let _ = events.try_send(ChainEvent::GuardVerdictApplied {
             target,
             blacklisted,
+            tombstone_requested,
         });
     }
 
