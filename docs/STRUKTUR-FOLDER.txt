@@ -1,7 +1,7 @@
 aurion/
 ├── Agents.md                      # [OTORITAS] rulebook keamanan, arsitektur, dan protokol kerja agen
 ├── apps/
-│   ├── aurion-node/               # [AKTIF] biner simpul validator (TCP + consensus + ledger + mempool)
+│   ├── aurion-node/               # [AKTIF] biner simpul validator; orkestrasi actor-pattern kanal berbatas, bootstrapping genesis, graceful shutdown; tes O0–O5
 │   ├── aurion-explorer/           # [AKTIF] backend API explorer (axum) — baca LedgerStore
 │   └── aurion-cli/                # [AKTIF] CLI operasional (keygen/status/balance/monitor via Zenoh)
 ├── config/                        # [AKTIF] crate aurion-config (workspace member): AurionSettings (TOML), AppMode, validasi startup, init_central_logging; data: node.dev.toml / node.prod.toml
@@ -25,6 +25,7 @@ aurion/
 │   ├── RFC-001.md                  # arah desain modul komposabel (Draft / Proposed)
 │   ├── STRUKTUR-FOLDER.txt        # file ini (diperbarui 2026-09-29; snapshot lama sebelum 2026-09-28 sudah kedaluwarsa)
 │   └── task-register/
+│       ├── TASK-aurion-orchestration.md         # orkestrasi daemon actor-pattern, wiring kanal, siklus hidup simpul; O0–O5 (COMPLETED)
 │       ├── TASK-aurion-account.md                # identitas & kebijakan akun A0–A5 (COMPLETED)
 │       ├── TASK-aurion-criptografi.md           # invarian kriptografi C0–C7 (COMPLETE)
 │       ├── TASK-aurion-consensus.md             # invarian konsensus B0–B5 (COMPLETED)
@@ -33,7 +34,7 @@ aurion/
 │       ├── TASK-aurion-gateway.md              # CQRS boundary, ingress sanitasi, rate limiting, fault isolation; GW0–GW5 (COMPLETED)
 │       ├── TASK-aurion-guard.md                 # security engine, slashing, tombstoning, council governance G0–G5 (COMPLETED)
 │       ├── TASK-aurion-network.md               # P2P wire & swarm boundary N0–N5 (ACTIVE, fondasi libp2p 0.56)
-│       ├── TASK-aurion-projection.md            # CQRS read model, delta ingestion, address indexing, pruning, cold rebuild; P0–P5 (ACTIVE)
+│       ├── TASK-aurion-projection.md            # CQRS read model, delta ingestion, address indexing, pruning, cold rebuild; P0–P5 (COMPLETED)
 │       ├── TASK-aurion-ledger.md                # invarian persistensi L0–L5 (COMPLETED)
 │       ├── TASK-aurion-mempool.md               # invarian admission M0–M5 (COMPLETED)
 │       ├── TASK-aurion-validator.md             # siklus hidup validator V0–V5 (COMPLETED)
