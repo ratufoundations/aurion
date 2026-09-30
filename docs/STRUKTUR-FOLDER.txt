@@ -13,7 +13,7 @@ aurion/
 │   ├── aurion-execution/          # [AKTIF] Capability-Keeper RFC-001, Transactional Cache CoW, StoreKey isolation, fuel metering u64, invarian E0–E5
 │   ├── aurion-criptografi/        # [AKTIF] hash BLAKE3 + Ed25519; tes integrasi invarian C0–C7 di crates/aurion-criptografi/tests/
 │   ├── aurion-gateway/            # [AKTIF] GatewayRoutes + AurionGateway (Zenoh boundary); CQRS ingress/sanitasi/rate-limiting; tes GW0–GW5 (COMPLETED)
-│   ├── aurion-genesis/            # [AKTIF] GenesisSpec, bootstrap blok 0 (QUANTA_PER_AUR = 1_000_000 — nilai eksplorasi, BUKAN kebijakan moneter terkunci)
+│   ├── aurion-genesis/            # [AKTIF] GenesisSpec, bootstrap blok 0 (QUANTA_PER_AUR = 10^10 kanonikal dari aurion-core: 66 juta AUR = 6,6×10^17 Quanta)
 │   ├── aurion-guard/              # [AKTIF] GuardCouncil, evidence verification, slashing, tombstoning, council governance; tes G0–G5 (COMPLETED)
 │   ├── aurion-ledger/             # [AKTIF] redb LedgerStore, codec, module KV, append-only commits, read snapshots; tes L0–L5
 │   ├── aurion-mempool/            # [AKTIF] Mempool, signature/fee/nonce/solvency, deterministic selection and bounded eviction; M0–M5 tests
@@ -23,7 +23,7 @@ aurion/
 │   └── aurion-wallet/            # [AKTIF] AurionWallet, domain separation wallet-level, delegation
 ├── docs/
 │   ├── RFC-001.md                  # arah desain modul komposabel (Draft / Proposed)
-│   ├── STRUKTUR-FOLDER.txt        # file ini (diperbarui 2026-09-29; snapshot lama sebelum 2026-09-28 sudah kedaluwarsa)
+│   ├── STRUKTUR-FOLDER.txt        # file ini (diperbarui 2026-09-30; snapshot lama sebelum 2026-09-28 sudah kedaluwarsa)
 │   └── task-register/
 │       ├── TASK-aurion-orchestration.md         # orkestrasi daemon actor-pattern, wiring kanal, siklus hidup simpul; O0–O5 (COMPLETED)
 │       ├── TASK-aurion-account.md                # identitas & kebijakan akun A0–A5 (COMPLETED)

@@ -22,7 +22,7 @@ Tujuan task ini adalah **menguji, memvalidasi, dan mengunci wrapper `aurion-netw
 3. Menjamin otentikasi identitas validator via **Noise (Ed25519)** dan negosiasi protokol/`chain_id` via **Identify** berjalan deterministik.
 4. Menolak payload gossip yang rusak atau terpotong tanpa memicu *panic* (`unwrap`).
 5. Memastikan isolasi kegagalan peer di dalam `Swarm`: putusnya satu koneksi tidak mengganggu topologi *mesh* peer lainnya.
-6. Mengunci seluruh antarmuka publik modul pada representasi integer murni `u64` Quanta/milidetik (*zero-float boundary*).
+6. Mengunci seluruh antarmuka publik modul pada representasi integer murni `u128` Quanta / `u64` milidetik (*zero-float boundary*).
 7. Menegakkan `#![forbid(unsafe_code)]` di seluruh baris kode internal crate `aurion-network`.
 
 ---

@@ -19,7 +19,7 @@ Tujuan task ini adalah **menguji, memvalidasi, dan mengunci perilaku `aurion-acc
 3. Menjamin mutasi kebijakan akun (rotasi kunci penandatangan, pengubahan ambang batas multi-sig) berlangsung secara atomik dan kebal terhadap celah penguncian diri (*bricking*) maupun pembajakan (*takeover*).
 4. Mencegah eksploitasi tanda tangan delegasi dan multi-signature lintas rantai, lintas akun, atau lintas transaksi (*replay protection*).
 5. Mencegah serangan *state bloat* melalui pengelolaan siklus hidup akun nir-saldo (*zero-balance/dust*) yang terprediksi.
-6. Mengunci seluruh perhitungan kuota, batas penarikan, ambang batas persetujuan, dan bobot hak suara pada bilangan bulat murni `u64` Quanta (*zero-float*).
+6. Mengunci seluruh perhitungan kuota, batas penarikan, ambang batas persetujuan, dan bobot hak suara pada bilangan bulat murni `u128` Quanta (*zero-float*).
 7. Menegakkan disiplin kode: `#![forbid(unsafe_code)]`, zero-float, penolakan `.unwrap()` di jalur produksi, serta penanganan error bertipe kuat melalui `thiserror`.
 
 ---
@@ -34,7 +34,7 @@ Tujuan task ini adalah **menguji, memvalidasi, dan mengunci perilaku `aurion-acc
 ### [A1] Pemisahan Peran & Penegakan Kapabilitas RBAC
 * Peran: `StandardUser`, `ValidatorCandidate`, `ActiveValidator`, `GuardCouncil`.
 * `StandardUser` dilarang vote/proposal/slashing -> `Err(AccountError::UnauthorizedRole { expected, actual })`.
-* Promosi sah hanya bila staking/deposit minimum `u64` Quanta + otorisasi berhak; demosi seketika membatalkan hak istimewa.
+* Promosi sah hanya bila staking/deposit minimum `u128` Quanta + otorisasi berhak; demosi seketika membatalkan hak istimewa.
 
 ### [A2] Keamanan Mutasi Kebijakan & Rotasi Kunci
 * Rotasi kunci wajib bukti otorisasi kunci aktif lama; threshold multi-sig: M >= 1, M <= N, signer N tanpa duplikat.

@@ -1,6 +1,6 @@
 # AURION PROTOCOL — AGENTS RULEBOOK & ARCHITECTURE AUTHORITY
 > **Status:** Otoritatif & Mengikat (Active)  
-> **Revisi Terakhir:** 2026-09-29  
+> **Revisi Terakhir:** 2026-09-30  
 > **Lingkup:** Seluruh AI Agent, Kontributor, dan Kode di Workspace `aurion/`
 
 ---
@@ -15,8 +15,8 @@ Setiap kode yang dihasilkan agen WAJIB mematuhi empat aturan mutlak berikut tanp
 
 2. **LARANGAN MUTLAK BILANGAN PECAHAN (`zero-float`):**
    * Tipe `f32` dan `f64` dilarang keras di seluruh workspace. Penegakan dilakukan oleh lint Clippy workspace di `Cargo.toml`, daftar `disallowed-types` di `clippy.toml`, dan pemindai `tools/aurion_guard.py`; `deny.toml` mengatur supply chain, bukan tipe numerik.
-   * Seluruh kalkulasi finansial, rasio, kuorum, atau persentase wajib menggunakan fixed-point integer (`u64` / satuan Quanta). 
-   * 1 AUR = 1.000.000 Quanta. Operasi pembagian wajib mempertimbangkan integer truncation dan sisa bagi (`%`).
+   * Seluruh kalkulasi finansial, rasio, kuorum, atau persentase wajib menggunakan fixed-point integer (`u128` / satuan Quanta). 
+   * 1 AUR = 10^10 Quanta (10.000.000.000). Operasi pembagian wajib mempertimbangkan integer truncation dan sisa bagi (`%`).
 
 3. **LARANGAN MEMBUAT RODA SENDIRI (STANDAR PUSTAKA MATANG):**
    * Dilarang mengimplementasikan ulang fungsi dasar (kriptografi, network framing, CLI parser, UI table, serialization).
@@ -113,7 +113,7 @@ Ketika menerima instruksi teknis dari pengguna, agen wajib bekerja dengan metodo
 
 ## 5. INVARIAN PROTOKOL & TATA KELOLA KONSENSUS
 
-* **Pasokan Moneter Genesis:** 66.000.000 AUR terkunci di Treasury pada Blok 0 (Genesis).
+* **Pasokan Moneter Genesis:** 66.000.000 AUR (= 660.000.000.000.000.000 Quanta, `TREASURY_GENESIS_QUANTA`) terkunci di Treasury pada Blok 0 (Genesis).
 * **Dewan Guard:** 5 anggota dewan kuorum, razia darurat wajib aklamasi 5/5, pemilihan rotasi epoch berbasis skor kontribusi dan stake.
 * **Penerimaan Validator Baru:** Wajib masa probation 1 minggu (7 hari heartbeat liveness $\ge 99\%$) + surat dukungan kriptografis dari minimal 3 validator aktif.
 * **Konsensus BFT:** Ambang batas finalisasi blok adalah kuorum super-mayoritas $2f + 1$.

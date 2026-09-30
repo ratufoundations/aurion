@@ -112,6 +112,23 @@ Fokus utama fase ini adalah:
 5. mengevaluasi alternatif arsitektur;
 6. mengunci keputusan hanya setelah cukup dipahami.
 
+## Protocol Facts
+
+Fakta protokol yang sudah dikunci dan menjadi acuan implementasi:
+
+| Fakta | Nilai |
+|---|---|
+| Satuan moneter (`Quanta`) | `u128` (fixed-point integer, `zero-float`) |
+| Presisi | 1 AUR = `10^10` Quanta (`QUANTA_PER_AUR`) |
+| Denominator BPS | `10.000` (= 100%) |
+| Pasokan genesis Treasury | 66.000.000 AUR = `660.000.000.000.000.000` Quanta (`TREASURY_GENESIS_QUANTA`) |
+| Codec akun (ledger) | 24 byte (balance `u128` 16B + nonce `u64` 8B) |
+| Codec transaksi | 168 byte fixed (payload 104 byte) |
+| Serialisasi balance RPC | String desimal (presisi &gt; 2^53 aman bagi konsumen JSON/browser) |
+
+Nilai kanonikal berada di `crates/aurion-core/src/types.rs`; konstanan lain boleh *re-export* tetapi tidak boleh menduplikasi nilai.
+<br>Detail invariant pengujian diuraikan pada `docs/task-register/TASK-*.md`.
+
 ## Source of Truth
 
 Untuk pekerjaan teknis:

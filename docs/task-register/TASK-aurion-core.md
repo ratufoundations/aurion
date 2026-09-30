@@ -18,7 +18,7 @@ Modul ini mendefinisikan tipe data kanonikal (`Block`, `BlockHeader`, `Transacti
 Tujuan task ini adalah **menguji, memvalidasi, dan mengunci perilaku `aurion-core` secara terisolasi** agar:
 1. Memastikan fungsi transisi keadaan menghasilkan komitmen *State Root* BLAKE3 yang 100% deterministik dan dapat direplikasi (*replay-ready*).
 2. Menjamin eksekusi transaksi dalam blok bersifat atomik—blok yang cacat tidak boleh meninggalkan mutasi parsial pada state.
-3. Menegakkan invarian konservasi saldo (*solvency*): total koin terjaga, mutasi saldo anti-underflow/overflow, dan menggunakan integer murni `u64` Quanta.
+3. Menegakkan invarian konservasi saldo (*solvency*): total koin terjaga, mutasi saldo anti-underflow/overflow, dan menggunakan integer murni `u128` Quanta.
 4. Memastikan kenaikan nonce akun tepat monotonik ($N \to N+1$) per transaksi yang dieksekusi.
 5. Memverifikasi integritas struktural blok: kelanjutan tinggi blok ($H+1$), tautan *parent hash*, dan konsistensi pohon transaksi/state.
 6. Mematuhi invarian protokol: `#![forbid(unsafe_code)]`, zero-float, zero-unwrap di jalur produksi, serta penanganan error menggunakan tipe kuat via `thiserror`.
@@ -51,7 +51,7 @@ Suite pengujian modul wajib memvalidasi 6 dimensi invarian transisi keadaan beri
     $$\Delta \text{Balance}_{\text{sender}} = \text{Amount} + \text{Fee}$$
     $$\Delta \text{Balance}_{\text{recipient}} = \text{Amount}$$
   * Percobaan pengurangan saldo melebihi saldo yang tersedia wajib menghasilkan error `InsufficientBalance` tanpa memicu panic atau integer wrap.
-  * Uji boundary: penambahan saldo mendekati `u64::MAX` wajib dilindungi oleh `checked_add` dan menolak overflow secara anggun.
+  * Uji boundary: penambahan saldo mendekati `u128::MAX` wajib dilindungi oleh `checked_add` dan menolak overflow secara anggun.
 
 ### [ST3] Monotonisitas Nonce per Akun (Strict Nonce Monotonicity)
 * **Deskripsi:** Setiap transaksi yang berhasil dieksekusi wajib menaikkan nonce akun pengirim tepat sebesar 1 ($N_{\text{new}} = N_{\text{current}} + 1$).
@@ -133,7 +133,7 @@ Salin teks berikut untuk memerintahkan agen memulai eksekusi:
 
 ## Keputusan protokol resmi ST4/ST5 (2026-09-29)
 
-- **ST4 fee:** `Transaction.fee: u64` (Quanta) adalah bagian integral payload yang ditandatangani. Hash tanda tangan `BLAKE3(nonce || sender || recipient || amount || fee)` dengan domain `AURION_TX_CANONICAL_V1`, sehingga manipulasi fee membatalkan tanda tangan (`InvalidSignature`).
+- **ST4 fee:** `Transaction.fee: Quanta` (`u128`) adalah bagian integral payload yang ditandatangani. Hash tanda tangan `BLAKE3(nonce || sender || recipient || amount || fee)` dengan domain `AURION_TX_CANONICAL_V1`, sehingga manipulasi fee membatalkan tanda tangan (`InvalidSignature`).
 - **Akuntansi ST4:** outflow `amount.checked_add(fee)`, solvency `sender.balance >= amount + fee`; `sender -= amount + fee`, `recipient += amount`, `fee` dikreditkan ke `BlockHeader.proposer` (fallback `PROTOCOL_FEE_SINK = [0x00; 32]`). `fee == 0` ditolak (`FeeTooLow`).
 - **ST5 timestamp:** `BlockHeader.timestamp: u64` milidetik Unix Epoch (UTC) + `proposer: [u8; 32]` penerima fee; header hash mencakup `timestamp || proposer` di bawah domain `AURION_BLOCK_HEADER_V1`.
 - **Validasi deterministik `aurion-core`:** `T_block > T_parent`, genesis `H=0` sebagai acuan; pelanggaran `Err(TimestampNotMonotonic)`. Batas 5000 ms future drift adalah kebijakan `aurion-consensus` saat voting (non-deterministik jam dinding), bukan replay `aurion-core`.

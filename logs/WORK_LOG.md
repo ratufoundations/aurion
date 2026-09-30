@@ -233,3 +233,13 @@
 - Bug yang ditemukan saat migrasi: `recovery::tests::test_cold_rebuild_rejects_inverted_range` gagal membuka ledger pada berkas sementara lama yang tersisa dari run sebelum migrasi (`accounts is of type Table<[u8;32], [u8;16]>`); fixed path di `std::env::temp_dir()` diganti `tempfile::NamedTempFile` agar bersih mandiri.
 - DoD lengkap hijau: `cargo check --workspace --all-targets` (0); `cargo test --workspace` (0 failure); `cargo clippy --workspace --all-targets --all-features -- -D warnings` (bersih, setelah merapikan dua `#[must_use]` redundan pada helper dan dok komentar `doc_markdown`); `cargo fmt --all --check` (bersih; `cargo fmt --all` diterapkan menyeluruh untuk mematuhi DoD, berbeda dari kebijakan diff-fokus task sebelumnya); `python3 tools/aurion_guard.py check` (lulus: Zero-Unsafe, Zero-Float, Anti-Unwrap).
 - Status: COMPLETED / VERIFIED.
+
+## 2026-09-30 — Sinkronisasi dokumen dengan migrasi moneter u64 → u128 (Quanta)
+- Menyinkronkan seluruh dokumen dengan fakta pasca-migrasi `dc22a0b` (`Quanta = u128`, `QUANTA_PER_AUR = 10^10`, treasury genesis `660.000.000.000.000.000`):
+  - `Agents.md` (otoritas arsitektur): zero-float kini `u128` Quanta; 1 AUR = 10^10 Quanta; pasokan genesis menyebut `TREASURY_GENESIS_QUANTA`; revisi tanggal 2026-09-30.
+  - `README.md`: menambah bagian "Protocol Facts" (konstanta kanonikal, codec 24-byte akun / 168-byte transaksi, serialisasi balance sebagai string desimal).
+  - `docs/STRUKTUR-FOLDER.txt`: entri `aurion-genesis` kini menunjuk `QUANTA_PER_AUR` kanonikal dari `aurion-core`; tanggal snapshot 2026-09-30.
+  - `docs/RFC-001.md`: `u64` → `u128` pada `BankReadCapability::get_balance`, `BankTransferCapability::transfer`, envelope `fee`, ringkasan eksekutif, dan verifikasi invariant zero-float.
+  - TASK register moneter: `TASK-aurion-core` (ST2 boundary `u128::MAX`, ST4 `fee: Quanta`), `TASK-aurion-account` (kuota/stake `u128`), `TASK-aurion-validator` (stake/kuorum/slash `u128`, rasio BPS `u64`), `TASK-aurion-guard` (kalkulasi denda BPS `u128`, diagram alur), `TASK-aurion-mempool` (M2 `u128`, overflow `u128::MAX`), `TASK-aurion-network` (boundary `u128` Quanta / `u64` ms), `TASK-aurion-gateway` (field Quanta `u128` + serialisasi string desimal di GW0).
+  - Referensi `u64` non-moneter sengaja dipertahankan (fuel metering, rate limiter, metrik ms/byte, bobot konsensus).
+- Catatan: `docs/task-register/SYNC-REPORT-2026-09-29.md` adalah snapshot historis bertanggal sehingga tidak diubah.

@@ -19,7 +19,7 @@ Tujuan task ini adalah **menguji, memvalidasi, dan mengunci perilaku `aurion-gua
 3. Menerapkan sanksi pemotongan jaminan (*slashing*) bertingkat secara deterministik dengan pembagian hasil denda (*burn*, *reporter reward*, dan *treasury*) yang mempertahankan konservasi total Quanta.
 4. Menegakkan pengusiran seketika (*instant quorum eviction*) bagi validator yang terkena sanksi berat melalui status `Tombstoned` atau penahanan sementara via `Jailed`.
 5. Mengatur kewenangan hak istimewa Dewan Pengawas (*GuardCouncil*) dengan validasi kuorum multi-signature murni tanpa celah tindakan sepihak (*unilateral abuse*).
-6. Mengunci seluruh perhitungan tarif penalti, denda, dan insentif pelapor murni pada aritmatika integer basis poin (BPS, $10.000 = 100%$) bertipe `u64` (*zero-float*).
+6. Mengunci seluruh perhitungan tarif penalti, denda, dan insentif pelapor murni pada aritmatika integer basis poin (BPS, $10.000 = 100%$) bertipe `u128` Quanta (rasio BPS `u64`) (*zero-float*).
 7. Menegakkan kepatuhan arsitektur: `#![forbid(unsafe_code)]`, zero-float, penolakan `.unwrap()` di jalur produksi, serta penanganan error bertipe kuat melalui `thiserror`.
 
 ---
@@ -46,7 +46,7 @@ Tujuan task ini adalah **menguji, memvalidasi, dan mengunci perilaku `aurion-gua
                                    |
                                    v Belum pernah diproses
                  +---------------------------------------+
-                 | [G2/G5] Kalkulasi Denda BPS (u64) |
+                 | [G2/G5] Kalkulasi Denda BPS (u128) |
                  | - Hitung Severe Slash (misal 30%) |
                  | - Hitung Hadiah Pelapor (Reporter)|
                  | - Alokasikan Burn & Fee Sink      |
@@ -126,7 +126,7 @@ Suite pengujian modul wajib menguji 6 dimensi invarian keamanan dan penalti beri
 
 ### [G5] Akuntansi Denda Nir-Pecahan Berbasis BPS (Zero-Float BPS Slash Accounting)
 
-**Deskripsi:** Seluruh penghitungan denda pemotongan jaminan, alokasi hadiah pelapor, dan rasio kuorum dewan pengawas wajib menggunakan bilangan bulat murni (`u64`) dengan presisi Basis Poin (10.000 BPS = 100%).
+**Deskripsi:** Seluruh penghitungan denda pemotongan jaminan, alokasi hadiah pelapor, dan rasio kuorum dewan pengawas wajib menggunakan bilangan bulat murni (`u128` Quanta) dengan presisi Basis Poin (10.000 BPS = 100%).
 
 **Kriteria Uji:**
 - Perhitungan pemotongan denda:

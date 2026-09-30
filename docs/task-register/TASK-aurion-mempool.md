@@ -15,7 +15,7 @@ Modul `aurion-mempool` berfungsi sebagai gerbang penerimaan (*admission controll
 Tujuan task ini adalah **menguji, memvalidasi, dan mengunci perilaku `aurion-mempool` secara terisolasi** agar:
 1. Memverifikasi validitas kriptografis transaksi secara instan di pintu masuk tanpa pemborosan alokasi memori.
 2. Menegakkan monotonisitas nonce per akun untuk mencegah eksekusi transaksi yang out-of-order atau replay.
-3. Menjamin solvency saldo pengirim menggunakan aritmatika integer murni (`u64` Quanta) dengan proteksi *checked arithmetic* (zero-float).
+3. Menjamin solvency saldo pengirim menggunakan aritmatika integer murni (`u128` Quanta) dengan proteksi *checked arithmetic* (zero-float).
 4. Menghasilkan seleksi batch transaksi yang deterministik berbasis prioritas fee tertinggi (*greedy ordering*).
 5. Mengelola batas kapasitas pool (*bounded memory*) melalui mekanisme *rejection* atau *eviction* yang terprediksi saat mempool penuh.
 6. Membersihkan transaksi yang sudah difinalisasi ke ledger secara bersih tanpa menyisakan referensi usang (*dangling entries*).
@@ -45,11 +45,11 @@ Suite pengujian modul wajib memvalidasi 6 dimensi invarian mempool berikut:
 ### [M2] Verifikasi Solvency Saldo Nir-Pecahan (Zero-Float Solvency & Minimum Fee Check)
 * **Deskripsi:** Transaksi hanya diterima jika pengirim memiliki saldo native yang cukup untuk menutupi total pengeluaran:
   $$\text{Total Required} = \text{Amount} + \text{Fee}$$
-  Seluruh perhitungan wajib menggunakan `u64` Quanta dengan metode penambahan aman (`checked_add`).
+  Seluruh perhitungan wajib menggunakan `u128` Quanta dengan metode penambahan aman (`checked_add`).
 * **Kriteria Uji:**
   * Transaksi di mana $\text{Amount} + \text{Fee} \le \text{Current Balance}$ wajib diterima.
   * Transaksi di mana total pengeluaran melebihi saldo akun wajib ditolak dengan `Err(MempoolError::InsufficientBalance)`.
-  * Deteksi overflow: jika penjumlahan $\text{Amount} + \text{Fee}$ melebihi `u64::MAX`, transaksi wajib ditolak dengan `Err(MempoolError::ArithmeticOverflow)` tanpa memicu panic.
+  * Deteksi overflow: jika penjumlahan $\text{Amount} + \text{Fee}$ melebihi `u128::MAX`, transaksi wajib ditolak dengan `Err(MempoolError::ArithmeticOverflow)` tanpa memicu panic.
   * Transaksi dengan fee 0 atau di bawah batas minimum jaringan wajib ditolak dengan `Err(MempoolError::FeeTooLow)`.
 
 ### [M3] Pengurutan Prioritas Fee Deterministik (Deterministic Greedy Fee-Priority Ordering)

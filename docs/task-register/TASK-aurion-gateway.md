@@ -68,7 +68,7 @@ Suite pengujian modul wajib menguji 6 dimensi invarian boundary gateway berikut:
 * **Deskripsi:** Semua muatan data eksternal (JSON-RPC request, Zenoh binary query, raw hex) wajib divalidasi struktur dan skemanya. Masukan yang korup, representasi angka tidak wajar, atau byte liar wajib ditolak dengan respons galat standar tanpa memicu *panic* di gateway.
 * **Kriteria Uji:**
 * Request dengan format JSON cacat (tanda kurung kurawal tidak tertutup, karakter kontrol terlarang) ditolak dengan `Err(GatewayError::MalformedPayload)`.
-* Injeksi bilangan negatif atau float pada field yang mewajibkan `u64` Quanta (misal: `"amount": -100` atau `"amount": 50.5`) wajib ditolak seketika pada tahap parsing schema.
+* Injeksi bilangan negatif, float, atau representasi di luar presisi integer aman pada field `u128` Quanta (misal: `"amount": -100` atau `"amount": 50.5`) wajib ditolak seketika pada tahap parsing schema. Nilai moneter pada payload RPC diserialisasikan sebagai string desimal agar presisi >2^53 tetap terjaga di konsumen JSON/browser; response `account_get` menyajikan balance sebagai string.
 * Karakter Unicode ilegal atau string heksadesimal ganjil pada `AccountId` ditolak dengan `Err(GatewayError::InvalidEncoding)`.
 * Fuzzing stream: Membanjiri antarmuka gateway dengan 1.000 payload biner acak wajib menghasilkan respons galat terstruktur 100% tanpa crash atau `.unwrap()` failure.
 

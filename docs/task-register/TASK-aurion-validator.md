@@ -19,7 +19,7 @@ Tujuan task ini adalah **menguji, memvalidasi, dan mengunci perilaku `aurion-val
 3. Rotasi epoch hanya pada batas epoch, deterministik byte-per-byte, terurut skor dengan pemutus seri `AccountId`, dan incumbent tetap terpilih (tanpa osilasi himpunan).
 4. Validator aktif ditahan otomatis tepat pada ambang blok terlewat, keluar dari kuorum seketika, serta pemulihan wajib melewati cooldown dan otorisasi master anti-replay.
 5. Kuota endorsement, masa kerja pengesah, target kandidat, bobot anti-Sybil (pasangan timbal balik dinetralkan), serta penodaan (*taint*) pasca-slashing berat ditegakkan.
-6. Seluruh aritmetika stake/kuorum/slash memakai bilangan bulat `u64` dengan pembagian lantai dan galat bertipe (*zero-float*).
+6. Seluruh aritmetika stake/kuorum/slash memakai bilangan bulat `u128` Quanta (rasio tetap BPS `u64`) dengan pembagian lantai dan galat bertipe (*zero-float*).
 7. Menegakkan disiplin kode: `#![forbid(unsafe_code)]`, zero-float, penolakan `.unwrap()` di jalur produksi, serta error bertipe kuat melalui `thiserror`.
 
 ---
