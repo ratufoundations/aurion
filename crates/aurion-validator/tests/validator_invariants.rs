@@ -446,7 +446,30 @@ fn v1_probation_liveness_violation_resets_window_and_cancels_repeated_faults() {
 
 #[test]
 fn v1_transition_matrix_is_exhaustive_and_probation_cannot_jump() {
-    // Matriks persis 14 pasangan sah; authorize selalu sinkron dengan matrix.
+    // Tabel transisi sah bersifat eksplisit: 7 status, 17 pasangan. Tabel ini
+    // adalah rujukan tunggal; `authorize_transition` harus selalu sinkron
+    // dengannya. Status `Tombstoned` (pelanggaran kritis) ditambahkan pada
+    // commit f617f8f sehingga matriks tumbuh dari 14 menjadi 17 pasangan.
+    let expected_matrix: Vec<(ValidatorStatus, ValidatorStatus)> = vec![
+        (ValidatorStatus::Probation, ValidatorStatus::Eligible),
+        (ValidatorStatus::Probation, ValidatorStatus::Retired),
+        (ValidatorStatus::Eligible, ValidatorStatus::ActiveSet),
+        (ValidatorStatus::Eligible, ValidatorStatus::Suspended),
+        (ValidatorStatus::Eligible, ValidatorStatus::Retired),
+        (ValidatorStatus::ActiveSet, ValidatorStatus::Eligible),
+        (ValidatorStatus::ActiveSet, ValidatorStatus::Jailed),
+        (ValidatorStatus::ActiveSet, ValidatorStatus::Suspended),
+        (ValidatorStatus::ActiveSet, ValidatorStatus::Tombstoned),
+        (ValidatorStatus::ActiveSet, ValidatorStatus::Retired),
+        (ValidatorStatus::Jailed, ValidatorStatus::Eligible),
+        (ValidatorStatus::Jailed, ValidatorStatus::Suspended),
+        (ValidatorStatus::Jailed, ValidatorStatus::Tombstoned),
+        (ValidatorStatus::Jailed, ValidatorStatus::Retired),
+        (ValidatorStatus::Suspended, ValidatorStatus::Eligible),
+        (ValidatorStatus::Suspended, ValidatorStatus::Retired),
+        (ValidatorStatus::Tombstoned, ValidatorStatus::Retired),
+    ];
+
     let mut allowed: Vec<(ValidatorStatus, ValidatorStatus)> = Vec::new();
     for from in ALL_VALIDATOR_STATUSES {
         for to in ALL_VALIDATOR_STATUSES {
@@ -461,10 +484,13 @@ fn v1_transition_matrix_is_exhaustive_and_probation_cannot_jump() {
             assert_eq!(from.authorize_transition(to), expected);
         }
     }
-    assert_eq!(allowed.len(), 14);
+    // Bandingkan himpunan pasangan, bukan hanya jumlahnya, agar selisih
+    // transisi masa depan langsung terlihat pada pesan kegagalan.
+    assert_eq!(allowed, expected_matrix);
+    assert_eq!(allowed.len(), 17);
 
     // Gerbang status: hanya Eligible/ActiveSet ikut seleksi, hanya ActiveSet
-    // berkuorum, hanya Retired bersifat terminal.
+    // berkuorum, dan status buntu adalah Retired serta Tombstoned.
     for status in ALL_VALIDATOR_STATUSES {
         assert_eq!(
             status.is_selectable(),
@@ -477,11 +503,20 @@ fn v1_transition_matrix_is_exhaustive_and_probation_cannot_jump() {
             status.counts_toward_quorum(),
             status == ValidatorStatus::ActiveSet
         );
-        assert_eq!(status.is_terminal(), status == ValidatorStatus::Retired);
+        assert_eq!(
+            status.is_terminal(),
+            matches!(
+                status,
+                ValidatorStatus::Retired | ValidatorStatus::Tombstoned
+            )
+        );
         assert_eq!(status.is_probation(), status == ValidatorStatus::Probation);
         assert_eq!(
             status.is_restricted(),
-            matches!(status, ValidatorStatus::Jailed | ValidatorStatus::Suspended)
+            matches!(
+                status,
+                ValidatorStatus::Jailed | ValidatorStatus::Suspended | ValidatorStatus::Tombstoned
+            )
         );
     }
 
