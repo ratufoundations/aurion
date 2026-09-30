@@ -10,12 +10,17 @@ aurion-criptografi = { path = "../aurion-criptografi", version = "0.1.0"}
 aurion-core = { path = "../aurion-core", version = "0.1.0"}
 aurion-consensus = { path = "../aurion-consensus", version = "0.1.0"}
 aurion-ledger = { path = "../aurion-ledger", version = "0.1.0"}
+aurion-account = { path = "../aurion-account", version = "0.1.0"}
+aurion-validator = { path = "../aurion-validator", version = "0.1.0"}
+aurion-execution = { path = "../aurion-execution", version = "0.1.0"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+blake3 = "1.5"
 thiserror = "1.0"
 
 [dev-dependencies]
 tempfile = "3.10"
+hex = "0.4"
 
 [lints]
 workspace = true

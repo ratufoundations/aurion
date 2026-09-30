@@ -11,6 +11,7 @@ pub mod envelope;
 pub mod error;
 pub mod fuel;
 pub mod keeper;
+pub mod replenishment;
 pub mod state_root;
 pub mod store_key;
 
@@ -24,6 +25,7 @@ pub use fuel::FuelMeter;
 pub use keeper::{
     AccountKeeper, ArbitraryModule, GovernanceKeeper, Keeper, StakingKeeper, ValidatorKeeper,
 };
+pub use replenishment::ReplenishmentEngine;
 pub use state_root::compute_state_root;
 pub use store_key::{NamespaceStore, StoreKey};
 

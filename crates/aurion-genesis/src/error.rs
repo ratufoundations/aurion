@@ -14,6 +14,27 @@ pub enum GenesisError {
     #[error("Terjadi luapan aritmatika saat menghitung total Quanta")]
     ArithmeticOverflow,
 
+    #[error("Skema konfigurasi genesis melanggar aturan: {0}")]
+    SchemaViolation(String),
+
+    #[error("Konservasi pasokan dilanggar: total alokasi {calculated} Quanta != {expected} Quanta yang ditetapkan")]
+    SupplyConservationMismatch { calculated: u128, expected: u128 },
+
+    #[error("State root genesis tidak cocok: kalkulasi {calculated:?} != ekspektasi {expected:?}")]
+    StateRootMismatch {
+        calculated: [u8; 32],
+        expected: [u8; 32],
+    },
+
+    #[error("Genesis wajib memiliki setidaknya satu validator perdana")]
+    ZeroValidators,
+
+    #[error("Pubkey validator genesis duplikat: {0:?}")]
+    DuplicateValidatorPubkey([u8; 32]),
+
+    #[error("Kesalahan serialisasi JSON: {0}")]
+    SerializationFailure(String),
+
     #[error("Kesalahan penulisan ledger: {0}")]
     LedgerError(String),
 

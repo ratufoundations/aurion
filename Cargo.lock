@@ -416,10 +416,15 @@ dependencies = [
 name = "aurion-genesis"
 version = "0.1.0"
 dependencies = [
+ "aurion-account",
  "aurion-consensus",
  "aurion-core",
  "aurion-criptografi",
+ "aurion-execution",
  "aurion-ledger",
+ "aurion-validator",
+ "blake3",
+ "hex",
  "serde",
  "serde_json",
  "tempfile",

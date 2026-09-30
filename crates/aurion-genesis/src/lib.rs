@@ -1,11 +1,19 @@
 #![forbid(unsafe_code)]
 
 pub mod bootstrap;
+pub mod builder;
+pub mod config;
 pub mod error;
 pub mod roles;
 pub mod spec;
 
 pub use bootstrap::GenesisBootstrap;
+pub use builder::{
+    build_synthetic_block_zero, compute_genesis_state_root, verify_genesis_state_root,
+};
+pub use config::{
+    AllocationRole, ConsensusGenesisParams, GenesisAllocation, GenesisConfig, GenesisValidator,
+};
 pub use error::GenesisError;
 pub use roles::FederationTopology;
 pub use spec::{GenesisSpec, QUANTA_PER_AUR, TOTAL_GENESIS_SUPPLY_AUR};

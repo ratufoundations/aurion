@@ -1,10 +1,11 @@
 #![forbid(unsafe_code)]
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 
+use aurion_core::types::TREASURY_GENESIS_QUANTA;
 use aurion_execution::{
     compute_state_root, AccountKeeper, Action, ActionBatch, ArbitraryModule, CapabilityHandle,
     ExecutionContext, ExecutionEngine, ExecutionError, ExecutionPolicy, Keeper, NamespaceStore,
-    StakingKeeper, StoreKey, TransactionalCache,
+    ReplenishmentEngine, StakingKeeper, StoreKey, TransactionalCache,
 };
 
 // ==============================================================================
@@ -400,5 +401,81 @@ fn test_e5_state_delta_determinism_and_replay_invariance() {
     assert_eq!(
         replayed_root, outcome_a.state_root,
         "Replay state root wajib identik dengan state root hasil eksekusi langsung!"
+    );
+}
+
+// ==============================================================================
+// [EX-REPLENISH] PERPETUAL REPLENISHMENT ENGINE (ReplenishmentEngine)
+// ==============================================================================
+
+#[test]
+fn test_replenishment_mints_660m_aur_when_treasury_drained() {
+    let mut engine =
+        ExecutionEngine::new(ExecutionPolicy::default(), [0xBB; 32]).expect("engine dibuat");
+    let treasury = [0x07u8; 32];
+
+    engine
+        .set_balance_genesis(&treasury, 0)
+        .expect("treasury zero seeding");
+    assert_eq!(
+        engine.query_balance(&treasury).expect("query saldo"),
+        0,
+        "saldo treasury awal nol"
+    );
+
+    let replenish = ReplenishmentEngine::new().expect("engine replenishment dibuat");
+    let mut cache = TransactionalCache::new(engine.committed_snapshot(), 100_000);
+
+    let cycle = replenish
+        .check_and_replenish(&mut cache, &treasury)
+        .expect("replenishment sukses");
+    assert_eq!(cycle, Some(1), "cycle_index 0 -> 1");
+
+    // Muatan parametrik sistem wajib berubah setelah pencetakan.
+    let params = StoreKey::new("replenish").expect("store key params");
+    let cycle_bytes = cache
+        .get(&params.qualify(b"cycle_index"))
+        .expect("baca cycle")
+        .expect("cycle_index kini bernilai");
+    assert_eq!(cycle_bytes, 1u64.to_be_bytes().to_vec());
+    let minted_bytes = cache
+        .get(&params.qualify(b"total_minted"))
+        .expect("baca total_minted")
+        .expect("total_minted kini bernilai");
+    assert_eq!(minted_bytes, TREASURY_GENESIS_QUANTA.to_be_bytes().to_vec());
+
+    // Commit lalu replay: treasury terisi tepat 66 juta AUR dan tidak
+    // ada pencetakan beruntun pada siklus yang sama.
+    let (delta, new_committed) = cache.commit();
+    let mut replayed = engine.committed_snapshot();
+    delta.apply(&mut replayed);
+    assert_eq!(replayed, new_committed, "replay writeset identik");
+
+    let mut second = TransactionalCache::new(new_committed, 100_000);
+    assert_eq!(
+        replenish
+            .check_and_replenish(&mut second, &treasury)
+            .expect("query kedua sukses"),
+        None,
+        "treasury positif -> tidak memicu pencetakan kedua"
+    );
+}
+
+#[test]
+fn test_replenishment_idempotent_when_treasury_positive() {
+    let mut engine =
+        ExecutionEngine::new(ExecutionPolicy::default(), [0xCC; 32]).expect("engine dibuat");
+    let treasury = [0x08u8; 32];
+    engine
+        .set_balance_genesis(&treasury, 99)
+        .expect("treasury seeded 99 Quanta");
+
+    let replenish = ReplenishmentEngine::new().expect("engine dibuat");
+    let mut cache = TransactionalCache::new(engine.committed_snapshot(), 100_000);
+    assert_eq!(
+        replenish
+            .check_and_replenish(&mut cache, &treasury)
+            .expect("query sukses"),
+        None
     );
 }
