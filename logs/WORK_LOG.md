@@ -1,3 +1,11 @@
+## 2026-09-30 — Implementasi SessionWallet, Channel Tickets 128B, dan Paywall di `@aurion/sdk` (SES0–SES5)
+- Mendaftarkan `docs/task-register/TASK-aurion-session.md` (status ACTIVE) dan menambahkan modul `src/channel/`, `src/session/`, `src/paywall/` ke `packages/aurion-sdk`.
+- Membangun `channel/ticket.ts` (codec BalanceProof 128-byte kanonikal LE: preimage 64B + signature 64B), `channel/session.ts` (`ChannelClientSession` dengan deposit guard & monotonic nonce), `session/wallet.ts` (`SessionWallet` dengan IndexedDB + WebCrypto AES-GCM), `session/storage-memory.ts`, `session/storage-idb.ts`, dan `paywall/fetch.ts` (`createAurionFetch` dengan HTTP 402 → X-Aurion-Ticket flow).
+- **Koreksi test paywall:** mock `fetch` harus menggunakan `vi.stubGlobal('fetch', mockFetch)` karena `createAurionFetch` memanggil global `fetch` secara langsung.
+- **Koreksi typecheck:** export type `AurionSdkErrorCode` → `AurionErrorCode` (nama yang benar di `errors.ts`).
+- Hasil verifikasi faktual: `npm run typecheck` 0 error; `npm test` 7 files / 47 tests / 0 gagal (SDK0–SDK5 + SES0–SES5); `npm run build` sukses ESM+CJS+DTS; `python3 tools/aurion_guard.py check` exit 0.
+- Status task: ACTIVE (Fase 1 selesai; backlog: integrasi transport live, cross-verify signature SDK vs Rust `aurion-channel`).
+
 ## 2026-09-30 — Implementasi Epoch ZIP Archiver & Pruner di `crates/aurion-ledger` (AR0–AR5)
 - Mendaftarkan `docs/task-register/TASK-aurion-archive.md` (status IN_PROGRESS/ACTIVE) dan menambahkan modul `src/archive/` ke `aurion-ledger`.
 - Membangun `manifest.rs` (`EpochManifest` serde zero-float), `packer.rs` (pack range blok → `blocks.bin` + checksum BLAKE3), `zipper.rs` (tulis ZIP atomik: manifest.json + blocks.bin + checksum.blake3), dan `pruner.rs` (prune atomik dari redb dengan safety horizon).

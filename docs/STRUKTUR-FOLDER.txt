@@ -6,7 +6,7 @@ aurion/
 │   └── aurion-cli/                # [AKTIF] CLI operasional (keygen/status/balance/monitor via Zenoh)
 ├── config/                        # [AKTIF] crate aurion-config (workspace member): AurionSettings (TOML), AppMode, validasi startup, init_central_logging; data: node.dev.toml / node.prod.toml
 ├── packages/
-│   └── aurion-sdk/                # [AKTIF] @aurion/sdk — client SDK TypeScript mandiri (npm, di luar workspace Cargo): envelope 168B kanonikal, Quanta BigInt zero-float, Ed25519/BIP39, transport Zenoh-shim HTTP; tes SDK0–SDK5
+│   └── aurion-sdk/                # [AKTIF] @aurion/sdk — client SDK TypeScript mandiri (npm, di luar workspace Cargo): envelope 168B kanonikal, Quanta BigInt zero-float, Ed25519/BIP39, transport Zenoh-shim HTTP, SessionWallet browser, channel tickets 128B, paywall interceptor; tes SDK0–SDK5 + SES0–SES5
 ├── crates/
 │   ├── aurion-account/            # [AKTIF] SovereignAccount, derivasi alamat berdaulat (A0), Role/RBAC (A1), rotasi kunci & multi-sig (A2), anti-replay delegasi (A3), dust/state-bloat (A4), kuota nir-pecahan (A5); tes A0–A5
 │   ├── aurion-channel/            # [AKTIF] Native Micropayment State Channel (pengganti aurion-contract): escrow atomik, BalanceProof 128B, challenge window, konservasi nilai; tes CH0–CH5
@@ -42,6 +42,7 @@ aurion/
 │       ├── TASK-aurion-validator.md             # siklus hidup validator V0–V5 (COMPLETED)
 │       ├── TASK-aurion-channel.md               # native micropayment state channel, escrow atomik, BalanceProof 128B, challenge window; CH0–CH5 (ACTIVE)
 │       ├── TASK-aurion-sdk.md                   # @aurion/sdk client TypeScript, envelope 168B kanonikal, Quanta zero-float, transport; SDK0–SDK5 (ACTIVE)
+│       ├── TASK-aurion-session.md               # SessionWallet browser, channel tickets 128B, paywall interceptor; SES0–SES5 (ACTIVE)
 │       ├── TASK-002-crypto-testing-standards.md  # kerangka C0–C7, status DRAFT
 │       └── TASK-003-peta-tes-fondasi-aurion-v0.md # working test map, status WORKING-MAP (bukan aturan final)
 ├── logs/                          # [AKTIF] WORK_LOG.md terlacak; log runtime diabaikan Git
