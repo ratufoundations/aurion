@@ -1,0 +1,56 @@
+{
+  "name": "@aurion/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript client SDK for the Aurion protocol: zero-float BigInt Quanta math, canonical 168-byte binary transaction codec, Ed25519 keypairs and a Zenoh-conformant transport (Web2 / AI agents / IoT).",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "keywords": [
+    "aurion",
+    "blockchain",
+    "sdk",
+    "quanta",
+    "ed25519",
+    "blake3",
+    "bigint",
+    "zero-float"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@noble/ed25519": "^2.1.0",
+    "@noble/hashes": "^1.5.0",
+    "@scure/bip39": "^1.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

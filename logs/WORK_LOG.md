@@ -1,3 +1,14 @@
+## 2026-09-30 — Inisialisasi `@aurion/sdk` (packages/aurion-sdk) dan register TASK-aurion-sdk
+- Mendaftarkan `docs/task-register/TASK-aurion-sdk.md` (status ACTIVE) dan memverifikasi `docs/STRUKTUR-FOLDER.txt` (menambahkan seksi `packages/`, menandai `crates/aurion-contract` sebagai `[DITANGGUHKAN]`).
+- Menyiapkan paket npm mandiri (di luar workspace Cargo): `package.json` (`@aurion/sdk` v0.1.0), `tsconfig.json` (ES2022/strict), `tsup.config.ts` (dual ESM+CJS+DTS), `vitest.config.ts`, `.gitignore` lokal. Node v24, npm 11.
+- Membangun chip moneter `Quanta` (BigInt, zero-float; `QUANTA_PER_AUR = 10^10`), kodek envelope 168 byte kanonikal LE (nonce|sender|recipient|amount|fee|sig; preimage 104 byte), Ed25519 + BIP39 (generate/fromPrivateKey/fromMnemonic/deriveAccountId), transport HTTP Zenoh-shim (`GET account`, `POST tx/submit` octet-stream, txHash=BLAKE3), dan fasade `AurionClient`.
+- **Koreksi fundamental (quanta):** parser `fromAur` semula menghitung pecahan dengan padding kanan ("0.5" → 5n, bukan 5e9n). Diperbaiki menjadi skala `frac × 10^(10−len)`; `"0.0000000001"` → 1 Quanta eksak. Arithmetic dialihkan ke `mul(scalar bigint)`/`divFloor(divisor bigint)` karena `mul(Quanta)` menampilkan trap dimensional Quanta²; `mulQuanta` diekspos eksplisit.
+- **Koreksi kripto (noble v2):** API sinkron `@noble/ed25519` v2.3 memerlukan `etc.sha512Sync` di-wire ke `@noble/hashes/sha512`; tanpa itu muncul `hashes.sha512Sync not set`.
+- **Koreksi types (Node fetch):** `Uint8Array<ArrayBufferLike>` tidak assignable ke `BodyInit`; body POST dikonversi `toArrayBuffer` sebelum dikirim.
+- **Deviasi kodeks terdokumentasi (lihat register §4.1):** draft pekerja BE (nonce|fee|amount|sender|receiver) digantikan oleh kodeks kanonikal Rust (LE, nonce|sender|recipient|amount|fee) demi identik byte-demi-byte dengan verifikasi chain.
+- Hasil verifikasi faktual: `npm run typecheck` 0 error; `npm test` 3 files / 28 tests / 0 gagal (invarian SDK0–SDK5); `npm run build` sukses ESM+CJS+DTS; `python3 tools/aurion_guard.py check` lulus (paket TS tidak masuk cakupan scan guard yang hanya crates/apps/config ber-`.rs`).
+- Status task: ACTIVE (Fase 1 init selesai; backlog: transport zenoh/websocket, wallet-tier, cross-verify ed25519-dalek).
+
 ## 2026-09-30 — Implementasi dan Pengujian aurion-projection P0-P5
 - Mendaftarkan `docs/task-register/TASK-aurion-projection.md` dan memverifikasi `docs/STRUKTUR-FOLDER.txt`.
 - Mendaftarkan `crates/aurion-projection` sebagai anggota workspace baru pada `Cargo.toml` dan `Cargo.lock`.

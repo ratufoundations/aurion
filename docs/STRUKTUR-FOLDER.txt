@@ -5,10 +5,12 @@ aurion/
 │   ├── aurion-explorer/           # [AKTIF] backend API explorer (axum) — baca LedgerStore
 │   └── aurion-cli/                # [AKTIF] CLI operasional (keygen/status/balance/monitor via Zenoh)
 ├── config/                        # [AKTIF] crate aurion-config (workspace member): AurionSettings (TOML), AppMode, validasi startup, init_central_logging; data: node.dev.toml / node.prod.toml
+├── packages/
+│   └── aurion-sdk/                # [AKTIF] @aurion/sdk — client SDK TypeScript mandiri (npm, di luar workspace Cargo): envelope 168B kanonikal, Quanta BigInt zero-float, Ed25519/BIP39, transport Zenoh-shim HTTP; tes SDK0–SDK5
 ├── crates/
 │   ├── aurion-account/            # [AKTIF] SovereignAccount, derivasi alamat berdaulat (A0), Role/RBAC (A1), rotasi kunci & multi-sig (A2), anti-replay delegasi (A3), dust/state-bloat (A4), kuota nir-pecahan (A5); tes A0–A5
 │   ├── aurion-consensus/          # [AKTIF] ValidatorSet, RoundState, signed votes/QC, equivocation evidence, timeout/view change; tes B0–B5
-│   ├── aurion-contract/           # [AKTIF] VM eksperimental (baseline penelitian, BUKAN keputusan final)
+│   ├── aurion-contract/           # [DITANGGUHKAN] VM eksperimental (baseline penelitian, BUKAN keputusan final; disimpan di workspace, bukan dipakai runtime)
 │   ├── aurion-core/               # [AKTIF] Account, Transaction, Block, State; ST0–ST3 dan ST5 linkage tests; fee/timestamp protocol pending
 │   ├── aurion-execution/          # [AKTIF] Capability-Keeper RFC-001, Transactional Cache CoW, StoreKey isolation, fuel metering u64, invarian E0–E5
 │   ├── aurion-criptografi/        # [AKTIF] hash BLAKE3 + Ed25519; tes integrasi invarian C0–C7 di crates/aurion-criptografi/tests/
@@ -38,6 +40,7 @@ aurion/
 │       ├── TASK-aurion-ledger.md                # invarian persistensi L0–L5 (COMPLETED)
 │       ├── TASK-aurion-mempool.md               # invarian admission M0–M5 (COMPLETED)
 │       ├── TASK-aurion-validator.md             # siklus hidup validator V0–V5 (COMPLETED)
+│       ├── TASK-aurion-sdk.md                   # @aurion/sdk client TypeScript, envelope 168B kanonikal, Quanta zero-float, transport; SDK0–SDK5 (ACTIVE)
 │       ├── TASK-002-crypto-testing-standards.md  # kerangka C0–C7, status DRAFT
 │       └── TASK-003-peta-tes-fondasi-aurion-v0.md # working test map, status WORKING-MAP (bukan aturan final)
 ├── logs/                          # [AKTIF] WORK_LOG.md terlacak; log runtime diabaikan Git
