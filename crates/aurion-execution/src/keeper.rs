@@ -167,6 +167,7 @@ impl StakingKeeper {
         Capability::new("lock_balance")
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn lock_stake(
         &self,
         staking_store: &mut NamespaceStore<'_>,
