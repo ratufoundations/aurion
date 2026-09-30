@@ -344,6 +344,7 @@ version = "0.1.0"
 dependencies = [
  "aurion-core",
  "aurion-criptografi",
+ "aurion-ledger",
  "blake3",
  "thiserror 1.0.69",
  "tracing",

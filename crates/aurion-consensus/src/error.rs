@@ -32,4 +32,25 @@ pub enum ConsensusError {
 
     #[error("Kuorum 2f+1 belum tercapai: terkumpul {collected}, butuh {required}")]
     QuorumNotReached { collected: usize, required: usize },
+
+    #[error("Panjang proposal tidak valid: diharapkan {expected}, diterima {got}")]
+    InvalidProposalLength { expected: usize, got: usize },
+
+    #[error("Magic prefix proposal tidak valid")]
+    InvalidProposalMagic,
+
+    #[error("Transaksi dalam proposal tidak valid: {0}")]
+    InvalidTransactionInProposal(String),
+
+    #[error("Tanda tangan proposer tidak valid")]
+    InvalidProposerSignature,
+
+    #[error("Block hash tidak cocok dengan header")]
+    BlockHashMismatch,
+
+    #[error("State root tidak cocok")]
+    StateRootMismatch,
+
+    #[error("Tx root tidak cocok")]
+    TxRootMismatch,
 }

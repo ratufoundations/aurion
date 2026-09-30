@@ -1,3 +1,14 @@
+## 2026-09-30 — Implementasi Production BFT Consensus Pipeline dengan Adaptive Quorum (CM0–CM5)
+- Mendaftarkan `docs/task-register/TASK-consensus-master.md` (status ACTIVE) dan menambahkan modul `proposal.rs`, `qc.rs` (dengan `calculate_quorum`), dan `PrecommitVote` ke `crates/aurion-consensus`.
+- Membangun `BlockProposal` wire codec (magic `0x41555250` + header 116B + tx_count 4B + payload N×168B + signature 64B), `PrecommitVote` 140B (round + height + block_hash + voter_pubkey + signature), dan `QuorumCertificate` dengan verifikasi adaptif.
+- Menambahkan `calculate_quorum(n) = floor(2n/3) + 1` — N=1→Q=1 (solo bootstrap), N=4→Q=3 (BFT 3-of-4).
+- Menambahkan modul `apps/aurion-node/src/engine/` (proposer, validator_engine, committer) dan `apps/aurion-node/src/consensus/bft.rs` (BftConsensus dengan agregasi suara).
+- Menambahkan dependensi `aurion-ledger` ke `crates/aurion-consensus/Cargo.toml`.
+- **Koreksi wire size (PENTING):** draft menyebut proposal kosong = 184B, tetapi aritmetika yang benar adalah `4 + 116 + 4 + 64 = 188B`. Konstanta `MIN_PROPOSAL_SIZE` diperbaiki ke 188.
+- **Koreksi API:** `State::chain_tip()` tidak ada — height diteruskan sebagai parameter; `Hasher::new()` tidak ada — menggunakan `Hasher::digest()` langsung.
+- Hasil verifikasi faktual: `cargo check --workspace --all-targets` sukses; `cargo clippy --workspace --all-targets --all-features -- -D warnings` sukses; `cargo test -p aurion-consensus -p aurion-node` 17 passed/0 failed; `cargo fmt --all --check` bersih; `python3 tools/aurion_guard.py check` exit 0.
+- Status task: ACTIVE (Fase 1 selesai; backlog: integrasi Zenoh transport live, atomic commit ke redb, mempool purge).
+
 ## 2026-09-30 — Implementasi SessionWallet, Channel Tickets 128B, dan Paywall di `@aurion/sdk` (SES0–SES5)
 - Mendaftarkan `docs/task-register/TASK-aurion-session.md` (status ACTIVE) dan menambahkan modul `src/channel/`, `src/session/`, `src/paywall/` ke `packages/aurion-sdk`.
 - Membangun `channel/ticket.ts` (codec BalanceProof 128-byte kanonikal LE: preimage 64B + signature 64B), `channel/session.ts` (`ChannelClientSession` dengan deposit guard & monotonic nonce), `session/wallet.ts` (`SessionWallet` dengan IndexedDB + WebCrypto AES-GCM), `session/storage-memory.ts`, `session/storage-idb.ts`, dan `paywall/fetch.ts` (`createAurionFetch` dengan HTTP 402 → X-Aurion-Ticket flow).

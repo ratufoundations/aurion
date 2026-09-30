@@ -36,6 +36,8 @@
 //!   SwarmActor (AurionWireCodec)
 //! ```
 
+pub mod consensus;
+pub mod engine;
 pub mod node;
 pub mod p2p;
 

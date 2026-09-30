@@ -8,6 +8,7 @@ license.workspace = true
 tracing = { workspace = true }
 aurion-criptografi = { path = "../aurion-criptografi", version = "0.1.0"}
 aurion-core = { path = "../aurion-core", version = "0.1.0"}
+aurion-ledger = { path = "../aurion-ledger", version = "0.1.0"}
 blake3 = "1.5"
 thiserror = "1.0"
 

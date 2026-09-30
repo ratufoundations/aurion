@@ -1,5 +1,10 @@
 use crate::error::ConsensusError;
-use aurion_criptografi::{Hash256, PublicKeyBytes, SignatureBytes, SignatureVerifier};
+use aurion_criptografi::{
+    verifikasi_tanda_tangan, Hash256, PublicKeyBytes, SignatureBytes, SignatureVerifier,
+};
+
+pub const PRECOMMIT_VOTE_SIZE: usize = 140;
+pub const PRECOMMIT_PREIMAGE_SIZE: usize = 76;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum VoteType {
@@ -107,5 +112,82 @@ impl TimeoutVote {
     pub fn verify(&self) -> Result<(), ConsensusError> {
         SignatureVerifier::verify_single(&self.validator, &self.digest(), &self.signature)
             .map_err(|_| ConsensusError::InvalidVoteSignature)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PrecommitVote {
+    pub round: u32,
+    pub height: u64,
+    pub block_hash: Hash256,
+    pub voter_pubkey: PublicKeyBytes,
+    pub signature: SignatureBytes,
+}
+
+impl PrecommitVote {
+    #[must_use]
+    pub fn new(
+        round: u32,
+        height: u64,
+        block_hash: Hash256,
+        voter_pubkey: PublicKeyBytes,
+        signature: SignatureBytes,
+    ) -> Self {
+        Self {
+            round,
+            height,
+            block_hash,
+            voter_pubkey,
+            signature,
+        }
+    }
+
+    #[must_use]
+    pub fn encode(&self) -> [u8; PRECOMMIT_VOTE_SIZE] {
+        let mut buf = [0u8; PRECOMMIT_VOTE_SIZE];
+        buf[0..4].copy_from_slice(&self.round.to_le_bytes());
+        buf[4..12].copy_from_slice(&self.height.to_le_bytes());
+        buf[12..44].copy_from_slice(&self.block_hash);
+        buf[44..76].copy_from_slice(&self.voter_pubkey);
+        buf[76..140].copy_from_slice(&self.signature);
+        buf
+    }
+
+    /// Decode a 140-byte precommit vote buffer.
+    ///
+    /// # Errors
+    /// Returns `ConsensusError` if buffer length is invalid.
+    ///
+    /// # Panics
+    /// Panics if buffer length is not exactly 140 bytes (internal invariant).
+    pub fn decode(buf: &[u8; PRECOMMIT_VOTE_SIZE]) -> Result<Self, ConsensusError> {
+        let round = u32::from_le_bytes([buf[0], buf[1], buf[2], buf[3]]);
+        let height = u64::from_le_bytes(buf[4..12].try_into().unwrap_or([0u8; 8]));
+        let mut block_hash = [0u8; 32];
+        block_hash.copy_from_slice(&buf[12..44]);
+        let mut voter_pubkey = [0u8; 32];
+        voter_pubkey.copy_from_slice(&buf[44..76]);
+        let mut signature = [0u8; 64];
+        signature.copy_from_slice(&buf[76..140]);
+        Ok(Self::new(
+            round,
+            height,
+            block_hash,
+            voter_pubkey,
+            signature,
+        ))
+    }
+
+    /// Verify the cryptographic signature on this precommit vote.
+    ///
+    /// # Errors
+    /// Returns `ConsensusError` if signature verification fails.
+    pub fn verify(&self) -> Result<bool, ConsensusError> {
+        let mut preimage = Vec::with_capacity(PRECOMMIT_PREIMAGE_SIZE);
+        preimage.extend_from_slice(&self.round.to_le_bytes());
+        preimage.extend_from_slice(&self.height.to_le_bytes());
+        preimage.extend_from_slice(&self.block_hash);
+        preimage.extend_from_slice(&self.voter_pubkey);
+        Ok(verifikasi_tanda_tangan(&self.voter_pubkey, &preimage, &self.signature).is_ok())
     }
 }
