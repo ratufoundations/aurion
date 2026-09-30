@@ -2,13 +2,14 @@
 name = "aurion-gateway"
 version = "0.1.0"
 edition = "2021"
+license.workspace = true
 
 [dependencies]
 tracing = { workspace = true }
-aurion-criptografi = { path = "../aurion-criptografi" }
-aurion-core = { path = "../aurion-core" }
-aurion-ledger = { path = "../aurion-ledger" }
-aurion-mempool = { path = "../aurion-mempool" }
+aurion-criptografi = { path = "../aurion-criptografi", version = "0.1.0"}
+aurion-core = { path = "../aurion-core", version = "0.1.0"}
+aurion-ledger = { path = "../aurion-ledger", version = "0.1.0"}
+aurion-mempool = { path = "../aurion-mempool", version = "0.1.0"}
 
 zenoh = "1.0"
 tokio = { version = "1.38", features = ["full"] }

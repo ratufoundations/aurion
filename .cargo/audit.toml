@@ -1,0 +1,15 @@
+# Kebijakan pengecualian audit RustSec independen (cargo-audit) Aurion.
+# Sinkron dengan `ignore` pada `deny.toml`; tinjau ulang setiap kali rantai
+# dependensi dinaikkan (TODO terjadwal).
+
+[advisories]
+ignore = [
+    # lz4_flex: vendor-locked oleh zenoh-transport 1.10.1 (pin ^0.10), tanpa
+    # rilis zenoh yang melonggarkan ke >=0.11.6. Lihat deny.toml.
+    "RUSTSEC-2026-0041",
+    # rsa (Marvin): tanpa perbaikan versi terpasang; di luar jalur konsensus.
+    "RUSTSEC-2023-0071",
+    # hickory-proto: resolver DNS libp2p tidak terkompilasi pada target host.
+    "RUSTSEC-2026-0119",
+    "RUSTSEC-2026-0118",
+]

@@ -2,13 +2,14 @@
 name = "aurion-cli"
 version = "0.1.0"
 edition = "2021"
+license.workspace = true
 
 [dependencies]
 tracing = { workspace = true }
-aurion-config = { path = "../../config" }
-aurion-criptografi = { path = "../../crates/aurion-criptografi" }
-aurion-ledger = { path = "../../crates/aurion-ledger" }
-aurion-gateway = { path = "../../crates/aurion-gateway" }
+aurion-config = { path = "../../config", version = "0.1.0"}
+aurion-criptografi = { path = "../../crates/aurion-criptografi", version = "0.1.0"}
+aurion-ledger = { path = "../../crates/aurion-ledger", version = "0.1.0"}
+aurion-gateway = { path = "../../crates/aurion-gateway", version = "0.1.0"}
 
 clap = { version = "4.5", features = ["derive"] }
 comfy-table = "7.1"

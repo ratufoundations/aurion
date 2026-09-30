@@ -2,13 +2,14 @@
 name = "aurion-explorer"
 version = "0.1.0"
 edition = "2021"
+license.workspace = true
 
 [dependencies]
 tracing = { workspace = true }
-aurion-config = { path = "../../config" }
-aurion-criptografi = { path = "../../crates/aurion-criptografi" }
-aurion-core = { path = "../../crates/aurion-core" }
-aurion-ledger = { path = "../../crates/aurion-ledger" }
+aurion-config = { path = "../../config", version = "0.1.0"}
+aurion-criptografi = { path = "../../crates/aurion-criptografi", version = "0.1.0"}
+aurion-core = { path = "../../crates/aurion-core", version = "0.1.0"}
+aurion-ledger = { path = "../../crates/aurion-ledger", version = "0.1.0"}
 
 tokio = { version = "1.38", features = ["full"] }
 axum = "0.7"

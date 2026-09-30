@@ -7,10 +7,10 @@ license = "MIT OR Apache-2.0"
 description = "Mesin eksekusi logika bisnis berbasis Capability-Keeper dan Transactional Cache untuk Aurion"
 
 [dependencies]
-aurion-core = { path = "../aurion-core" }
-aurion-criptografi = { path = "../aurion-criptografi" }
-aurion-account = { path = "../aurion-account" }
-aurion-ledger = { path = "../aurion-ledger" }
+aurion-core = { path = "../aurion-core", version = "0.1.0"}
+aurion-criptografi = { path = "../aurion-criptografi", version = "0.1.0"}
+aurion-account = { path = "../aurion-account", version = "0.1.0"}
+aurion-ledger = { path = "../aurion-ledger", version = "0.1.0"}
 
 blake3 = "1.5"
 thiserror = "1.0"

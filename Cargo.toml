@@ -22,6 +22,11 @@ members = [
     "apps/aurion-cli",
 ]
 
+
+[workspace.package]
+# Keputusan lisensi resmi proyek (audit supply-chain).
+license = "Apache-2.0"
+
 [workspace.dependencies]
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }

@@ -2,6 +2,7 @@
 name = "aurion-node"
 version = "0.1.0"
 edition = "2021"
+license.workspace = true
 
 [lib]
 name = "aurion_node"
@@ -12,19 +13,19 @@ name = "aurion-node"
 path = "src/main.rs"
 
 [dependencies]
-aurion-config = { path = "../../config" }
+aurion-config = { path = "../../config", version = "0.1.0"}
 tracing = { workspace = true }
-aurion-criptografi = { path = "../../crates/aurion-criptografi" }
-aurion-core = { path = "../../crates/aurion-core" }
-aurion-consensus = { path = "../../crates/aurion-consensus" }
-aurion-ledger = { path = "../../crates/aurion-ledger" }
-aurion-mempool = { path = "../../crates/aurion-mempool" }
-aurion-network = { path = "../../crates/aurion-network" }
-aurion-gateway = { path = "../../crates/aurion-gateway" }
-aurion-execution = { path = "../../crates/aurion-execution" }
-aurion-guard = { path = "../../crates/aurion-guard" }
-aurion-projection = { path = "../../crates/aurion-projection" }
-aurion-genesis = { path = "../../crates/aurion-genesis" }
+aurion-criptografi = { path = "../../crates/aurion-criptografi", version = "0.1.0"}
+aurion-core = { path = "../../crates/aurion-core", version = "0.1.0"}
+aurion-consensus = { path = "../../crates/aurion-consensus", version = "0.1.0"}
+aurion-ledger = { path = "../../crates/aurion-ledger", version = "0.1.0"}
+aurion-mempool = { path = "../../crates/aurion-mempool", version = "0.1.0"}
+aurion-network = { path = "../../crates/aurion-network", version = "0.1.0"}
+aurion-gateway = { path = "../../crates/aurion-gateway", version = "0.1.0"}
+aurion-execution = { path = "../../crates/aurion-execution", version = "0.1.0"}
+aurion-guard = { path = "../../crates/aurion-guard", version = "0.1.0"}
+aurion-projection = { path = "../../crates/aurion-projection", version = "0.1.0"}
+aurion-genesis = { path = "../../crates/aurion-genesis", version = "0.1.0"}
 
 tokio = { version = "1.38", features = ["full"] }
 tokio-util = { version = "0.7", features = ["codec", "rt"] }

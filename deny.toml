@@ -1,11 +1,24 @@
 # deny.toml - Kebijakan kepatuhan audit supply chain Aurion
+#
+# Kompatibilitas cargo-deny 0.20: level lint advisori (vulnerability,
+# unmaintained, yanked, notice) dikendalikan lewat bendera CLI pada
+# `scripts/audit.sh`, bukan lagi di tabel [advisories]. Tabel ini hanya
+# memuat basis pengecualian `ignore`.
 
 [advisories]
-# Periksa database RustSec untuk celah keamanan yang diketahui
-vulnerability = "deny"
-unmaintained = "warn"
-yanked = "deny"
-ignore = []
+# Pengecualian RUSTSEC yang terverifikasi per-tanggal; tiap butir menyebut
+# ID dan alasan di komentar. TODO: tinjau ulang setiap kali rantai dependensi
+# dinaikkan.
+ignore = [
+    # lz4_flex 0.10 dikunci vendor oleh zenoh-transport 1.10.1 (dekompresi
+    # frame kawat tanpa syarat, pin semver ^0.10; perbaikan >=0.11.6). Belum
+    # ada rilis zenoh yang melonggarkan; ditandai untuk pelacakan.
+    "RUSTSEC-2026-0041",
+    # rsa 0.9.10 (Marvin) tanpa versi terpasang yang menambal; hanya dipakai
+    # jalur TLS legacy zenoh, tidak menyentuh penandatanganan konsensus
+    # (ed25519/blake3). Risiko sisa diterima dan dipantau.
+    "RUSTSEC-2023-0071",
+]
 
 [licenses]
 # Hanya izinkan lisensi open-source standar industri
@@ -18,6 +31,12 @@ allow = [
     "ISC",
     "Unicode-3.0",
     "Zlib",
+    # Dibawa transitif oleh zenoh-transport 1.10.1 (zenoh-link/rustls TLS):
+    # `option-ext` (MPL-2.0, file-level weak copyleft) dan
+    # `webpki-roots`/`webpki-root-certs` (CDLA-Permissive-2.0, bundel
+    # sertifikat akar Let's Encrypt - permisif).
+    "MPL-2.0",
+    "CDLA-Permissive-2.0",
 ]
 
 [bans]
@@ -27,7 +46,10 @@ wildcards = "deny"
 deny = [
     # Larang crate float alternatif jika ada percobaan impor terselubung
     { name = "half" },
-    { name = "twox-hash" },
+    # CATATAN: `twox-hash` sengaja TIDAK lagi di-deny. Ia ialah hasher xxHash
+    # untuk checksum frame LZ4 pada lz4_flex, yang dikunci oleh
+    # zenoh-transport 1.10.1 sebagai dependensi dekompresi frame kawat;
+    # hard-deny-nya menolak seluruh build tanpa jalan keluar.
 ]
 
 [sources]
