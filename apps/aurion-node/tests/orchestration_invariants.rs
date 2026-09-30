@@ -15,7 +15,7 @@ use aurion_guard::{BlacklistVerdict, RaidEvidence, ViolationType};
 use aurion_ledger::LedgerStore;
 use aurion_network::{AurionWireCodec, NetworkMessage};
 
-use aurion_consensus::VoteType;
+use aurion_consensus::{Vote, VoteType};
 use aurion_node::node::{
     decode_gossip, default_guards, encode_gossip, sign_vote, ChainEvent, ChainNode, NodeConfig,
     NodeHandle,
@@ -78,6 +78,27 @@ async fn wait_for(
         }
     }
     panic!("kejadian yang diharapkan tidak pernah tiba");
+}
+
+/// Konsumsi kejadian hingga satu `VotesObserved` mencapai jumlah suara sasaran
+/// pada tinggi tertentu, lalu coret penghitung tertinggi yang teramati.
+async fn await_votes(runtime: &mut aurion_node::node::NodeRuntime, height: u64, target: usize) {
+    let mut peak = 0;
+    for _ in 0..96 {
+        let event = next_event(runtime).await;
+        if let ChainEvent::VotesObserved {
+            height: seen_height,
+            votes,
+        } = event
+        {
+            assert_eq!(seen_height, height, "tinggi suara tidak cocok");
+            peak = peak.max(votes);
+            if peak >= target {
+                return;
+            }
+        }
+    }
+    panic!("kuorum {target} suara pada tinggi {height} tidak pernah tercapai, puncak {peak}");
 }
 
 // ---------------------------------------------------------------- O0
@@ -503,6 +524,63 @@ async fn o3_three_node_loopback_mesh_propagates_votes() {
             },
             "suara harus masuk ke state konsensus simpul penerima"
         );
+    }
+
+    for runtime in &runtimes {
+        runtime.handle.shutdown();
+    }
+    for runtime in runtimes {
+        runtime.join.await.expect("aktor berhenti");
+    }
+}
+
+/// O3: *loopback mesh* empat simpul menuju kuorum BFT 3-of-4. Setiap simpul
+/// terlibat penuh dalam satu penyiarannya sendiri (frame P2P di-encode lalu
+/// di-dekode), dan seluruh suara precommit pada blok yang sama diterima oleh
+/// semua simpul sehingga ambang `2f+1 = 3` tercapai di tiap mesin konsensus.
+#[tokio::test]
+async fn o3_four_node_mesh_reaches_bft_quorum() {
+    const NODES: usize = 4;
+    let validators: Vec<Keypair> = (0..NODES).map(|_| Keypair::generate()).collect();
+    let validator_keys: Vec<PublicKeyBytes> =
+        validators.iter().map(Keypair::public_key_bytes).collect();
+
+    let mut runtimes = Vec::new();
+    for index in 0..NODES {
+        let treasury = Keypair::generate();
+        let mut config = config_with(
+            &test_dir(&format!("o3-mesh4-{index}")),
+            treasury.public_key_bytes(),
+        );
+        // Seluruh roster diakui setiap simpul agar suara mana pun sah.
+        config.initial_validators = validator_keys.clone();
+        config.block_proposer = validator_keys[index];
+        runtimes.push(NodeHandle::spawn(
+            ChainNode::bootstrap(config).expect("bootstrap mesh4"),
+        ));
+    }
+
+    // Satu blok kandidat bersama; tiap simpul menandatangani precommit-nya.
+    let block_hash = [0x42; 32];
+    let votes: Vec<Vote> = (0..NODES)
+        .map(|index| sign_vote(&validators[index], block_hash, 1, 0, VoteType::Precommit))
+        .collect();
+
+    // Setiap simpul menyiarkan suaranya ke seluruh mesh melalui wire format.
+    for vote in &votes {
+        let frame = encode_gossip(&NetworkMessage::Vote(vote.clone())).expect("encode frame mesh4");
+        for runtime in &mut runtimes {
+            let decoded = decode_gossip(&frame)
+                .expect("decode frame mesh4")
+                .expect("frame mesh4 tidak kosong");
+            runtime.handle.gossip(decoded).expect("terima di mesh4");
+        }
+    }
+
+    // Kuorum 3-of-4 tercapai pada semua simpul: 4 suara sah diterima, tidak ada
+    // duplikat, dan tidak ada simpul yang menolak suara simpang mana pun.
+    for runtime in &mut runtimes {
+        await_votes(runtime, 1, 4).await;
     }
 
     for runtime in &runtimes {
