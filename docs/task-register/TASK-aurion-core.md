@@ -79,6 +79,27 @@ Suite pengujian modul wajib memvalidasi 6 dimensi invarian transisi keadaan beri
 
 ---
 
+## 2.6 Fakta kanonikal `BlockHeader` (sinkron protokol 2026-09-30)
+
+Header blok **persis 6 field**; `chain_id`, `round`, maupun `qc` tidak pernah
+menjadi bagian `BlockHeader` (rantai diidentifikasi oleh tautan `prev_hash`,
+bukan label id):
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `height` | `u64` | Tinggi blok; genesis `H = 0` |
+| `prev_hash` | `Hash256` | Hash blok induk (`[0u8; 32]` untuk genesis) |
+| `state_root` | `Hash256` | Komitmen BLAKE3 state pasca-eksekusi |
+| `tx_count` | `u32` | Jumlah transaksi dalam blok (**bukan** `u64`) |
+| `timestamp` | `u64` | Milidetik Unix Epoch (UTC) |
+| `proposer` | `[u8; 32]` | Penerima fee blok |
+
+`Block = { header, transactions }`; header hash domain `AURION_BLOCK_HEADER_V1`
+mencakup `timestamp || proposer` (ST5). `CreateBlock`/genesis sintetis wajib
+memakai bentuk ini — lihat juga `TASK-aurion-genesis.md` §5.1.
+
+---
+
 ## 3. ARSITEKTUR TEST SUITE & LOKASI FILE
 
 Pengujian modul ini dikonsolidasikan sebagai suite integrasi internal modul `aurion-core`:

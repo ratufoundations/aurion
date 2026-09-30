@@ -20,6 +20,7 @@ Implementasi modul eksekusi transaksi Aurion yang mengadopsi model **Capability-
 | **E3** | Komposabilitas multi-aksi & reversibilitas | ✓ Passed | `test_e3_multi_action_compositional_reversibility` |
 | **E4** | Metering fuel deterministik nir-pecahan | ✓ Passed | `test_e4_zero_float_fuel_metering_exhaustion` |
 | **E5** | Determinisme state delta & replay | ✓ Passed | `test_e5_state_delta_determinism_and_replay_invariance` |
+| **E6** | Replenishment pasokan siklus (Treasury kosong) | ✓ Passed | `test_replenishment_mints_660m_aur_when_treasury_drained`, `test_replenishment_idempotent_when_treasury_positive` |
 
 ## Struktur Modul
 
@@ -36,10 +37,11 @@ crates/aurion-execution/
 │   ├── keeper.rs              # Keeper trait + implementations (Account, Staking, Governance, Validator)
 │   ├── action.rs              # Action enum + ActionBatch
 │   ├── envelope.rs            # TransactionEnvelope with signature verification
+│   ├── replenishment.rs       # ReplenishmentEngine: cycle pasokan & pencetakan Treasury
 │   ├── state_root.rs          # compute_state_root: BLAKE3 commitment
 │   └── engine.rs              # ExecutionEngine: orchestrator, execute, dispatch
 └── tests/
-    └── execution_invariants.rs  # E0-E5 comprehensive test suite
+    └── execution_invariants.rs  # E0-E6 + regresi replenishment comprehensive suite
 ```
 
 ## Arsitektur Kunci
@@ -74,6 +76,21 @@ crates/aurion-execution/
 - BLAKE3 commitment atas entire state
 - WriteSet digest untuk delta
 - Replay invariance: apply delta to snapshot = original execution
+
+### 6. ReplenishmentEngine (E6, sinkron 2026-09-30)
+- `check_and_replenish(cache, treasury)`: membaca saldo Treasury via kunci
+  terkualifikasi `store_key().qualify("bal:" || pubkey)`; jika saldo == 0,
+  mengkredit `TREASURY_GENESIS_QUANTA` (66.000.000 AUR), menaikkan
+  `cycle_index 0 → 1`, mengakumulasi `total_minted`, dan menulis stempel
+  `aurion:replenish:last_cycle` — namespace `StoreKey::new("replenish")`.
+  Mengembalikan `Ok(Some(cycle))` bila mencetak, `Ok(None)` bila saldo positif.
+- **Tidak di-hot-wire ke jalur blok hidup node** (keputusan cakupan: modular +
+  pengujian); konsumsi dapat diintegrasikan tanpa mengubah signature engine,
+  lih. `TASK-aurion-genesis.md` §4.
+- Kunci saldo ditulis pada kunci terkualifikasi `accounts.store_key().qualify("bal:" || pubkey)`
+  dengan value `TREASURY_GENESIS_QUANTA.to_be_bytes()` (16-byte `u128` BE); nonce
+  akun kodec persisten 8-byte `u64` LE — konsisten dengan format akun
+  `[u8; 24]` = 16B balance + 8B nonce (`TASK-aurion-ledger.md` §2.1).
 
 ## Dependencies
 

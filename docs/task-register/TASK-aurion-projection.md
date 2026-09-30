@@ -227,3 +227,15 @@ Implementasi sekarang diganti dengan rekonstruksi dingin sungguhan:
 Testcase P4 membangun ledger `redb` sungguhan berisi 50 blok transfer bertanda tangan,
 lalu membandingkan hasil dua *cold rebuild* yang independen terhadap `state_root`
 rantai asal beserta saldo kedua pihak.
+
+## 7. Fakta kanonikal model baca saldo (sinkron 2026-09-30)
+
+- Model baca memakai **`Quanta = u128`** untuk seluruh saldo:
+  `snapshot.rs`/`ReadSnapshot` memegang `HashMap<AccountId, Quanta>` dan
+  `address_index.rs` mengindeks transfer per akun tanpa menurunkan presisi.
+- Akses saldo lewat `ReadSnapshot::balances()` (peta menyeluruh, dipakai
+  `verify_determinism` P4).
+- Purify alokasi genesis dieksplisitkan sebagai parameter `cold_rebuild_with_genesis`
+  karena blok genesis tidak memuat transaksi (lih. §6.2).
+- Seluruh metrik (cache hit BPS, durasi, lag) tetap `u64`; tidak ada `f32`/`f64`
+  pada `crates/aurion-projection/src/`.

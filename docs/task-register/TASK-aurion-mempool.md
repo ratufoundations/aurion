@@ -80,6 +80,19 @@ Suite pengujian modul wajib memvalidasi 6 dimensi invarian mempool berikut:
 
 ---
 
+## 2.1 Envelope transaksi kanonikal (sinkron 2026-09-30)
+
+Mempool menyimpan `Transaction` ber-tipe (`Quanta = u128` murni), dan menerima
+payload lewat **format kawat transaksi kanonikal 168 byte** yang didefinisikan
+oleh `aurion-ledger::Codec` (`TX_SIZE`, dipakai juga oleh ledger & gateway):
+`nonce [0..8]` (`u64` LE), `sender [8..40]`, `recipient [40..72]`,
+`amount [72..88]` (`u128` LE), `fee [88..104]` (`u128` LE),
+`signature [104..168]`. Mempool **tidak** mendefinisikan ulang ukuran ini;
+`TransactionEnvelope` di `aurion-execution` menandatangani payload dalam domain
+`AURION_TX_ENVELOPE_V1` sebelum dikirim ke admission M0/M2.
+
+---
+
 ## 3. ARSITEKTUR TEST SUITE & LOKASI FILE
 
 Pengujian modul ini dikonsolidasikan sebagai suite integrasi internal modul `aurion-mempool`:

@@ -21,6 +21,21 @@
 - **L4 — Snapshot CQRS:** `LedgerSnapshot` mempertahankan pembacaan konsisten saat thread lain melakukan commit H+1 beserta mutasi akun; snapshot baru melihat versi terbaru. Write diselesaikan ketika snapshot lama tetap hidup.
 - **L5 — Reopen/recovery:** temporary database menyimpan blok 0–10; sesudah instance ditutup dan dibuka kembali, semua blok, latest height, state root terakhir, dan akun terhidrasi sama.
 
+## 2.1 Skema tabel & codec kanonikal (sinkron 2026-09-30)
+
+- **Tabel akun:** `ACCOUNTS_TABLE: TableDefinition<&[u8; 32], &[u8; 24]>`
+  (`crates/aurion-ledger/src/schema.rs`) — key `AccountId` 32 byte, value **24
+  byte** = 16 byte saldo `u128` LE + 8 byte nonce `u64` LE (bukan 16 byte).
+- **Codec transaksi:** `Codec::TX_SIZE = 168` byte tetap — `nonce [0..8]`
+  (`u64` LE), `sender [8..40]`, `recipient [40..72]`, `amount [72..88]`
+  (`u128` LE), `fee [88..104]` (`u128` LE), `signature [104..168]`.
+  `decode_tx` menolak panjang ≠ 168 dengan `LedgerError::InvalidTransactionLength`.
+- **Codec blok:** header 116 byte (`HEADER_SIZE`) + N × 168 byte transaksi;
+  `proposer [84..116]`. `decode_block` menghitung ulang `expected_total_len` dan
+  menolak blok dengan `state_root`/length menyimpang.
+- Seluruh nilai moneter (saldo, `amount`, `fee`, alokasi) dikodekan LE 16 byte
+  (`u128`), mempertahankan presisi penuh tanpa float.
+
 ## 3. Lokasi dan dependensi suite
 
 - **Suite:** `crates/aurion-ledger/tests/ledger_invariants.rs`

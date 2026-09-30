@@ -69,6 +69,18 @@ diintegrasikan di masa depan tanpa mengubah signature engine.
 - `CREATOR_ALLOCATION_QUANTA = 138_600_000_000_000_000`,
   `RESERVOIR_ALLOCATION_QUANTA = 521_400_000_000_000_000`
 
+## 5.1 Blok sintetis #0 — fakta kanonikal
+
+- `height = 0`, `prev_hash = [0u8; 32]`, `tx_count = 0` (tipe `u32`, sama
+  persis dengan `aurion-core::BlockHeader` — **bukan** `u64`), `timestamp`
+  dari `GenesisConfig`, `proposer = [0u8; 32]`, dan `state_root` = hasil
+  `compute_genesis_state_root`.
+- `BlockHeader` persis 6 field (`height`, `prev_hash`, `state_root`,
+  `tx_count`, `timestamp`, `proposer`); tidak pernah memuat `round`, `qc`,
+  maupun `chain_id`. `Block = { header, transactions }` dengan transaksi kosong.
+- Verifikasi `verify_genesis_state_root` menyamakan ulang `state_root` header
+  terhadap basis KV yang sama (derivasi `AURION_GENESIS_STATE_ROOT_V1`).
+
 ## 6. Referensi silang
 
 - Skema kunci state root: `blake3("account"/"validator"/"system")` +

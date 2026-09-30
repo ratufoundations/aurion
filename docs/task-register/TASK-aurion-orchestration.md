@@ -85,10 +85,12 @@ Suite integrasi level aplikasi (`orchestration_invariants.rs`) wajib menguji 6 d
 
 ### [O3] Sinkronisasi Swarm P2P & Loop Konsensus (Swarm & Consensus Synchronization)
 
-* **Deskripsi:** Jembatan antara perutean pesan `rust-libp2p` (`aurion-network`) dan pengambil keputusan `aurion-consensus`.
+* **Deskripsi:** Jembatan antara perutean pesan jaringan **in-daemon**
+  (`apps/aurion-node/src/p2p.rs` — `MeshDriver`/`P2PRuntime` TCP, *bukan*
+  `rust-libp2p`) dan pengambil keputusan `aurion-consensus`.
 * **Kriteria Uji:**
-  * Menggunakan *loopback mesh* 3 simpul semu di dalam satu *runtime test* memori.
-  * Suara BFT (*vote*) dari Simpul A yang disiarkan lewat *channel out* jaringan wajib ditangkap dan didekode oleh Simpul B, lalu dimasukkan ke dalam mesin state konsensus Simpul B.
+  * *Loopback mesh* dalam satu *runtime test* memori: `o3_three_node_loopback_mesh_propagates_votes` (3 simpul semu) dan `o3_four_node_mesh_reaches_bft_quorum` (4 simpul menuju kuorum BFT **3-of-4**, `2f+1 = 3`).
+  * Suara BFT (*vote*) dari Simpul A yang disiarkan lewat wire format wajib ditangkap dan didekode oleh Simpul B, lalu dimasukkan ke dalam mesin state konsensus Simpul B.
   * Pesan *gossip* palsu yang digagalkan oleh `AurionWireCodec` di level jaringan tidak boleh membebani atau mencapai saluran baca konsensus.
 
 ### [O4] Penutupan Anggun & Jaminan Flush State (Graceful Shutdown & State Flush Guarantee)
@@ -114,6 +116,12 @@ Suite integrasi level aplikasi (`orchestration_invariants.rs`) wajib menguji 6 d
 Pengujian terpusat di `apps/aurion-node/tests/`:
 
 * **`orchestration_invariants.rs`:** Menguji matriks **O0 – O5** menggunakan topologi *multi-node in-memory cluster* (tanpa benar-benar membuka socket publik).
+* **`multiprocess_harness.rs`:** Harness **4 proses nyata** atas TCP sungguhan
+  (`NODE_COUNT = 4`, ambang `2f+1 = 3`, `TIMEOUT = 90s`); `m0` membuktikan
+  klaster 4 proses ber-BFT mandiri dan siap menerima transaksi.
+* **`HeightQuery`:** `ChainCommand::HeightQuery { reply: oneshot::Sender<u64> }`
+  (`apps/aurion-node/src/node.rs`) — kueri asinkron tinggi ledger terkini yang
+  digunakan O4 dan harness lintas-proses untuk menunggu kemajuan.
 * Dependensi: Memfaatkan fungsionalitas `tokio::test` untuk menciptakan beberapa *Actor Task* yang mensimulasikan lingkungan eksekusi asinkron riil.
 
 ---
@@ -182,3 +190,14 @@ subsistem:
 8. **Tidak ada `genesis.json`.** Bootstrapping memakai
    `GenesisBootstrap::initialize_ledger` dengan `GenesisSpec` terprogram,
    sehingga `state_root` genesis deterministik antar-basis data.
+9. **Driver P2P bersifat in-daemon.** Kanal gossip tidak memakai `rust-libp2p`;
+   `apps/aurion-node/src/p2p.rs` menyediakan `MeshDriver`/`P2PRuntime` TCP
+   dengan wire frame `AurionWireCodec` (dari `aurion-network`). O3 kini
+   mencakup kuorum 4-simpul 3-of-4 (`o3_four_node_mesh_reaches_bft_quorum`).
+10. **Harness multiproses nyata.** `multiprocess_harness.rs` menjalankan 4 biner
+    terpisah atas TCP sungguhan (bukan mesh memori): `NODE_COUNT = 4`,
+    `2f+1 = 3`, `TIMEOUT = 90s`; `m0_four_process_cluster_reaches_bft_quorum_on_real_tcp`
+    menunggu tanda `AURION_QUORUM_READY` sampai semua proses mencapai kuorum.
+11. **`HeightQuery`** adalah `ChainCommand::HeightQuery { reply: oneshot::Sender<u64> }`
+    di `node.rs`; dipakai untuk sinkronisasi tinggi lintas aktor/proses (kueri
+    baca non-blokir, nilai `u64`).

@@ -34,7 +34,12 @@ Tujuan task ini adalah **menguji, memvalidasi, dan mengunci perilaku `aurion-val
 ### [V1] Pipeline Probation & Matriks Status
 * Jendela `K` blok: `K-1` blok sah belum lulus, blok ke-K meluluskan ke `Eligible`; `Probation` tidak ikut kuorum, seleksi, maupun aktivasi paksa.
 * Pelanggaran liveness me-reset jendela ke nol; `probation_max_miss_streak` pelanggaran berurutan -> `ProbationFailed` dan status `Retired` (terminal, pelaporan lanjutan ditolak).
-* Matriks transisi persis 14 pasangan sah; `authorize_transition` selalu sinkron dengan `can_transition_to`; `Probation` tidak pernah boleh melompat ke `ActiveSet`.
+* Matriks transisi persis **7 status / 18 pasangan sah** (Probation 3,
+  Suspended 2, Eligible 4, ActiveSet 5, Jailed 4) termasuk `Probation -> Tombstoned`
+  (double-signing selama masa percobaan langsung ditombstone) dan
+  `Eligible -> Tombstoned`; selain itu dihitung ulang dari `can_transition_to`
+  dan `authorize_transition` selalu sinkron; `Probation` tidak pernah boleh
+  melompat ke `ActiveSet`.
 
 ### [V2] Rotasi Epoch Deterministik
 * Hanya batas epoch (`height % epoch_length_blocks == 0`; panjang nol fail-closed) — selain itu `EpochNotBoundary` tanpa mutasi state.

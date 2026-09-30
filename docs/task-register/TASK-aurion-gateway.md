@@ -59,6 +59,24 @@ Tujuan task ini adalah **menguji, memvalidasi, dan mengunci perilaku `aurion-gat
 
 ---
 
+## 2.1 Rute queryable Zenoh kanonikal (sinkron 2026-09-30)
+
+Gateway nyata (`crates/aurion-gateway/src/engine.rs`) mendaftarkan **queryables Zenoh**,
+bukan JSON-RPC method bernama `aur_getBalance`:
+
+| Rute | Tujuan |
+| --- | --- |
+| `aurion/{chain_id}/status` | Status rantai terkini |
+| `aurion/{chain_id}/account/*` | Kueri akun (saldo + nonce) |
+| `aurion/{chain_id}/tx/submit` | Kirim transaksi mentah |
+| `aurion/{chain_id}/events/blocks` | Topic event blok terkomit |
+
+Balas kueri akun menyajikan `"balance": balance.to_string()` (string desimal)
+dan `"nonce"` — akun absen di-map ke `(0, 0)` tanpa panic. Seluruh nilai moneter
+`u128` direspons sebagai string desimal agar presisi > 2^53 utuh (GW0).
+
+---
+
 ## 3. SPESIFIKASI INVARIAN & MATRIKS UJI MODUL (GW0 – GW5)
 
 Suite pengujian modul wajib menguji 6 dimensi invarian boundary gateway berikut:

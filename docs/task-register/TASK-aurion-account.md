@@ -96,3 +96,17 @@ Tujuan task ini adalah **menguji, memvalidasi, dan mengunci perilaku `aurion-acc
 | A4 | `a4_new_account_requires_reserve_while_dust_to_existing_is_allowed`, `a4_zero_balance_accounts_are_canonical_and_prunable` | `lifecycle::{AccountLifecycle, MIN_ACCOUNT_RESERVE_QUANTA}`, `SovereignAccount::{register, state_digest}` |
 | A5 | `a5_integer_quorum_math_is_exact_and_overflow_safe`, `a5_quota_accounting_uses_checked_integer_arithmetic`, `a5_sources_are_free_of_floating_point_tokens` | `policy::{meets_integer_quorum, SpendingPolicy}`, pemindaian `src/` bebas `f32`/`f64` |
 
+---
+
+## 6. Fakta kanonikal dimensi fisik akun (sinkron 2026-09-30)
+
+- Representasi persisten satu akun adalah **`[u8; 24]`** (`encode_account` di
+  `aurion-ledger/src/codec.rs`): 16 byte saldo `u128` LE + 8 byte nonce `u64` LE.
+- Pada `aurion-ledger`, tabel akun berbentuk
+  `TableDefinition<&[u8; 32], &[u8; 24]>` (`ACCOUNTS_TABLE`) — key `AccountId`
+  32 byte, value 24 byte. Karena itu saldo/nonce akun selalu dibaca-tulis dalam
+  blok 8/16 byte, konsisten dengan seluruh kodec transaksi 168 byte.
+- `MIN_ACCOUNT_RESERVE_QUANTA = 1_000` Quanta (A4) dan
+  `MIN_VALIDATOR_STAKE_QUANTA = 1_000_000` Quanta (`aurion-account/src/`),
+  keduanya `u128`; akun baru di bawah ambang ditolak (`BelowDustThreshold`).
+

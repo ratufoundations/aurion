@@ -119,10 +119,11 @@ Suite pengujian modul wajib menguji 6 dimensi invarian keamanan dan penalti beri
 **Deskripsi:** Tindakan luar biasa (pembekuan simpul darurat, pembatalan status darurat, atau penyesuaian parameter denda) hanya dapat disahkan melalui persetujuan multi-sig resmi dari `GuardCouncil`.
 
 **Kriteria Uji:**
-- Aksi darurat `EmergencyAction` membutuhkan tanda tangan sah dari anggota `GuardCouncil` yang memenuhi ambang batas kuorum (misal: >= 67%).
+- Aksi `execute_blacklist`/`execute_pardon` (`BlacklistVerdict`/`PardonVerdict`) wajib memenuhi **aklamasi bulat 100%**: jumlah tanda tangan harus sama dengan seluruh anggota council terdaftar, dan setiap tanda tangan diverifikasi terhadap digest verdict (domain `AURION_BLACKLIST_VERDICT_V1` / `AURION_PARDON_VERDICT_V1`). Dewan default `MINIMUM_GUARD_QUORUM = 5` penjaga.
 - Permohonan aksi darurat yang diajukan oleh akun dengan peran `StandardUser` atau `ActiveValidator` biasa wajib ditolak dengan `Err(GuardError::UnauthorizedCouncilAction)`.
 - Tanda tangan anggota council yang tidak terdaftar atau telah dicabut mandatnya wajib ditolak dengan `Err(GuardError::InvalidCouncilMember)`.
-- Tanda tangan multi-sig dewan pengawas terikat pada `chain_id` dan `council_nonce` untuk mencegah serangan replay lintas rantai atau antar-proposal.
+- Digest verdict mengikat `target_validator`, `block_height`/`proof_hash` (blacklist) atau `target_validator`, `justification_hash`, `timestamp` (pardon), sehingga bukti yang sama tidak dapat disahkan ulang (anti-replay).
+- `GuardCouncil::new` menolak set guard di bawah `MINIMUM_GUARD_QUORUM` dengan `GuardError::InsufficientGuardCount { current, min }`.
 
 ### [G5] Akuntansi Denda Nir-Pecahan Berbasis BPS (Zero-Float BPS Slash Accounting)
 
