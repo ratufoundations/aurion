@@ -91,7 +91,7 @@ impl AurionGateway {
 
                             serde_json::json!({
                                 "address": pubkey_hex,
-                                "balance": balance,
+                                "balance": balance.to_string(),
                                 "nonce": nonce,
                             })
                         }

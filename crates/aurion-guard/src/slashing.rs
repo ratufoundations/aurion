@@ -4,6 +4,8 @@
 //! Basis Poin (BPS) yang menjamin konservasi total Quanta.
 
 use crate::error::GuardError;
+use aurion_core::calculate_bps;
+use aurion_core::types::Quanta;
 
 /// Basis Point Scale: 10.000 BPS = 100%
 pub const BPS_SCALE: u64 = 10_000;
@@ -38,13 +40,13 @@ const _: () = {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SlashAllocation {
     /// Jumlah total yang dipotong dari validator
-    pub total_slash: u64,
+    pub total_slash: Quanta,
     /// Hadiah untuk pelapor
-    pub reporter_reward: u64,
+    pub reporter_reward: Quanta,
     /// Jumlah yang dibakar
-    pub burned_amount: u64,
+    pub burned_amount: Quanta,
     /// Jumlah yang disetor ke treasury/sink
-    pub treasury_amount: u64,
+    pub treasury_amount: Quanta,
 }
 
 impl SlashAllocation {
@@ -166,7 +168,7 @@ impl SlashCalculator {
     /// - Perhitungan overflow
     /// - Rasio BPS tidak valid
     pub fn calculate(
-        staked_amount: u64,
+        staked_amount: Quanta,
         severity: ViolationSeverity,
     ) -> Result<SlashAllocation, GuardError> {
         // Validasi rasio alokasi BPS (harus = 10000)
@@ -209,24 +211,18 @@ impl SlashCalculator {
     }
 
     /// Hitung amount berdasarkan BPS: (amount * bps) / `BPS_SCALE`
-    /// Menggunakan checked arithmetic dan floor division.
+    /// Menggunakan checked arithmetic (`u128`) dan floor division.
     ///
     /// # Errors
     /// Mengembalikan error jika perkalian overflow.
-    pub fn calc_bps_amount(amount: u64, bps: u64) -> Result<u64, GuardError> {
+    pub fn calc_bps_amount(amount: Quanta, bps: u64) -> Result<Quanta, GuardError> {
         if bps > BPS_SCALE {
             return Err(GuardError::InvalidBpsRatio { bps });
         }
 
-        // amount * bps
-        let product = amount
-            .checked_mul(bps)
-            .ok_or(GuardError::SlashingOverflow {
-                details: format!("amount={amount} * bps={bps} overflow"),
-            })?;
-
-        // (amount * bps) / BPS_SCALE
-        Ok(product / BPS_SCALE)
+        calculate_bps(amount, bps).map_err(|_| GuardError::SlashingOverflow {
+            details: format!("amount={amount} * bps={bps} overflow"),
+        })
     }
 }
 
@@ -263,10 +259,10 @@ mod tests {
 
     #[test]
     fn test_bps_calculation_overflow_protection() {
-        let staked = u64::MAX;
+        let staked = u128::MAX;
         let severity = ViolationSeverity::Severe;
 
         let result = SlashCalculator::calculate(staked, severity);
-        assert!(result.is_err(), "Should overflow with u64::MAX");
+        assert!(result.is_err(), "Should overflow with u128::MAX");
     }
 }

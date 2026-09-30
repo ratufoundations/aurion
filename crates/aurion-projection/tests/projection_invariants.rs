@@ -262,11 +262,11 @@ fn test_p4_cold_rebuild_is_deterministic_and_crash_recoverable() {
     );
 
     // 50 transfer x 100 ke Bob, biaya 1 per transaksi ke proposer.
-    let moved = 100 * BLOCKS;
-    let fees = BLOCKS;
+    let moved = u128::from(BLOCKS) * 100;
+    let fees = u128::from(BLOCKS);
     assert_eq!(
         snapshot_a.get_balance(&alice),
-        Some(10_000_000 - moved - fees),
+        Some(10_000_000u128 - moved - fees),
         "saldo Alice setelah rebuild harus sama dengan rantai asal"
     );
     assert_eq!(

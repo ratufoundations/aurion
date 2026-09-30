@@ -42,9 +42,9 @@ fn config_with(dir: &Path, treasury: PublicKeyBytes) -> NodeConfig {
 fn signed_transfer(
     sender: &Keypair,
     recipient: PublicKeyBytes,
-    amount: u64,
+    amount: u128,
     nonce: u64,
-    fee: u64,
+    fee: u128,
 ) -> Transaction {
     let mut tx = Transaction::new(
         sender.public_key_bytes(),
@@ -683,8 +683,8 @@ async fn o2_pipeline_commits_and_updates_read_model() {
     let mut runtime = NodeHandle::spawn(ChainNode::bootstrap(config).expect("bootstrap"));
     let handle = runtime.handle.clone();
 
-    let amount = 5_000u64;
-    let fee = 7u64;
+    let amount = 5_000u128;
+    let fee = 7u128;
     let supply_before = handle
         .balance(treasury.public_key_bytes())
         .await

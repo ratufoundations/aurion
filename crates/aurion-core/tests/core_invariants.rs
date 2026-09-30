@@ -7,16 +7,16 @@ fn key(seed: u8) -> Keypair {
     Keypair::from_bytes(&[seed; 32])
 }
 
-fn signed_tx(sender: &Keypair, recipient: PublicKeyBytes, amount: u64, nonce: u64) -> Transaction {
+fn signed_tx(sender: &Keypair, recipient: PublicKeyBytes, amount: u128, nonce: u64) -> Transaction {
     signed_tx_with_fee(sender, recipient, amount, nonce, 1)
 }
 
 fn signed_tx_with_fee(
     sender: &Keypair,
     recipient: PublicKeyBytes,
-    amount: u64,
+    amount: u128,
     nonce: u64,
-    fee: u64,
+    fee: u128,
 ) -> Transaction {
     let sender_pk = sender.public_key_bytes();
     let unsigned = Transaction::new(sender_pk, recipient, amount, nonce, fee, [0; 64]);
@@ -59,7 +59,7 @@ fn block_for(
     })
 }
 
-fn initial_state(keys: &[Keypair], balance: u64, nonce: u64) -> State {
+fn initial_state(keys: &[Keypair], balance: u128, nonce: u64) -> State {
     let mut state = State::new();
     for keypair in keys {
         state.insert_account(keypair.public_key_bytes(), Account::new(balance, nonce));
@@ -151,7 +151,7 @@ fn st2_transfers_conserve_quanta_and_overflow_or_underflow_is_rejected(
         .accounts()
         .values()
         .map(|account| account.balance)
-        .sum::<u64>();
+        .sum::<u128>();
     let transfer = signed_tx(&alice, bob_pk, 150, 0);
     state.apply_transaction(&transfer)?;
     assert_eq!(state.get_account(&alice_pk), Some(&Account::new(849, 1)));
@@ -160,7 +160,7 @@ fn st2_transfers_conserve_quanta_and_overflow_or_underflow_is_rejected(
         .accounts()
         .values()
         .map(|account| account.balance)
-        .sum::<u64>();
+        .sum::<u128>();
     assert_eq!(total_before, total_after);
 
     let before_underflow = state.clone();
@@ -174,7 +174,7 @@ fn st2_transfers_conserve_quanta_and_overflow_or_underflow_is_rejected(
     let overflow_sender = key(42);
     let overflow_sender_pk = overflow_sender.public_key_bytes();
     state.insert_account(overflow_sender_pk, Account::new(10, 0));
-    state.insert_account(bob_pk, Account::new(u64::MAX, 0));
+    state.insert_account(bob_pk, Account::new(u128::MAX, 0));
     let before_overflow = state.clone();
     let overflow = signed_tx(&overflow_sender, bob_pk, 1, 0);
     assert_eq!(

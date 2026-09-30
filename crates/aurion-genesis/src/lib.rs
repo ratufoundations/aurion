@@ -38,8 +38,8 @@ mod tests {
         )
         .expect("test operation should succeed");
 
-        // Verifikasi perhitungan Quanta
-        let expected_quanta = 66_000_000 * 1_000_000u64;
+        // Verifikasi perhitungan Quanta (66 juta AUR × 10^10 Quanta/AUR)
+        let expected_quanta = 66_000_000 * QUANTA_PER_AUR;
         assert_eq!(
             spec.total_supply_quanta()
                 .expect("test operation should succeed"),

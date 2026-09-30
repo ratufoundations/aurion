@@ -196,7 +196,7 @@ impl LedgerSnapshot {
             .get(pubkey)
             .map_err(|e| LedgerError::StorageError(e.to_string()))?
             .map(|value| {
-                let bytes: [u8; 16] = *value.value();
+                let bytes: [u8; 24] = *value.value();
                 Codec::decode_account(&bytes)
             });
         Ok(account)

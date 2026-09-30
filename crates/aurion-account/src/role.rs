@@ -1,8 +1,9 @@
 use crate::{address::AccountId, error::AccountError};
+use aurion_core::types::Quanta;
 use aurion_criptografi::{Hash256, PublicKeyBytes, SignatureBytes, SignatureVerifier};
 
-/// Stake minimum (satuan Quanta `u64`) untuk mengaktifkan peran validator.
-pub const MIN_VALIDATOR_STAKE_QUANTA: u64 = 1_000_000;
+/// Stake minimum (satuan Quanta `u128`) untuk mengaktifkan peran validator.
+pub const MIN_VALIDATOR_STAKE_QUANTA: Quanta = 1_000_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DeviceRole {
@@ -145,7 +146,7 @@ impl DeviceRecord {
 pub struct RolePromotion {
     pub account: AccountId,
     pub new_role: Role,
-    pub stake_quanta: u64,
+    pub stake_quanta: Quanta,
     pub nonce: u64,
     pub signature: SignatureBytes,
 }

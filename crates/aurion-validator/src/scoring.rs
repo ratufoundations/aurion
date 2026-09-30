@@ -1,4 +1,6 @@
 use crate::error::ValidatorError;
+use aurion_core::mul_div_quanta;
+use aurion_core::types::Quanta;
 
 /// Penyebut basis poin: `10.000 BPS = 100%`.
 pub const BPS_DENOMINATOR: u64 = 10_000;
@@ -36,19 +38,18 @@ pub fn uptime_bps(signed_blocks: u64, eligible_blocks: u64) -> Result<u64, Valid
 ///
 /// Dipakai sebagai bobot suara dan skor peringkat seleksi epoch, sehingga
 /// validator berkinerja rendah kehilangan bobot secara proporsional tanpa
-/// pernah menyentuh aritmetika pecahan.
+/// pernah menyentuh aritmetika pecahan. Perkalian dilakukan pada `u128`
+/// sehingga tidak meluap pada jangkauan `Quanta` praktis.
 ///
 /// # Errors
 /// Mengembalikan `ValidatorError::ArithmeticOverflow` bila perkalian stake
 /// dengan BPS meluap.
 pub fn effective_stake_quanta(
-    stake_quanta: u64,
+    stake_quanta: Quanta,
     performance_bps: u64,
-) -> Result<u64, ValidatorError> {
-    stake_quanta
-        .checked_mul(performance_bps)
-        .ok_or(ValidatorError::ArithmeticOverflow)
-        .map(|scaled| scaled / BPS_DENOMINATOR)
+) -> Result<Quanta, ValidatorError> {
+    mul_div_quanta(stake_quanta, performance_bps, BPS_DENOMINATOR)
+        .map_err(|_| ValidatorError::ArithmeticOverflow)
 }
 
 /// Nilai potongan stake denda (*slashing*) berbasis BPS.
@@ -61,24 +62,22 @@ pub fn effective_stake_quanta(
 /// Mengembalikan `ValidatorError::InvalidSlashRate` bila `slash_rate_bps`
 /// melebihi `10.000`, dan `ValidatorError::ArithmeticOverflow` bila perkalian
 /// meluap.
-pub fn slash_amount(stake_quanta: u64, slash_rate_bps: u64) -> Result<u64, ValidatorError> {
+pub fn slash_amount(stake_quanta: Quanta, slash_rate_bps: u64) -> Result<Quanta, ValidatorError> {
     if slash_rate_bps > BPS_DENOMINATOR {
         return Err(ValidatorError::InvalidSlashRate {
             rate_bps: slash_rate_bps,
         });
     }
-    stake_quanta
-        .checked_mul(slash_rate_bps)
-        .ok_or(ValidatorError::ArithmeticOverflow)
-        .map(|scaled| scaled / BPS_DENOMINATOR)
+    mul_div_quanta(stake_quanta, slash_rate_bps, BPS_DENOMINATOR)
+        .map_err(|_| ValidatorError::ArithmeticOverflow)
 }
 
 /// Akumulasi bobot suara dengan `checked_add`.
 ///
 /// # Errors
 /// Mengembalikan `ValidatorError::ArithmeticOverflow` bila akumulasi bobot
-/// melampaui representasi `u64` (tidak pernah membungkam batas secara diam).
-pub fn accumulate_weight(current: u64, addend: u64) -> Result<u64, ValidatorError> {
+/// melampaui representasi `u128` (tidak pernah membungkam batas secara diam).
+pub fn accumulate_weight(current: Quanta, addend: Quanta) -> Result<Quanta, ValidatorError> {
     current
         .checked_add(addend)
         .ok_or(ValidatorError::ArithmeticOverflow)
@@ -89,13 +88,13 @@ pub fn accumulate_weight(current: u64, addend: u64) -> Result<u64, ValidatorErro
 /// `true` bila `accumulated * 10.000 >= total * threshold_bps`; luapan atau
 /// ambang tidak bermakna menghasilkan `false` (*fail-closed*).
 #[must_use]
-pub fn meets_bps_quorum(accumulated: u64, total: u64, threshold_bps: u64) -> bool {
+pub fn meets_bps_quorum(accumulated: Quanta, total: Quanta, threshold_bps: u64) -> bool {
     if total == 0 || threshold_bps == 0 || threshold_bps > BPS_DENOMINATOR {
         return false;
     }
     match (
-        accumulated.checked_mul(BPS_DENOMINATOR),
-        total.checked_mul(threshold_bps),
+        accumulated.checked_mul(u128::from(BPS_DENOMINATOR)),
+        total.checked_mul(u128::from(threshold_bps)),
     ) {
         (Some(lhs), Some(rhs)) => lhs >= rhs,
         _ => false,

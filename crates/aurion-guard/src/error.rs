@@ -1,3 +1,4 @@
+use aurion_core::types::Quanta;
 use aurion_criptografi::PublicKeyBytes;
 use thiserror::Error;
 
@@ -51,8 +52,8 @@ pub enum GuardError {
     #[error("Saldo stake validator {validator:?} tidak mencukupi untuk pemotongan: tersedia {available}, dibutuhkan {required}")]
     InsufficientStakeForSlashing {
         validator: PublicKeyBytes,
-        available: u64,
-        required: u64,
+        available: Quanta,
+        required: Quanta,
     },
 
     #[error("Perhitungan slashing overflow: {details}")]
@@ -60,8 +61,8 @@ pub enum GuardError {
 
     #[error("Total alokasi denda melebihi amount slash: total_allocated={total_allocated}, slash_amount={slash_amount}")]
     SlashingAllocationExceeds {
-        total_allocated: u64,
-        slash_amount: u64,
+        total_allocated: Quanta,
+        slash_amount: Quanta,
     },
 
     // ========================================================================
@@ -115,7 +116,7 @@ pub enum GuardError {
     InvalidBpsRatio { bps: u64 },
 
     #[error("Pembulatan ke bawah (floor) menyebabkan hilangnya Quanta: {lost_quanta}")]
-    FloorDivisionLoss { lost_quanta: u64 },
+    FloorDivisionLoss { lost_quanta: Quanta },
 
     // ========================================================================
     // Sistem & Operasional

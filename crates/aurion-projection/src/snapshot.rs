@@ -13,8 +13,8 @@ use crate::error::ProjectionError;
 /// Type alias untuk AccountId.
 pub type AccountId = Hash256;
 
-/// Type alias untuk Quanta (satuan saldo).
-pub type Quanta = u64;
+/// Type alias untuk Quanta (satuan saldo, kanonikal dari `aurion-core`).
+pub use aurion_core::types::Quanta;
 
 /// Snapshot model baca pada ketinggian blok tertentu.
 #[derive(Debug, Clone)]

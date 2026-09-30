@@ -23,8 +23,8 @@ use aurion_mempool::{Mempool, MempoolConfig};
 use aurion_network::{AurionWireCodec, NetworkMessage};
 use aurion_projection::{AddressIndex, ProjectionCursor, ReadSnapshot};
 
-/// Satuan saldo (Quanta).
-pub type Quanta = u64;
+/// Satuan saldo (Quanta), kanonikal dari `aurion-core`.
+pub use aurion_core::Quanta;
 
 /// Prefix kunci saldo yang dipakai mesin eksekusi.
 pub const PREFIX_BALANCE: &[u8] = b"bal:";

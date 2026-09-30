@@ -1,5 +1,6 @@
 use crate::{error::ValidatorError, record::ValidatorRecord, scoring::effective_stake_quanta};
 use aurion_account::{AccountId, MIN_VALIDATOR_STAKE_QUANTA};
+use aurion_core::types::Quanta;
 use std::collections::BTreeMap;
 
 /// Panjang satu epoch (batas rotasi himpunan validator) dalam blok.
@@ -48,7 +49,7 @@ pub struct ActiveSetSelection {
     /// Himpunan terpilih, terurut menurut peringkat (bukan leksikografis).
     pub active_set: Vec<AccountId>,
     /// Peringkat penuh seluruh kandidat yang memenuhi syarat: `(akun, skor)`.
-    pub ranking: Vec<(AccountId, u64)>,
+    pub ranking: Vec<(AccountId, Quanta)>,
 }
 
 /// Hitung komposisi `ActiveSet` berikutnya secara deterministik.
@@ -77,7 +78,7 @@ pub fn select_active_set(
         });
     }
 
-    let mut ranked: Vec<(AccountId, u64, u64)> = Vec::new();
+    let mut ranked: Vec<(AccountId, Quanta, Quanta)> = Vec::new();
     for (account, record) in records {
         if !record.status.is_selectable() || record.stake_quanta < MIN_VALIDATOR_STAKE_QUANTA {
             continue;
@@ -94,7 +95,7 @@ pub fn select_active_set(
             .then_with(|| left.0.cmp(&right.0))
     });
 
-    let ranking: Vec<(AccountId, u64)> = ranked
+    let ranking: Vec<(AccountId, Quanta)> = ranked
         .iter()
         .map(|(account, score, _)| (*account, *score))
         .collect();

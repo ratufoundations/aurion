@@ -1,7 +1,7 @@
 use redb::TableDefinition;
 
-/// Tabel Akun: `PublicKey` [u8; 32] -> Balance (8 bita) + Nonce (8 bita) = [u8; 16]
-pub const ACCOUNTS_TABLE: TableDefinition<&[u8; 32], &[u8; 16]> = TableDefinition::new("accounts");
+/// Tabel Akun: `PublicKey` [u8; 32] -> Balance u128 (16 bita) + Nonce u64 (8 bita) = [u8; 24]
+pub const ACCOUNTS_TABLE: TableDefinition<&[u8; 32], &[u8; 24]> = TableDefinition::new("accounts");
 
 /// Tabel Blok: Block Height (u64) -> Bita Kanonikal Blok
 pub const BLOCKS_TABLE: TableDefinition<u64, &[u8]> = TableDefinition::new("blocks_by_height");

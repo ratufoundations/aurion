@@ -1,16 +1,18 @@
 //! Modul aksi bisnis yang dapat dieksekusi di mesin eksekusi Aurion.
 
+use aurion_core::types::Quanta;
+
 /// Jenis-jenis aksi bisnis yang dapat dieksekusi di modul Aurion.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
     Transfer {
         from: [u8; 32],
         to: [u8; 32],
-        amount: u64,
+        amount: Quanta,
     },
     LockStake {
         staker: [u8; 32],
-        amount: u64,
+        amount: Quanta,
     },
     UpdateMetadata {
         account: [u8; 32],

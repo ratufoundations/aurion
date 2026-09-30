@@ -1,4 +1,5 @@
 use crate::role::Role;
+use aurion_core::types::Quanta;
 use aurion_criptografi::{Hash256, PublicKeyBytes};
 use thiserror::Error;
 
@@ -14,13 +15,13 @@ pub enum AccountError {
     MasterPrivilegeRequired,
 
     #[error("Jumlah transfer ({amount}) melebihi batas per transaksi ({limit})")]
-    ExceedsPerTxLimit { amount: u64, limit: u64 },
+    ExceedsPerTxLimit { amount: Quanta, limit: Quanta },
 
     #[error("Pengeluaran kumulatif ({spent}) melebihi kuota harian ({limit})")]
-    ExceedsDailyQuota { spent: u64, limit: u64 },
+    ExceedsDailyQuota { spent: Quanta, limit: Quanta },
 
     #[error("Saldo tidak mencukupi: tersedia {available}, dibutuhkan {required}")]
-    InsufficientBalance { available: u64, required: u64 },
+    InsufficientBalance { available: Quanta, required: Quanta },
 
     #[error("Nonce akun tidak cocok: diharapkan {expected}, diterima {got}")]
     InvalidNonce { expected: u64, got: u64 },
@@ -64,10 +65,10 @@ pub enum AccountError {
     InvalidSignature,
 
     #[error("Jumlah {amount} di bawah ambang dust akun baru ({minimum})")]
-    BelowDustThreshold { amount: u64, minimum: u64 },
+    BelowDustThreshold { amount: Quanta, minimum: Quanta },
 
     #[error("Stake tidak mencukupi: tersedia {provided}, dibutuhkan {required}")]
-    InsufficientStake { provided: u64, required: u64 },
+    InsufficientStake { provided: Quanta, required: Quanta },
 
     #[error("Aritmetika Quanta meluap (overflow/underflow)")]
     ArithmeticOverflow,

@@ -6,6 +6,7 @@ use crate::fuel::FUEL_COST_ACTION_BASE;
 use crate::keeper::{AccountKeeper, GovernanceKeeper, Keeper, StakingKeeper, ValidatorKeeper};
 use crate::state_root::compute_state_root;
 use crate::store_key::NamespaceStore;
+use aurion_core::types::Quanta;
 use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,20 +73,20 @@ impl ExecutionEngine {
 
     /// Kueri saldo akun langsung dari state terkonfirmasi (CQRS Read Path).
     /// Read-only, tidak mengonsumsi fuel transaksi, dan bebas alokasi cache kotor.
-    pub fn query_balance(&self, account: &[u8; 32]) -> Result<u64, ExecutionError> {
+    pub fn query_balance(&self, account: &[u8; 32]) -> Result<Quanta, ExecutionError> {
         let raw_key = self.accounts.balance_key(account);
         let qualified = self.accounts.store_key().qualify(&raw_key);
 
         match self.committed.get(&qualified) {
             Some(bytes) => {
-                let slice: [u8; 8] =
+                let slice: [u8; 16] =
                     bytes
                         .as_slice()
                         .try_into()
                         .map_err(|_| ExecutionError::MalformedState {
-                            reason: "Format byte saldo tidak valid (bukan 8 byte u64)",
+                            reason: "Format byte saldo tidak valid (bukan 16 byte u128)",
                         })?;
-                Ok(u64::from_be_bytes(slice))
+                Ok(u128::from_be_bytes(slice))
             }
             None => Ok(0),
         }
@@ -127,7 +128,7 @@ impl ExecutionEngine {
     pub fn set_balance_genesis(
         &mut self,
         account: &[u8; 32],
-        amount: u64,
+        amount: Quanta,
     ) -> Result<(), ExecutionError> {
         let raw_key = self.accounts.balance_key(account);
         let qualified = self.accounts.store_key().qualify(&raw_key);
@@ -224,12 +225,12 @@ impl ExecutionEngine {
 
                     let current_stake = match staking_store.get(&key)? {
                         Some(bytes) => {
-                            let slice: [u8; 8] = bytes.as_slice().try_into().map_err(|_| {
+                            let slice: [u8; 16] = bytes.as_slice().try_into().map_err(|_| {
                                 ExecutionError::MalformedState {
-                                    reason: "Format stake rusak",
+                                    reason: "Format stake rusak (bukan 16-byte u128)",
                                 }
                             })?;
-                            u64::from_be_bytes(slice)
+                            u128::from_be_bytes(slice)
                         }
                         None => 0,
                     };

@@ -11,9 +11,9 @@ fn key(seed: u8) -> Keypair {
 fn signed_tx(
     keypair: &Keypair,
     recipient: PublicKeyBytes,
-    amount: u64,
+    amount: u128,
     nonce: u64,
-    fee: u64,
+    fee: u128,
 ) -> Transaction {
     let sender = keypair.public_key_bytes();
     let unsigned = Transaction::new(sender, recipient, amount, nonce, fee, [0_u8; 64]);
@@ -21,7 +21,7 @@ fn signed_tx(
     Transaction::new(sender, recipient, amount, nonce, fee, signature)
 }
 
-fn funded_state(keys: &[&Keypair], balance: u64, nonce: u64) -> State {
+fn funded_state(keys: &[&Keypair], balance: u128, nonce: u64) -> State {
     let mut state = State::new();
     for keypair in keys {
         state.insert_account(keypair.public_key_bytes(), Account::new(balance, nonce));
@@ -29,7 +29,7 @@ fn funded_state(keys: &[&Keypair], balance: u64, nonce: u64) -> State {
     state
 }
 
-fn config(capacity: usize, per_account: usize, minimum_fee: u64) -> MempoolConfig {
+fn config(capacity: usize, per_account: usize, minimum_fee: u128) -> MempoolConfig {
     MempoolConfig {
         max_total_transactions: capacity,
         max_txs_per_account: per_account,
@@ -128,9 +128,9 @@ fn m2_checks_quanta_solvency_overflow_and_minimum_fee() {
         })
     );
 
-    let rich_state = funded_state(&[&alice], u64::MAX, 0);
+    let rich_state = funded_state(&[&alice], u128::MAX, 0);
     let mut overflow_pool = Mempool::new(MempoolConfig::default());
-    let overflow = signed_tx(&alice, bob.public_key_bytes(), u64::MAX, 0, 1);
+    let overflow = signed_tx(&alice, bob.public_key_bytes(), u128::MAX, 0, 1);
     assert_eq!(
         overflow_pool.insert(overflow, &rich_state),
         Err(MempoolError::ArithmeticOverflow)
@@ -145,7 +145,7 @@ fn m3_selects_one_hundred_transactions_by_deterministic_fee_priority() {
     let recipient = key(240).public_key_bytes();
     let mut pool = Mempool::new(MempoolConfig::default());
     for (index, keypair) in keys.iter().enumerate() {
-        let fee = u64::try_from((index * 37) % 101 + 1).unwrap_or_default();
+        let fee = u128::try_from((index * 37) % 101 + 1).unwrap_or_default();
         let tx = signed_tx(keypair, recipient, 1, 0, fee);
         assert_eq!(pool.insert(tx, &state), Ok(()));
     }

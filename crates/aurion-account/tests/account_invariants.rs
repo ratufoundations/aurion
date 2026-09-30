@@ -28,7 +28,7 @@ fn address_of(seed: u8) -> AccountId {
 }
 
 /// Akun berdaulat dengan dana awal di atas reserve minimum.
-fn funded_account(seed: u8, funding: u64) -> SovereignAccount {
+fn funded_account(seed: u8, funding: u128) -> SovereignAccount {
     let master = key(seed).public_key_bytes();
     SovereignAccount::register(address_of(seed), master, 0, funding).expect("registrasi akun valid")
 }
@@ -54,7 +54,7 @@ fn role_promotion(
     signer: &Keypair,
     account: AccountId,
     new_role: Role,
-    stake_quanta: u64,
+    stake_quanta: u128,
     nonce: u64,
 ) -> RolePromotion {
     let mut promotion = RolePromotion {
@@ -72,7 +72,7 @@ fn apply_promotion(
     account: &mut SovereignAccount,
     master: &Keypair,
     new_role: Role,
-    stake_quanta: u64,
+    stake_quanta: u128,
 ) -> Result<(), AccountError> {
     let promotion = role_promotion(
         master,
@@ -1053,9 +1053,9 @@ fn a5_quota_accounting_uses_checked_integer_arithmetic() {
 
     // Luapan akumulasi -> ArithmeticOverflow, state tidak berubah.
     let mut overflowing = SpendingPolicy {
-        max_per_tx: u64::MAX,
-        daily_quota: u64::MAX,
-        current_spent: u64::MAX - 1,
+        max_per_tx: u128::MAX,
+        daily_quota: u128::MAX,
+        current_spent: u128::MAX - 1,
         last_reset_time: 0,
     };
     assert_eq!(overflowing.remaining_quota(), 1);
@@ -1065,7 +1065,7 @@ fn a5_quota_accounting_uses_checked_integer_arithmetic() {
     }
     assert_eq!(
         overflowing.current_spent,
-        u64::MAX - 1,
+        u128::MAX - 1,
         "state wajib utuh saat akumulasi meluap"
     );
 }

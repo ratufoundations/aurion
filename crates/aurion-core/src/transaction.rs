@@ -1,13 +1,14 @@
 use crate::error::ExecutionError;
+use crate::types::Quanta;
 use aurion_criptografi::{Hash256, PublicKeyBytes, SignatureBytes, SignatureVerifier};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Transaction {
     pub sender: PublicKeyBytes,
     pub recipient: PublicKeyBytes,
-    pub amount: u64,
+    pub amount: Quanta,
     pub nonce: u64,
-    pub fee: u64,
+    pub fee: Quanta,
     pub signature: SignatureBytes,
 }
 
@@ -16,9 +17,9 @@ impl Transaction {
     pub const fn new(
         sender: PublicKeyBytes,
         recipient: PublicKeyBytes,
-        amount: u64,
+        amount: Quanta,
         nonce: u64,
-        fee: u64,
+        fee: Quanta,
         signature: SignatureBytes,
     ) -> Self {
         Self {
@@ -36,16 +37,16 @@ impl Transaction {
     pub fn payload_bytes(
         sender: &PublicKeyBytes,
         recipient: &PublicKeyBytes,
-        amount: u64,
+        amount: Quanta,
         nonce: u64,
-        fee: u64,
-    ) -> [u8; 88] {
-        let mut bytes = [0u8; 88];
+        fee: Quanta,
+    ) -> [u8; 104] {
+        let mut bytes = [0u8; 104];
         bytes[0..8].copy_from_slice(&nonce.to_le_bytes());
         bytes[8..40].copy_from_slice(sender);
         bytes[40..72].copy_from_slice(recipient);
-        bytes[72..80].copy_from_slice(&amount.to_le_bytes());
-        bytes[80..88].copy_from_slice(&fee.to_le_bytes());
+        bytes[72..88].copy_from_slice(&amount.to_le_bytes());
+        bytes[88..104].copy_from_slice(&fee.to_le_bytes());
         bytes
     }
 

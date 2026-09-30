@@ -1,4 +1,5 @@
 use aurion_account::{AccountId, Role};
+use aurion_core::types::Quanta;
 use aurion_criptografi::PublicKeyBytes;
 use thiserror::Error;
 
@@ -54,7 +55,7 @@ pub enum ValidatorError {
     DuplicateConsensusKey(PublicKeyBytes),
 
     #[error("Stake tidak mencukupi: tersedia {provided}, dibutuhkan {required}")]
-    InsufficientStake { provided: u64, required: u64 },
+    InsufficientStake { provided: Quanta, required: Quanta },
 
     #[error("Bukti kepemilikan kunci konsensus (PoP) tidak sah atau terikat akun lain")]
     InvalidProofOfPossession,

@@ -14,8 +14,8 @@ use crate::error::ProjectionError;
 /// Type alias untuk AccountId.
 pub type AccountId = Hash256;
 
-/// Type alias untuk Quanta (satuan saldo).
-pub type Quanta = u64;
+/// Type alias untuk Quanta (satuan saldo, kanonikal dari `aurion-core`).
+pub use aurion_core::types::Quanta;
 
 /// Batas maksimal ukuran halaman (P1: Kueri riwayat dengan filter limit dan offset).
 pub const MAX_PAGE_LIMIT: u64 = 100;

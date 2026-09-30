@@ -31,7 +31,7 @@ fn genesis_block(state: &State) -> Block {
 fn signed_transfer(
     keypair: &Keypair,
     recipient: PublicKeyBytes,
-    amount: u64,
+    amount: u128,
     nonce: u64,
 ) -> Transaction {
     let unsigned = Transaction::new(
@@ -70,7 +70,7 @@ fn snapshot_report(
 #[derive(Debug, PartialEq, Eq)]
 struct SnapshotReport {
     height: u64,
-    balance: u64,
+    balance: u128,
     nonce: u64,
     state_root: Option<Hash256>,
 }
@@ -78,11 +78,11 @@ struct SnapshotReport {
 #[test]
 fn l0_codec_round_trips_core_values_and_rejects_truncated_or_trailing_bytes(
 ) -> Result<(), Box<dyn Error>> {
-    let account = Account::new(u64::MAX - 4, u64::MAX - 8);
+    let account = Account::new(u128::MAX - 4, u64::MAX - 8);
     let encoded_account = Codec::encode_account(&account);
     assert_eq!(Codec::decode_account(&encoded_account), account);
 
-    let transaction = Transaction::new([0x11; 32], [0x22; 32], u64::MAX - 12, 17, 9, [0xa5; 64]);
+    let transaction = Transaction::new([0x11; 32], [0x22; 32], u128::MAX - 12, 17, 9, [0xa5; 64]);
     let encoded_transaction = Codec::encode_tx(&transaction);
     assert_eq!(Codec::decode_tx(&encoded_transaction)?, transaction);
     assert!(matches!(

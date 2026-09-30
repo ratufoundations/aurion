@@ -7,6 +7,7 @@ use crate::{
     role::{DeviceRecord, DeviceRole, Role, RolePromotion, MIN_VALIDATOR_STAKE_QUANTA},
     rotation::KeyRotationProof,
 };
+use aurion_core::types::Quanta;
 use aurion_criptografi::{Hash256, PublicKeyBytes};
 use std::collections::BTreeMap;
 
@@ -15,14 +16,14 @@ pub const MAX_DEVICES_PER_ACCOUNT: usize = 16;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SovereignAccount {
     pub account_id: Hash256,
-    pub balance: u64,
+    pub balance: Quanta,
     pub nonce: u64,
     pub devices: BTreeMap<PublicKeyBytes, DeviceRecord>,
     pub policy: SpendingPolicy,
     /// Peran protokol akun (`StandardUser` secara bawaan).
     pub role: Role,
     /// Stake yang disetor untuk peran validator (satuan Quanta).
-    pub staked_quanta: u64,
+    pub staked_quanta: Quanta,
     /// Kebijakan multi-sig otorisasi mutasi kebijakan akun.
     pub multisig: MultiSigPolicy,
 }
@@ -66,7 +67,7 @@ impl SovereignAccount {
         account_id: AccountId,
         master_device_key: PublicKeyBytes,
         current_time: u64,
-        initial_funding: u64,
+        initial_funding: Quanta,
     ) -> Result<Self, AccountError> {
         if initial_funding < MIN_ACCOUNT_RESERVE_QUANTA {
             return Err(AccountError::BelowDustThreshold {
@@ -189,7 +190,7 @@ impl SovereignAccount {
     pub fn authorize_transfer(
         &mut self,
         signer_device: &PublicKeyBytes,
-        amount: u64,
+        amount: Quanta,
         nonce: u64,
         current_time: u64,
     ) -> Result<(), AccountError> {

@@ -21,8 +21,8 @@ use crate::snapshot::ReadSnapshot;
 /// Type alias untuk AccountId.
 pub type AccountId = Hash256;
 
-/// Type alias untuk Quanta.
-pub type Quanta = u64;
+/// Type alias untuk Quanta (satuan saldo, kanonikal dari `aurion-core`).
+pub use aurion_core::types::Quanta;
 
 /// Manajer pemulihan proyeksi.
 #[derive(Debug)]
@@ -309,9 +309,9 @@ mod tests {
     fn signed_tx(
         sender: &Keypair,
         recipient: PublicKeyBytes,
-        amount: u64,
+        amount: u128,
         nonce: u64,
-        fee: u64,
+        fee: u128,
     ) -> Transaction {
         let pk = sender.public_key_bytes();
         let unsigned = Transaction::new(pk, recipient, amount, nonce, fee, [0u8; 64]);
@@ -427,21 +427,21 @@ mod tests {
     #[test]
     fn test_balances_digest_is_insertion_order_independent() {
         let mut first = std::collections::HashMap::new();
-        first.insert([1u8; 32], 10_u64);
-        first.insert([2u8; 32], 20_u64);
+        first.insert([1u8; 32], 10_u128);
+        first.insert([2u8; 32], 20_u128);
 
         let mut second = std::collections::HashMap::new();
-        second.insert([2u8; 32], 20_u64);
-        second.insert([1u8; 32], 10_u64);
+        second.insert([2u8; 32], 20_u128);
+        second.insert([1u8; 32], 10_u128);
 
         assert_eq!(balances_digest(&first), balances_digest(&second));
     }
 
     #[test]
     fn test_cold_rebuild_rejects_inverted_range() {
+        let dir = tempfile::NamedTempFile::new().expect("berkas sementara harus tersedia");
         let recovery = ProjectionRecovery::new(Arc::new(
-            LedgerStore::open(std::env::temp_dir().join("aurion-projection-range-test"))
-                .expect("ledger sementara harus dapat dibuat"),
+            LedgerStore::open(dir.path()).expect("ledger sementara harus dapat dibuat"),
         ));
 
         assert!(matches!(

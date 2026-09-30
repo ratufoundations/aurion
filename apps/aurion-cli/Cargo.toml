@@ -8,6 +8,7 @@ license.workspace = true
 tracing = { workspace = true }
 aurion-config = { path = "../../config", version = "0.1.0"}
 aurion-criptografi = { path = "../../crates/aurion-criptografi", version = "0.1.0"}
+aurion-core = { path = "../../crates/aurion-core", version = "0.1.0"}
 aurion-ledger = { path = "../../crates/aurion-ledger", version = "0.1.0"}
 aurion-gateway = { path = "../../crates/aurion-gateway", version = "0.1.0"}
 

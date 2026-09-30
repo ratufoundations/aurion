@@ -1,3 +1,4 @@
+use aurion_core::types::Quanta;
 use aurion_criptografi::PublicKeyBytes;
 use thiserror::Error;
 
@@ -16,13 +17,13 @@ pub enum MempoolError {
     DuplicateTransaction,
 
     #[error("Saldo tidak mencukupi: tersedia {available}, dibutuhkan total {required}")]
-    InsufficientBalance { available: u64, required: u64 },
+    InsufficientBalance { available: Quanta, required: Quanta },
 
     #[error("Overflow saat menghitung kebutuhan saldo transaksi")]
     ArithmeticOverflow,
 
     #[error("Fee {fee} di bawah minimum jaringan {minimum}")]
-    FeeTooLow { fee: u64, minimum: u64 },
+    FeeTooLow { fee: Quanta, minimum: Quanta },
 
     #[error("Kapasitas maksimum mempool ({capacity}) tercapai")]
     PoolCapacityReached { capacity: usize },

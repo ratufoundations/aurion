@@ -1,4 +1,5 @@
 use crate::{delegation::DeviceCertificate, domain::hash_transaction_payload, error::WalletError};
+use aurion_core::types::Quanta;
 use aurion_core::Transaction;
 use aurion_criptografi::{Hash256, Keypair, PublicKeyBytes};
 
@@ -56,9 +57,9 @@ impl AurionWallet {
     pub fn build_transaction(
         &self,
         recipient: PublicKeyBytes,
-        amount: u64,
+        amount: Quanta,
         nonce: u64,
-        fee: u64,
+        fee: Quanta,
     ) -> Transaction {
         let sender = self.identity.public_key_bytes();
         let payload = Transaction::payload_bytes(&sender, &recipient, amount, nonce, fee);

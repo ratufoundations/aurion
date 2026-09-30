@@ -1,3 +1,4 @@
+use crate::types::Quanta;
 use aurion_criptografi::PublicKeyBytes;
 use thiserror::Error;
 
@@ -7,7 +8,7 @@ pub enum ExecutionError {
     AccountNotFound(PublicKeyBytes),
 
     #[error("Saldo tidak mencukupi: tersedia {available}, dibutuhkan {required}")]
-    InsufficientBalance { available: u64, required: u64 },
+    InsufficientBalance { available: Quanta, required: Quanta },
 
     #[error("Fee transaksi harus lebih besar dari nol")]
     FeeTooLow,
@@ -20,6 +21,9 @@ pub enum ExecutionError {
 
     #[error("Terjadi luapan aritmatika (arithmetic overflow)")]
     ArithmeticOverflow,
+
+    #[error("Pembagi nol tidak diperbolehkan dalam aritmetika Quanta")]
+    DivisionByZero,
 
     #[error("Tanda tangan kriptografi transaksi tidak sah")]
     InvalidSignature,

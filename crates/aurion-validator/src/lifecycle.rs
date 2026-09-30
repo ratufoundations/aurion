@@ -15,6 +15,7 @@ use crate::{
     status::{SuspensionReason, ValidatorStatus},
 };
 use aurion_account::{AccountId, DeviceRole, Role, SovereignAccount, MIN_VALIDATOR_STAKE_QUANTA};
+use aurion_core::types::Quanta;
 use aurion_criptografi::{Hash256, PublicKeyBytes};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -136,7 +137,7 @@ pub struct EpochRotation {
     /// Validator yang turun kembali ke `Eligible` pada rotasi ini.
     pub demoted: Vec<AccountId>,
     /// Peringkat penuh kandidat: `(akun, skor BPS-terbobot)`.
-    pub ranking: Vec<(AccountId, u64)>,
+    pub ranking: Vec<(AccountId, Quanta)>,
 }
 
 /// Hasil pemotongan stake denda (*slashing*) (V4/V5).
@@ -145,9 +146,9 @@ pub struct SlashOutcome {
     /// Akun yang dikenai pemotongan.
     pub account: AccountId,
     /// Jumlah Quanta yang dipotong (pembulatan bilangan bulat ke bawah).
-    pub slashed_quanta: u64,
+    pub slashed_quanta: Quanta,
     /// Sisa stake setelah pemotongan.
-    pub remaining_stake_quanta: u64,
+    pub remaining_stake_quanta: Quanta,
     /// Jumlah endorsement yang dicabut karena pengesah dinodai.
     pub endorsements_revoked: usize,
     /// `true` bila pemotongan memicu penangguhan otomatis.
@@ -983,8 +984,8 @@ impl ValidatorLifecycle {
     /// # Errors
     /// Mengembalikan `ValidatorError::ArithmeticOverflow` bila akumulasi meluap
     /// atau skor kinerja tidak dapat dihitung.
-    pub fn quorum_weight(&self) -> Result<u64, ValidatorError> {
-        let mut total: u64 = 0;
+    pub fn quorum_weight(&self) -> Result<Quanta, ValidatorError> {
+        let mut total: Quanta = 0;
         for record in self.records.values() {
             if record.status.counts_toward_quorum() {
                 let weight =
@@ -999,8 +1000,8 @@ impl ValidatorLifecycle {
     ///
     /// # Errors
     /// Mengembalikan `ValidatorError::ArithmeticOverflow` bila akumulasi meluap.
-    pub fn total_stake_quanta(&self) -> Result<u64, ValidatorError> {
-        self.records.values().try_fold(0_u64, |total, record| {
+    pub fn total_stake_quanta(&self) -> Result<Quanta, ValidatorError> {
+        self.records.values().try_fold(0, |total, record| {
             accumulate_weight(total, record.stake_quanta)
         })
     }

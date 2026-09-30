@@ -1,6 +1,7 @@
 use crate::capability::{Capability, CapabilityHandle, CapabilityRegistry, ModuleId};
 use crate::error::ExecutionError;
 use crate::store_key::{NamespaceStore, StoreKey};
+use aurion_core::types::Quanta;
 
 pub trait Keeper {
     fn store_key(&self) -> &StoreKey;
@@ -43,18 +44,18 @@ impl AccountKeeper {
         &self,
         store: &mut NamespaceStore<'_>,
         account: &[u8; 32],
-    ) -> Result<u64, ExecutionError> {
+    ) -> Result<Quanta, ExecutionError> {
         let key = self.balance_key(account);
         match store.get(&key)? {
             Some(bytes) => {
-                let slice: [u8; 8] =
+                let slice: [u8; 16] =
                     bytes
                         .as_slice()
                         .try_into()
                         .map_err(|_| ExecutionError::MalformedState {
-                            reason: "Format saldo rusak (bukan 8-byte u64)",
+                            reason: "Format saldo rusak (bukan 16-byte u128)",
                         })?;
-                Ok(u64::from_be_bytes(slice))
+                Ok(u128::from_be_bytes(slice))
             }
             None => Ok(0),
         }
@@ -64,7 +65,7 @@ impl AccountKeeper {
         &self,
         store: &mut NamespaceStore<'_>,
         account: &[u8; 32],
-        balance: u64,
+        balance: Quanta,
     ) -> Result<(), ExecutionError> {
         let key = self.balance_key(account);
         store.set(&key, &balance.to_be_bytes())
@@ -75,7 +76,7 @@ impl AccountKeeper {
         store: &mut NamespaceStore<'_>,
         from: &[u8; 32],
         to: &[u8; 32],
-        amount: u64,
+        amount: Quanta,
     ) -> Result<(), ExecutionError> {
         if from == to {
             return Err(ExecutionError::SelfTransferForbidden);
@@ -112,7 +113,7 @@ impl AccountKeeper {
         handle: &CapabilityHandle,
         current_block: u64,
         owner: &[u8; 32],
-        amount: u64,
+        amount: Quanta,
     ) -> Result<(), ExecutionError> {
         registry.authorize(handle, current_block)?;
 
@@ -181,7 +182,7 @@ impl StakingKeeper {
         handle: &CapabilityHandle,
         current_block: u64,
         staker: &[u8; 32],
-        amount: u64,
+        amount: Quanta,
     ) -> Result<(), ExecutionError> {
         // Panggil metode berhak istimewa di AccountKeeper menggunakan handle
         account_keeper.lock_balance(
@@ -201,12 +202,12 @@ impl StakingKeeper {
         let current_stake =
             match staking_store.get(&key)? {
                 Some(bytes) => {
-                    let slice: [u8; 8] = bytes.as_slice().try_into().map_err(|_| {
+                    let slice: [u8; 16] = bytes.as_slice().try_into().map_err(|_| {
                         ExecutionError::MalformedState {
-                            reason: "Format stake rusak",
+                            reason: "Format stake rusak (bukan 16-byte u128)",
                         }
                     })?;
-                    u64::from_be_bytes(slice)
+                    u128::from_be_bytes(slice)
                 }
                 None => 0,
             };

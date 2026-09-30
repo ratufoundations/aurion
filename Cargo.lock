@@ -291,6 +291,7 @@ name = "aurion-cli"
 version = "0.1.0"
 dependencies = [
  "aurion-config",
+ "aurion-core",
  "aurion-criptografi",
  "aurion-gateway",
  "aurion-ledger",

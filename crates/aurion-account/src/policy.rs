@@ -1,4 +1,5 @@
 use crate::error::AccountError;
+use aurion_core::types::Quanta;
 
 /// Ambang kuorum baku protokol dalam persen bilangan bulat (`u64`).
 pub const QUORUM_THRESHOLD_PERCENT: u64 = 67;
@@ -27,9 +28,9 @@ pub fn meets_integer_quorum(accumulated: u64, total: u64, threshold_percent: u64
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SpendingPolicy {
-    pub max_per_tx: u64,
-    pub daily_quota: u64,
-    pub current_spent: u64,
+    pub max_per_tx: Quanta,
+    pub daily_quota: Quanta,
+    pub current_spent: Quanta,
     pub last_reset_time: u64,
 }
 
@@ -47,20 +48,24 @@ impl Default for SpendingPolicy {
 impl SpendingPolicy {
     /// Sisa kuota harian dalam Quanta (bilangan bulat; nol bila kuota terlampaui).
     #[must_use]
-    pub fn remaining_quota(&self) -> u64 {
+    pub fn remaining_quota(&self) -> Quanta {
         self.daily_quota.saturating_sub(self.current_spent)
     }
 
     /// Periksa batas transaksi/kuota dan mutakhirkan pemakaian.
     ///
-    /// Akumulasi pemakaian memakai `checked_add`, sehingga luapan `u64` selalu
+    /// Akumulasi pemakaian memakai `checked_add`, sehingga luapan `u128` selalu
     /// menjadi error bertipe dan tidak pernah membungkam batas kuota.
     ///
     /// # Errors
     /// Mengembalikan `AccountError::ExceedsPerTxLimit` bila melampaui batas per
     /// transaksi, `AccountError::ExceedsDailyQuota` bila kuota harian terlampaui,
     /// dan `AccountError::ArithmeticOverflow` bila akumulasi meluap.
-    pub fn check_and_update(&mut self, amount: u64, current_time: u64) -> Result<(), AccountError> {
+    pub fn check_and_update(
+        &mut self,
+        amount: Quanta,
+        current_time: u64,
+    ) -> Result<(), AccountError> {
         if current_time.saturating_sub(self.last_reset_time) >= DAILY_QUOTA_WINDOW_SECONDS {
             self.current_spent = 0;
             self.last_reset_time = current_time;

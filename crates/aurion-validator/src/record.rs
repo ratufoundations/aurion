@@ -4,6 +4,7 @@ use crate::{
     status::{SuspensionReason, ValidatorStatus},
 };
 use aurion_account::AccountId;
+use aurion_core::types::Quanta;
 use aurion_criptografi::{Hash256, PublicKeyBytes};
 use std::collections::BTreeSet;
 
@@ -20,8 +21,8 @@ pub struct ValidatorRecord {
     pub consensus_pubkey: PublicKeyBytes,
     /// Kunci master akun yang berwenang mengesahkan permohonan pemulihan.
     pub master_keys: BTreeSet<PublicKeyBytes>,
-    /// Stake terkunci (satuan Quanta `u64`).
-    pub stake_quanta: u64,
+    /// Stake terkunci (satuan Quanta `u128`).
+    pub stake_quanta: Quanta,
     /// Status siklus hidup saat ini.
     pub status: ValidatorStatus,
     /// Blok saat validator diterima ke masa percobaan.
@@ -49,7 +50,7 @@ pub struct ValidatorRecord {
     /// Nonce otorisasi pemulihan (naik atomik setiap `unjail` sah).
     pub unjail_nonce: u64,
     /// Akumulasi stake yang telah dipotong (`slashing`).
-    pub slashed_quanta: u64,
+    pub slashed_quanta: Quanta,
     /// Tinggi bukti (evidence) yang memicu karantina ireversibel; `0` bila
     /// rekaman tidak pernah di-tombstone.
     pub tombstone_evidence_height: u64,
@@ -62,7 +63,7 @@ impl ValidatorRecord {
         account: AccountId,
         consensus_pubkey: PublicKeyBytes,
         master_keys: BTreeSet<PublicKeyBytes>,
-        stake_quanta: u64,
+        stake_quanta: Quanta,
         admitted_at_block: u64,
     ) -> Self {
         Self {

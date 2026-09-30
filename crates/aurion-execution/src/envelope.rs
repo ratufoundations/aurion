@@ -1,4 +1,5 @@
 use crate::error::ExecutionError;
+use aurion_core::types::Quanta;
 
 pub const ENVELOPE_DOMAIN_TAG: &[u8] = b"AURION_TX_ENVELOPE_V1";
 
@@ -9,7 +10,7 @@ pub struct TransactionEnvelope {
     pub chain_id: u64,
     pub nonce: u64,
     pub sender: [u8; 32],
-    pub fee: u64,
+    pub fee: Quanta,
     pub target_module: [u8; 4],
     pub payload: Vec<u8>,
     pub signature: [u8; 64],

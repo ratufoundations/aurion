@@ -150,8 +150,8 @@ async fn cmd_status(chain_id: u64) -> Result<(), Box<dyn Error + Send + Sync>> {
     Ok(())
 }
 
-/// Konstanta konversi unit saldo: 1 AUR = 1.000.000 Quanta.
-const QUANTA_PER_AUR: u64 = 1_000_000;
+/// Rasio konversi unit saldo kanonikal: 1 AUR = 10^10 Quanta (dari `aurion-core`).
+use aurion_core::QUANTA_PER_AUR;
 
 /// 3. Perintah Balance (Zero-float: kalkulasi konversi Quanta ke AUR via modulus)
 async fn cmd_balance(chain_id: u64, address: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -179,13 +179,17 @@ async fn cmd_balance(chain_id: u64, address: &str) -> Result<(), Box<dyn Error +
                     return Ok(());
                 }
 
-                let balance_quanta = v["balance"].as_u64().unwrap_or(0);
+                // Saldo dikirim gateway sebagai string desimal (presisi u128 penuh)
+                let balance_quanta: u128 = v["balance"]
+                    .as_str()
+                    .and_then(|s| s.parse().ok())
+                    .unwrap_or(0);
                 let nonce = v["nonce"].as_u64().unwrap_or(0);
 
                 // Perhitungan fixed-point tanpa float
                 let whole_aur = balance_quanta / QUANTA_PER_AUR;
                 let remainder_quanta = balance_quanta % QUANTA_PER_AUR;
-                let formatted_aur = format!("{whole_aur}.{remainder_quanta:06} AUR");
+                let formatted_aur = format!("{whole_aur}.{remainder_quanta:010} AUR");
 
                 let mut table = Table::new();
                 table.load_preset(UTF8_FULL);

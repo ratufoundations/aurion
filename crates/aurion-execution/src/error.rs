@@ -1,4 +1,5 @@
 use crate::capability::ModuleId;
+use aurion_core::types::Quanta;
 use thiserror::Error;
 
 /// Tipe galat terstruktur untuk subsistem eksekusi Aurion.
@@ -37,7 +38,7 @@ pub enum ExecutionError {
     MalformedState { reason: &'static str },
 
     #[error("Saldo tidak mencukupi: tersedia {available}, dibutuhkan {required}")]
-    InsufficientBalance { available: u64, required: u64 },
+    InsufficientBalance { available: Quanta, required: Quanta },
 
     #[error("Transfer ke alamat terlarang ditolak: {0:?}")]
     ForbiddenRecipient([u8; 32]),

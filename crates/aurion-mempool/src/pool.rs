@@ -1,4 +1,5 @@
 use crate::error::MempoolError;
+use aurion_core::types::Quanta;
 use aurion_core::{Account, Block, State, Transaction};
 use aurion_criptografi::PublicKeyBytes;
 use std::cmp::Ordering;
@@ -8,7 +9,7 @@ use std::collections::{BTreeMap, BinaryHeap, HashMap};
 pub struct MempoolConfig {
     pub max_total_transactions: usize,
     pub max_txs_per_account: usize,
-    pub minimum_fee: u64,
+    pub minimum_fee: Quanta,
 }
 
 impl Default for MempoolConfig {
@@ -28,7 +29,7 @@ pub struct PooledTransaction {
 
 #[derive(Debug, Eq, PartialEq)]
 struct CandidateKey {
-    fee: u64,
+    fee: Quanta,
     sender: PublicKeyBytes,
     nonce: u64,
 }
@@ -133,7 +134,7 @@ impl Mempool {
             sender_queue
                 .into_iter()
                 .flat_map(|q| q.values())
-                .try_fold(0_u64, |sum, pooled| {
+                .try_fold(0_u128, |sum, pooled| {
                     let spend = pooled
                         .tx
                         .amount
@@ -284,9 +285,9 @@ mod tests {
     fn make_tx(
         keypair: &Keypair,
         recipient: PublicKeyBytes,
-        amount: u64,
+        amount: u128,
         nonce: u64,
-        fee: u64,
+        fee: u128,
     ) -> Transaction {
         let sender = keypair.public_key_bytes();
         let payload = Transaction::payload_bytes(&sender, &recipient, amount, nonce, fee);

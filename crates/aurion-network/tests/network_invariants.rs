@@ -20,9 +20,9 @@ fn key(seed: u8) -> Keypair {
 fn signed_tx(
     sender: &Keypair,
     recipient: [u8; 32],
-    amount: u64,
+    amount: u128,
     nonce: u64,
-    fee: u64,
+    fee: u128,
 ) -> Transaction {
     let pk = sender.public_key_bytes();
     let unsigned = Transaction::new(pk, recipient, amount, nonce, fee, [0; 64]);

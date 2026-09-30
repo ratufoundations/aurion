@@ -15,31 +15,32 @@ pub struct Codec;
 
 impl Codec {
     // ==========================================
-    // ACCOUNT CODEC (16 Bytes)
+    // ACCOUNT CODEC (24 Bytes: Balance u128 + Nonce u64)
     // ==========================================
     #[must_use]
-    pub fn encode_account(acc: &Account) -> [u8; 16] {
-        let mut buf = [0u8; 16];
-        buf[0..8].copy_from_slice(&acc.balance.to_le_bytes());
-        buf[8..16].copy_from_slice(&acc.nonce.to_le_bytes());
+    pub fn encode_account(acc: &Account) -> [u8; 24] {
+        let mut buf = [0u8; 24];
+        buf[0..16].copy_from_slice(&acc.balance.to_le_bytes());
+        buf[16..24].copy_from_slice(&acc.nonce.to_le_bytes());
         buf
     }
 
     #[must_use]
-    pub fn decode_account(bytes: &[u8; 16]) -> Account {
-        let balance = u64::from_le_bytes([
-            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
-        ]);
-        let nonce = u64::from_le_bytes([
-            bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15],
-        ]);
-        Account::new(balance, nonce)
+    pub fn decode_account(bytes: &[u8; 24]) -> Account {
+        let mut balance_bytes = [0u8; 16];
+        balance_bytes.copy_from_slice(&bytes[0..16]);
+        let mut nonce_bytes = [0u8; 8];
+        nonce_bytes.copy_from_slice(&bytes[16..24]);
+        Account::new(
+            u128::from_le_bytes(balance_bytes),
+            u64::from_le_bytes(nonce_bytes),
+        )
     }
 
     // ==========================================
-    // TRANSACTION CODEC (152 Bytes Fixed)
+    // TRANSACTION CODEC (168 Bytes Fixed)
     // ==========================================
-    pub const TX_SIZE: usize = 152;
+    pub const TX_SIZE: usize = 168;
 
     #[must_use]
     pub fn encode_tx(tx: &Transaction) -> [u8; Self::TX_SIZE] {
@@ -47,9 +48,9 @@ impl Codec {
         buf[0..8].copy_from_slice(&tx.nonce.to_le_bytes());
         buf[8..40].copy_from_slice(&tx.sender);
         buf[40..72].copy_from_slice(&tx.recipient);
-        buf[72..80].copy_from_slice(&tx.amount.to_le_bytes());
-        buf[80..88].copy_from_slice(&tx.fee.to_le_bytes());
-        buf[88..152].copy_from_slice(&tx.signature);
+        buf[72..88].copy_from_slice(&tx.amount.to_le_bytes());
+        buf[88..104].copy_from_slice(&tx.fee.to_le_bytes());
+        buf[104..168].copy_from_slice(&tx.signature);
         buf
     }
 
@@ -67,9 +68,9 @@ impl Codec {
         let nonce = u64::from_le_bytes(read_array(&slice[0..8])?);
         let sender = read_array(&slice[8..40])?;
         let recipient = read_array(&slice[40..72])?;
-        let amount = u64::from_le_bytes(read_array(&slice[72..80])?);
-        let fee = u64::from_le_bytes(read_array(&slice[80..88])?);
-        let signature = read_array(&slice[88..152])?;
+        let amount = u128::from_le_bytes(read_array(&slice[72..88])?);
+        let fee = u128::from_le_bytes(read_array(&slice[88..104])?);
+        let signature = read_array(&slice[104..168])?;
 
         Ok(Transaction::new(
             sender, recipient, amount, nonce, fee, signature,
@@ -77,7 +78,7 @@ impl Codec {
     }
 
     // ==========================================
-    // BLOCK CODEC (116 Bytes Header + N * 152 Bytes TX)
+    // BLOCK CODEC (116 Bytes Header + N * 168 Bytes TX)
     // ==========================================
     pub const HEADER_SIZE: usize = 116;
 

@@ -53,7 +53,7 @@ fn key(seed: u8) -> Keypair {
 }
 
 /// Akun berdaulat ber-peran `ValidatorCandidate` dengan komitmen stake.
-fn candidate_account(seed: u8, stake_quanta: u64) -> (Keypair, SovereignAccount) {
+fn candidate_account(seed: u8, stake_quanta: u128) -> (Keypair, SovereignAccount) {
     let master = key(seed);
     let account_id = derive_account_id(&master.public_key_bytes());
     let mut account = SovereignAccount::register(
@@ -104,7 +104,7 @@ fn drive_probation(lifecycle: &mut ValidatorLifecycle, account: &AccountId) {
 fn onboard(
     lifecycle: &mut ValidatorLifecycle,
     seed: u8,
-    stake_quanta: u64,
+    stake_quanta: u128,
     misses_before_graduation: u64,
 ) -> (Keypair, SovereignAccount) {
     let consensus_key = key(seed.saturating_add(100));
@@ -606,7 +606,7 @@ fn v2_selection_is_deterministic_ordered_and_stable_across_epochs() {
     let mut backward = ValidatorLifecycle::new(test_policy()).expect("kebijakan valid");
     let mut accounts: Vec<SovereignAccount> = Vec::new();
     for seed in 1_u8..=5 {
-        let stake = MIN_VALIDATOR_STAKE_QUANTA + u64::from(seed);
+        let stake = MIN_VALIDATOR_STAKE_QUANTA + u128::from(seed);
         let (_master, account) = candidate_account(seed, stake);
         accounts.push(account);
     }
@@ -648,7 +648,7 @@ fn v2_selection_is_deterministic_ordered_and_stable_across_epochs() {
         .take(3)
         .map(|account| account.account_id)
         .collect();
-    let ranking_expected: Vec<(AccountId, u64)> = accounts
+    let ranking_expected: Vec<(AccountId, u128)> = accounts
         .iter()
         .rev()
         .map(|account| (account.account_id, account.staked_quanta))
@@ -1652,7 +1652,7 @@ fn v5_bps_arithmetic_is_exact_floor_and_fail_closed() {
         499
     );
     assert_eq!(effective_stake_quanta(1, 9_999).expect("tanpa luapan"), 0);
-    match effective_stake_quanta(u64::MAX, BPS_DENOMINATOR) {
+    match effective_stake_quanta(u128::MAX, BPS_DENOMINATOR) {
         Err(ValidatorError::ArithmeticOverflow) => {}
         other => panic!("luapan stake efektif harus ditolak, bukan {other:?}"),
     }
@@ -1673,14 +1673,14 @@ fn v5_bps_arithmetic_is_exact_floor_and_fail_closed() {
         }
         other => panic!("tarif slash tak sah harus ditolak, bukan {other:?}"),
     }
-    match slash_amount(u64::MAX, BPS_DENOMINATOR) {
+    match slash_amount(u128::MAX, BPS_DENOMINATOR) {
         Err(ValidatorError::ArithmeticOverflow) => {}
         other => panic!("luapan slash harus ditolak, bukan {other:?}"),
     }
 
     // Akumulasi bobot: luapan menjadi galat, bukan pembungkusan diam.
     assert_eq!(accumulate_weight(1, 2).expect("tanpa luapan"), 3);
-    match accumulate_weight(u64::MAX, 1) {
+    match accumulate_weight(u128::MAX, 1) {
         Err(ValidatorError::ArithmeticOverflow) => {}
         other => panic!("luapan akumulasi harus ditolak, bukan {other:?}"),
     }
@@ -1693,7 +1693,7 @@ fn v5_bps_arithmetic_is_exact_floor_and_fail_closed() {
     assert!(!meets_bps_quorum(100, 0, 5_000));
     assert!(!meets_bps_quorum(100, 500, 0));
     assert!(!meets_bps_quorum(100, 500, BPS_DENOMINATOR + 1));
-    assert!(!meets_bps_quorum(u64::MAX, u64::MAX, BPS_DENOMINATOR));
+    assert!(!meets_bps_quorum(u128::MAX, u128::MAX, BPS_DENOMINATOR));
 }
 
 #[test]

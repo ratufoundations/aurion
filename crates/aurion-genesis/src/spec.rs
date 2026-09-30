@@ -1,8 +1,10 @@
 use crate::{error::GenesisError, roles::FederationTopology};
+use aurion_core::types::Quanta;
 use aurion_criptografi::PublicKeyBytes;
 use serde::{Deserialize, Serialize};
 
-pub const QUANTA_PER_AUR: u64 = 1_000_000;
+/// Rasio presisi kanonikal: 1 AUR = 10^10 Quanta (definisi pusat dari `aurion-core`).
+pub use aurion_core::types::QUANTA_PER_AUR;
 pub const TOTAL_GENESIS_SUPPLY_AUR: u64 = 66_000_000;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,8 +52,8 @@ impl GenesisSpec {
     /// # Errors
     ///
     /// Mengembalikan error jika konversi suplai ke Quanta meluap.
-    pub fn total_supply_quanta(&self) -> Result<u64, GenesisError> {
-        self.initial_supply_aur
+    pub fn total_supply_quanta(&self) -> Result<Quanta, GenesisError> {
+        u128::from(self.initial_supply_aur)
             .checked_mul(QUANTA_PER_AUR)
             .ok_or(GenesisError::ArithmeticOverflow)
     }

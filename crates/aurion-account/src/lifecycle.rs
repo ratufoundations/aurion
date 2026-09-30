@@ -1,9 +1,10 @@
 use crate::{error::AccountError, role::Role, state::SovereignAccount};
+use aurion_core::types::Quanta;
 
-/// Reserve minimum (satuan Quanta `u64`) agar akun baru boleh terdaftar.
+/// Reserve minimum (satuan Quanta `u128`) agar akun baru boleh terdaftar.
 ///
 /// Nilai ini adalah ambang *placement* anti state-bloat, bukan kebijakan moneter.
-pub const MIN_ACCOUNT_RESERVE_QUANTA: u64 = 1_000;
+pub const MIN_ACCOUNT_RESERVE_QUANTA: Quanta = 1_000;
 
 /// Hasil keputusan penerimaan transfer terhadap siklus hidup akun.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -29,7 +30,7 @@ impl AccountLifecycle {
     /// akun baru berada di bawah `MIN_ACCOUNT_RESERVE_QUANTA` (termasuk nol).
     pub fn admit_transfer(
         target_exists: bool,
-        amount: u64,
+        amount: Quanta,
     ) -> Result<AdmissionOutcome, AccountError> {
         if !target_exists && amount < MIN_ACCOUNT_RESERVE_QUANTA {
             return Err(AccountError::BelowDustThreshold {

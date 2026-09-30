@@ -1,10 +1,11 @@
 #![forbid(unsafe_code)]
 
 use crate::{council::MINIMUM_GUARD_QUORUM, error::GuardError};
+use aurion_core::types::{Quanta, QUANTA_PER_AUR};
 use aurion_criptografi::PublicKeyBytes;
 
-/// 660.000 AUR dalam satuan Quanta (1 AUR = 1.000.000 Quanta)
-pub const DEFAULT_MIN_GUARD_STAKE_QUANTA: u64 = 660_000 * 1_000_000;
+/// 660.000 AUR dalam satuan Quanta (1 AUR = 10.000.000.000 Quanta).
+pub const DEFAULT_MIN_GUARD_STAKE_QUANTA: Quanta = 660_000 * QUANTA_PER_AUR;
 
 /// Bobot penilaian kontribusi validator (Integer murni)
 pub const WEIGHT_PROPOSED_BLOCK: u64 = 100;
@@ -15,7 +16,7 @@ pub const PENALTY_MISSED_ROUND: u64 = 500;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CandidateProfile {
     pub validator: PublicKeyBytes,
-    pub stake_quanta: u64,
+    pub stake_quanta: Quanta,
     pub blocks_proposed: u64,
     pub votes_cast: u64,
     pub missed_rounds: u64,
@@ -43,7 +44,7 @@ impl CandidateProfile {
 
 #[derive(Debug, Clone)]
 pub struct ElectionConfig {
-    pub min_stake_quanta: u64,
+    pub min_stake_quanta: Quanta,
     pub target_seats: usize,
 }
 
