@@ -9,6 +9,7 @@ members = [
     "crates/aurion-mempool",
     "crates/aurion-network",
     "crates/aurion-contract",
+    "crates/aurion-channel",
     "crates/aurion-wallet",
     "crates/aurion-account",
     "crates/aurion-genesis",

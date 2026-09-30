@@ -287,6 +287,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aurion-channel"
+version = "0.1.0"
+dependencies = [
+ "aurion-core",
+ "aurion-criptografi",
+ "aurion-execution",
+ "blake3",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "aurion-cli"
 version = "0.1.0"
 dependencies = [

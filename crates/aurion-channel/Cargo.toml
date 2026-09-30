@@ -1,0 +1,18 @@
+[package]
+name = "aurion-channel"
+version = "0.1.0"
+edition = "2021"
+authors = ["Aurion Foundation"]
+license = "MIT OR Apache-2.0"
+description = "Mesin pembayaran mikro native dengan State Channel (pengganti arsitektur aurion-contract)"
+
+[dependencies]
+aurion-core = { path = "../aurion-core", version = "0.1.0" }
+aurion-criptografi = { path = "../aurion-criptografi", version = "0.1.0" }
+aurion-execution = { path = "../aurion-execution", version = "0.1.0" }
+
+blake3 = "1.5"
+thiserror = "1.0"
+
+[lints]
+workspace = true
