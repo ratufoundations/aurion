@@ -1,3 +1,9 @@
+## 2026-09-30 — Pembersihan `crates/aurion-contract` (digantikan `aurion-channel`)
+- Menghapus `crates/aurion-contract/` dari workspace dan dari `[workspace.members]` di `Cargo.toml` (kembali ke 17 members: config + 13 crates + 3 apps).
+- Memperbarui `docs/STRUKTUR-FOLDER.txt` (entri aurion-contract dihapus), `docs/task-register/TASK-aurion-channel.md` (item 8: DIHAPUS), dan `docs/task-register/TASK-aurion-sdk.md` (item 7: DIHAPUS).
+- Tidak ada crate lain yang depend pada `aurion-contract` (verifikasi grep seluruh workspace).
+- Hasil verifikasi: `cargo check --workspace --all-targets` sukses; `cargo clippy --workspace --all-targets --all-features -- -D warnings` sukses; `cargo test --workspace` 6 passed/0 failed (aurion-channel); `cargo fmt --all --check` bersih; `python3 tools/aurion_guard.py check` exit 0.
+
 ## 2026-09-30 — Implementasi `crates/aurion-channel` (Native Micropayment State Channel) dan register TASK-aurion-channel
 - Mendaftarkan `docs/task-register/TASK-aurion-channel.md` (status IN_PROGRESS/ACTIVE) dan menambahkan `crates/aurion-channel` ke `[workspace.members]` (18 members: config + 14 crates + 3 apps).
 - Membangun mesin state channel native: `error.rs` (`ChannelError` + `From<ExecutionError>`), `types.rs` (`ChannelId`, `ChannelStatus`, `ChannelState` 130-byte, `BalanceProof` 128-byte), `keeper.rs` (`ChannelKeeper`: open/submit_close/close_cooperatively/settle_after_challenge), dan `tests/channel_invariants.rs` (6 testcase CH0–CH5).

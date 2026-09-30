@@ -341,16 +341,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aurion-contract"
-version = "0.1.0"
-dependencies = [
- "aurion-core",
- "aurion-criptografi",
- "thiserror 1.0.69",
- "tracing",
-]
-
-[[package]]
 name = "aurion-core"
 version = "0.1.0"
 dependencies = [

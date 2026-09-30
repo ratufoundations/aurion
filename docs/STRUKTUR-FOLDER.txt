@@ -11,7 +11,6 @@ aurion/
 │   ├── aurion-account/            # [AKTIF] SovereignAccount, derivasi alamat berdaulat (A0), Role/RBAC (A1), rotasi kunci & multi-sig (A2), anti-replay delegasi (A3), dust/state-bloat (A4), kuota nir-pecahan (A5); tes A0–A5
 │   ├── aurion-channel/            # [AKTIF] Native Micropayment State Channel (pengganti aurion-contract): escrow atomik, BalanceProof 128B, challenge window, konservasi nilai; tes CH0–CH5
 │   ├── aurion-consensus/          # [AKTIF] ValidatorSet, RoundState, signed votes/QC, equivocation evidence, timeout/view change; tes B0–B5
-│   ├── aurion-contract/           # [DITANGGUHKAN] VM eksperimental (baseline penelitian, BUKAN keputusan final; disimpan di workspace, bukan dipakai runtime)
 │   ├── aurion-core/               # [AKTIF] Account, Transaction, Block, State; ST0–ST3 dan ST5 linkage tests; fee/timestamp protocol pending
 │   ├── aurion-execution/          # [AKTIF] Capability-Keeper RFC-001, Transactional Cache CoW, StoreKey isolation, fuel metering u64, invarian E0–E5
 │   ├── aurion-criptografi/        # [AKTIF] hash BLAKE3 + Ed25519; tes integrasi invarian C0–C7 di crates/aurion-criptografi/tests/
@@ -51,7 +50,7 @@ aurion/
 │   └── audit.sh                   # guard + fmt + strict Clippy + workspace tests + optional cargo audit/deny
 ├── clippy.toml                    # larangan f32/f64 (alasan: determinisme consensus)
 ├── deny.toml                      # kebijakan advisories/licenses/bans/sources
-├── Cargo.toml                     # [workspace] resolver=3, 18 members (config + 14 crates + 3 apps), [workspace.dependencies] tracing/tracing-subscriber/tracing-appender/toml, [workspace.lints] unsafe forbid + float deny + unwrap_used deny
+├── Cargo.toml                     # [workspace] resolver=3, 17 members (config + 13 crates + 3 apps), [workspace.dependencies] tracing/tracing-subscriber/tracing-appender/toml, [workspace.lints] unsafe forbid + float deny + unwrap_used deny
 ├── Cargo.lock                     # lockfile
 └── target/                        # [GENERATED] build/database artifacts Cargo, diabaikan Git
 

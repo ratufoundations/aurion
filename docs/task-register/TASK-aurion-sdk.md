@@ -155,9 +155,7 @@ Layout byte eksak (urutan sama dengan `crates/aurion-ledger/src/codec.rs` → `e
 6. **Paket di luar cakupan guard scanner.** `tools/aurion_guard.py` meng-scan hanya
    `crates/`, `apps/`, `config/` dan berkas `.rs`; `packages/aurion-sdk` (TS) tidak
    dimintai linter Rust — disiplin zero-float dijaga oleh tes SDK4.
-7. **`aurion-contract` DITANGGUHKAN.** `crates/aurion-contract` (VM eksperimental)
-   dipertahankan sebagai baseline penelitian dalam workspace, tetapi `docs/STRUKTUR-FOLDER.txt`
-   menandainya `[DITANGGUHKAN]` (bukan `[AKTIF]`) karena bukan keputusan final.
+7. **`aurion-contract` DIHAPUS.** `crates/aurion-contract` (VM eksperimental) telah dihapus dari workspace; `aurion-channel` menjadi penggantinya.
 
 ---
 

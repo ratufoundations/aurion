@@ -60,7 +60,7 @@ Lebar tiket streaming off-chain: `channel_id(8) + nonce(8) + transferred(16) + s
 5. **`channel_id` deterministik.** `channel_id = blake3("AURION_CHANNEL_ID_V1" || sender || receiver || deposit_le || challenge_blocks_le)[..8]`. Dua open identik menghasilkan id sama → `ChannelAlreadyExists` (idempotensi). Beda deposit/blocks → id berbeda.
 6. **Serialisasi state 130-byte.** Record channel dalam namespace: versi (u8) + status (u8) + channel_id (8) + sender (32) + receiver (32) + total_deposit (16 LE) + settled_amount (16 LE) + last_nonce (8 LE) + challenge_period (8 LE) + expire_height (8 LE, `0` bila Open/Settled). Determinis dan leksikografis stabil.
 7. **Varian error tambahan.** `InsufficientSenderBalance { available, required }` (CH1: saldo kurang saat open), `ChannelSettled`, `NotInChallengeWindow` — di luar delapan varian dasar draft namun diperlukan untuk invariants.
-8. **`crates/aurion-contract` tetap ditanggguhkan** (bukan dihapus); mesin micro-payment native menggantikan arah arsitektur VM Wasm.
+8. **`crates/aurion-contract` DIHAPUS.** VM eksperimental telah dihapus dari workspace (commit pembersihan); mesin micro-payment native `aurion-channel` menggantikan arah arsitektur VM Wasm secara permanen.
 
 ---
 
