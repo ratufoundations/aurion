@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+#![allow(clippy::expect_used, clippy::unwrap_used)]
 
 use aurion_execution::{
     compute_state_root, AccountKeeper, Action, ActionBatch, ArbitraryModule,
@@ -300,8 +301,7 @@ fn test_e4_zero_float_fuel_metering_exhaustion() {
     for (idx, content) in src_files.iter().enumerate() {
         assert!(
             !content.contains("f32") && !content.contains("f64"),
-            "Pelanggaran Zero-Float: Ditemukan tipe float pada berkas index {}",
-            idx
+            "Pelanggaran Zero-Float: Ditemukan tipe float pada berkas index {idx}"
         );
     }
 }
