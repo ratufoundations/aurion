@@ -3,7 +3,7 @@
 
 use aurion_consensus::{
     calculate_quorum, BlockProposal, ConsensusBlockHeader, PrecommitVote, QuorumCertificate,
-    ValidatorSet, HEADER_SIZE, MIN_PROPOSAL_SIZE, PRECOMMIT_VOTE_SIZE, PROPOSAL_MAGIC,
+    ValidatorSet, HEADER_SIZE, PRECOMMIT_VOTE_SIZE, PROPOSAL_MAGIC,
 };
 use aurion_criptografi::{Keypair, PublicKeyBytes};
 use std::error::Error;

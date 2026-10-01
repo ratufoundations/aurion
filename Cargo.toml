@@ -18,7 +18,6 @@ members = [
     "crates/aurion-gateway",
     "crates/aurion-projection",
     "apps/aurion-node",
-    "apps/aurion-explorer",
     "apps/aurion-cli",
 ]
 

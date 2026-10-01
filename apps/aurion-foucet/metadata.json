@@ -1,0 +1,8 @@
+{
+  "name": "Aurion Faucet",
+  "description": "Web3 cryptocurrency testnet faucet for Aurion Network. Claim testnet AUR tokens for smart contract deployment and transaction testing.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

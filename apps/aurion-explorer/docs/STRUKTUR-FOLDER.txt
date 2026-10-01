@@ -1,0 +1,82 @@
+================================================================================
+STRUKTUR FOLDER RESMI PROYEK AURION EXPLORER (NEXT.JS APP ROUTER + SRC ARCHITECTURE)
+Status: Tuntas Terkonsolidasi & Terhubung @aurion/sdk
+Terakhir Diperbarui: 2026-09-30
+================================================================================
+
+/home/ratu/workspace/aurion-explorer/
+├── .env.example                     # Konfigurasi contoh environment
+├── .env.local                       # Endpoint RPC lokal (NEXT_PUBLIC_AURION_RPC_URL=http://127.0.0.1:8545)
+├── components.json                  # Konfigurasi resmi shadcn/ui
+├── next.config.ts                   # Konfigurasi Next.js 16 (App Router, Turbopack)
+├── package.json                     # Next.js 16 + React 19 + Tailwind v4 + @aurion/sdk + shadcn
+├── postcss.config.mjs               # Integrasi @tailwindcss/postcss
+├── tsconfig.json                    # Path alias: "@/*" -> ["./src/*"]
+│
+├── docs/
+│   └── STRUKTUR-FOLDER.txt          # Dokumentasi arsitektur folder resmi proyek
+│
+├── public/                          # Aset statis & logo
+│
+└── src/                             # ROOT TUNGGAL KODE SUMBER FRONTEND
+    │
+    ├── app/                         # NEXT.JS APP ROUTER (NEXT.JS 16 + REACT 19)
+    │   ├── globals.css              # Tailwind CSS v4, varian dark/light, terminal scrollbar & keyframes
+    │   ├── layout.tsx               # Root Layout, Dark/Light ThemeProvider, suppressHydrationWarning
+    │   ├── page.tsx                 # Root Page client component dengan fallback hidrasi aman
+    │   │
+    │   ├── block/                   # RUTE DINAMIS DETAIL BLOK KANONIKAL
+    │   │   └── [height]/page.tsx    # Header 116B, Quorum Certificate (QC), Merkle State Root, Daftar Tx
+    │   │
+    │   ├── account/                 # RUTE DINAMIS STATUS AKUN & HOT-STATE
+    │   │   └── [address]/page.tsx   # Hot-state balance (Quanta zero-float), Nonce u64, Aktivitas Tx
+    │   │
+    │   └── tx/                      # RUTE DINAMIS DEKONSTRUKSI TRANSAKSI 168-BYTE
+    │       └── [hash]/page.tsx      # Domain 4B, Sender 32B, Receiver 32B, Quanta, Ed25519 64B signature
+    │
+    ├── components/                  # KOMPONEN VISUAL & TELEMETRI BFT
+    │   ├── BFTConsensusHealthChart.tsx  # Grafik real-time 10-menit BFT quorum & latensi (Recharts)
+    │   ├── BlockchainActivityPanel.tsx  # Panel blok & transaksi terbaru dengan tautan ke rute dinamis
+    │   ├── CopyButton.tsx               # Tombol utilitas salin hash/address ke clipboard dengan state feedback
+    │   ├── Header.tsx                   # Topbar brand Aurion, live status, BFT watchdog, ThemeToggle
+    │   ├── InspectorModal.tsx           # Modal inspeksi cepat dengan tautan langsung ke rute penuh
+    │   ├── LatencyHistoryChart.tsx      # Grafik time-series tren latensi 60 menit (Recharts)
+    │   ├── MetricsGrid.tsx              # Grid 6 metrik BFT, state root, epoch index, quorum status
+    │   ├── PeerMapPanel.tsx             # 3D mesh topology / peta koneksi interaktif & waveform
+    │   ├── PeerTelemetryTable.tsx       # Tabel node peer interaktif (shadcn Table, Input filter)
+    │   ├── ToastNotificationSystem.tsx  # Sistem notifikasi peringatan BFT quorum & round-skip
+    │   ├── theme-provider.tsx           # Wrapper next-themes ThemeProvider
+    │   ├── theme-toggle.tsx             # Tombol interaktif pengalih Mode Terang / Mode Gelap
+    │   │
+    │   └── ui/                      # KOMPONEN DESAIN SHADCN/UI (TERUJI & ADAPTIF)
+    │       ├── badge.tsx            # Badge status, peran node, quorum
+    │       ├── button.tsx           # Tombol live, pause, inspect, copy
+    │       ├── card.tsx             # Kontainer kartu metrik & panel
+    │       ├── dialog.tsx           # Dialog modal inspeksi
+    │       ├── input.tsx            # Input pencarian IP/peer
+    │       ├── table.tsx            # Tabel data telemetri
+    │       └── tabs.tsx             # Navigasi tab panel
+    │
+    ├── data/
+    │   └── initialData.ts           # Data telemetri simulasi fallback saat RPC simpul offline
+    │
+    ├── lib/
+    │   ├── rpc.ts                   # Klien JSON-RPC 2.0 & REST gateway Aurion (getStatus, blocks, account, tx)
+    │   └── utils.ts                 # Utilitas fungsi cn (clsx + tailwind-merge)
+    │
+    ├── types.ts                     # Definisi tipe TypeScript (NodeStatus, BlockItem, PeerNode, dll)
+    └── App.tsx                      # Dashboard orkestrator: polling RPC riil + simulasi fallback
+
+================================================================================
+FITUR & INTEGRASI YANG BERJALAN:
+1. Arsitektur Terkonsolidasi: Seluruh kode berada rapi di dalam `src/`.
+2. @aurion/sdk: Terhubung langsung dan diverifikasi oleh TypeScript dengan kalkulasi moneter Quanta Zero-Float (`toAur()`).
+3. Rute Dinamis Next.js 16 (Async Params):
+   - `/block/[height]`: Rincian kanonikal header 116 byte dan Quorum Certificate (QC).
+   - `/account/[address]`: Saldo aktif Hot State (`ACCOUNTS_TABLE`), Nonce u64 anti-replay guard.
+   - `/tx/[hash]`: Dekonstruksi amplop kanonikal biner 168 byte (Domain tag, Sender, Receiver, Quanta, Ed25519 signature).
+4. Navigasi Internal Lengkap: Integrasi Next.js Link pada `BlockchainActivityPanel`, `InspectorModal`, dan `MetricsGrid`.
+5. Graceful Fallback: Resiliensi otomatis dengan banner informatif saat RPC 127.0.0.1:8545 offline tanpa menyebabkan 500 crash.
+6. Mode Terang & Gelap: Didukung penuh via next-themes dan disesuaikan untuk seluruh komponen UI.
+7. Zero Hydration Warning: Atribut suppressHydrationWarning dan inisialisasi SSR deterministik aktif.
+================================================================================

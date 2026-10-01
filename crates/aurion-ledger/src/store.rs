@@ -86,6 +86,14 @@ impl LedgerStore {
         self.read_snapshot()?.get_block_by_height(height)
     }
 
+    /// Ambil blok berdasarkan hash 32-byte.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila pembacaan tabel index atau blok gagal.
+    pub fn get_block_by_hash(&self, hash: &Hash256) -> Result<Option<Block>, LedgerError> {
+        self.read_snapshot()?.get_block_by_hash(hash)
+    }
+
     /// Ambil nomor tinggi blok terakhir yang sudah tersimpan permanen.
     ///
     /// # Errors
@@ -222,6 +230,25 @@ impl LedgerSnapshot {
             .map_err(|e| LedgerError::StorageError(e.to_string()))?
             .map(|value| Codec::decode_block(value.value()))
             .transpose()
+    }
+
+    /// Membaca blok berdasarkan hash dari versi database pada saat snapshot dibuka.
+    ///
+    /// # Errors
+    /// Mengembalikan error bila tabel atau data blok gagal dibaca.
+    pub fn get_block_by_hash(&self, hash: &Hash256) -> Result<Option<Block>, LedgerError> {
+        let index_table = self
+            .read_txn
+            .open_table(BLOCK_INDEX_TABLE)
+            .map_err(|e| LedgerError::TableError(e.to_string()))?;
+        let height = index_table
+            .get(hash)
+            .map_err(|e| LedgerError::StorageError(e.to_string()))?
+            .map(|value| value.value());
+        match height {
+            Some(h) => self.get_block_by_height(h),
+            None => Ok(None),
+        }
     }
 
     /// Membaca latest height dari versi database pada saat snapshot dibuka.

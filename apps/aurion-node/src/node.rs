@@ -11,7 +11,7 @@ use tokio::sync::{mpsc, oneshot};
 use tokio_util::sync::CancellationToken;
 
 use aurion_consensus::{RoundState, ValidatorSet, Vote, VoteType};
-use aurion_core::{Block, BlockHeader, State, Transaction};
+use aurion_core::{Account, Block, BlockHeader, State, Transaction};
 use aurion_criptografi::{Hash256, Keypair, PublicKeyBytes};
 use aurion_execution::{
     Action, ActionBatch, ExecutionContext, ExecutionEngine, ExecutionPolicy, StoreKey,
@@ -117,6 +117,21 @@ pub enum ChainCommand {
     },
     /// Kueri tinggi blok terakhir yang tercatat di ledger.
     HeightQuery { reply: oneshot::Sender<u64> },
+    /// Kueri blok berdasarkan tinggi.
+    BlockQuery {
+        height: u64,
+        reply: oneshot::Sender<Option<Block>>,
+    },
+    /// Kueri blok berdasarkan hash.
+    BlockHashQuery {
+        hash: Hash256,
+        reply: oneshot::Sender<Option<Block>>,
+    },
+    /// Kueri akun dari state memory ledger.
+    AccountQuery {
+        account: PublicKeyBytes,
+        reply: oneshot::Sender<Option<aurion_core::Account>>,
+    },
     /// Pesan jaringan dari actor swarm.
     Gossip(NetworkMessage),
     /// Putusan deferensi dari subsistem guard.
@@ -311,6 +326,18 @@ impl ChainNode {
                         }
                         Some(ChainCommand::HeightQuery { reply }) => {
                             let _ = reply.send(self.last_height());
+                        }
+                        Some(ChainCommand::BlockQuery { height, reply }) => {
+                            let block = self.ledger.get_block_by_height(height).ok().flatten();
+                            let _ = reply.send(block);
+                        }
+                        Some(ChainCommand::BlockHashQuery { hash, reply }) => {
+                            let block = self.ledger.get_block_by_hash(&hash).ok().flatten();
+                            let _ = reply.send(block);
+                        }
+                        Some(ChainCommand::AccountQuery { account, reply }) => {
+                            let acc = self.state.get_account(&account).copied();
+                            let _ = reply.send(acc);
                         }
                         Some(ChainCommand::Gossip(message)) => self.on_gossip(message, &events),
                         Some(ChainCommand::GuardVerdict(verdict)) => self.on_verdict(&verdict, &events),
@@ -641,6 +668,60 @@ impl NodeHandle {
         let (reply, wait) = oneshot::channel();
         self.commands
             .try_send(ChainCommand::HeightQuery { reply })
+            .map_err(|e| match e {
+                mpsc::error::TrySendError::Full(_) => IngressError::ChannelFull {
+                    capacity: self.commands.max_capacity(),
+                },
+                mpsc::error::TrySendError::Closed(_) => IngressError::NodeStopping,
+            })?;
+        wait.await.map_err(|_| IngressError::NodeStopping)
+    }
+
+    /// Kueri blok berdasarkan nomor tinggi.
+    ///
+    /// # Errors
+    /// Mengembalikan galat bila actor berhenti sebelum membalas.
+    pub async fn get_block(&self, height: u64) -> Result<Option<Block>, IngressError> {
+        let (reply, wait) = oneshot::channel();
+        self.commands
+            .try_send(ChainCommand::BlockQuery { height, reply })
+            .map_err(|e| match e {
+                mpsc::error::TrySendError::Full(_) => IngressError::ChannelFull {
+                    capacity: self.commands.max_capacity(),
+                },
+                mpsc::error::TrySendError::Closed(_) => IngressError::NodeStopping,
+            })?;
+        wait.await.map_err(|_| IngressError::NodeStopping)
+    }
+
+    /// Kueri blok berdasarkan hash 32-byte.
+    ///
+    /// # Errors
+    /// Mengembalikan galat bila actor berhenti sebelum membalas.
+    pub async fn get_block_by_hash(&self, hash: Hash256) -> Result<Option<Block>, IngressError> {
+        let (reply, wait) = oneshot::channel();
+        self.commands
+            .try_send(ChainCommand::BlockHashQuery { hash, reply })
+            .map_err(|e| match e {
+                mpsc::error::TrySendError::Full(_) => IngressError::ChannelFull {
+                    capacity: self.commands.max_capacity(),
+                },
+                mpsc::error::TrySendError::Closed(_) => IngressError::NodeStopping,
+            })?;
+        wait.await.map_err(|_| IngressError::NodeStopping)
+    }
+
+    /// Kueri status akun (saldo dan nonce) terkini.
+    ///
+    /// # Errors
+    /// Mengembalikan galat bila actor berhenti sebelum membalas.
+    pub async fn get_account(
+        &self,
+        account: PublicKeyBytes,
+    ) -> Result<Option<Account>, IngressError> {
+        let (reply, wait) = oneshot::channel();
+        self.commands
+            .try_send(ChainCommand::AccountQuery { account, reply })
             .map_err(|e| match e {
                 mpsc::error::TrySendError::Full(_) => IngressError::ChannelFull {
                     capacity: self.commands.max_capacity(),

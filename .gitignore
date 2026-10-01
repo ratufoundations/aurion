@@ -8,3 +8,7 @@ logs/*-prod.log
 !logs/WORK_LOG.md
 aurion_data/
 target/dev_db/
+**/node_modules/
+**/.next/
+**/out/
+**/dist/

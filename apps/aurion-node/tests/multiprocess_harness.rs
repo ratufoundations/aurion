@@ -13,7 +13,7 @@ use std::sync::mpsc as std_mpsc;
 use std::time::{Duration, Instant};
 
 /// Binary yang diuji (dibangun oleh cargo saat test ini dikompilasi).
-const BIN: &str = env!("CARGO_BIN_EXE_aurion-node");
+const BIN: &str = env!("CARGO_BIN_EXE_aurion");
 /// Empat simpul validator agar ambang `2f+1 = 3` tercapai.
 const NODE_COUNT: usize = 4;
 /// Batas waktu keseluruhan klaster meraih kuorum.
@@ -55,11 +55,15 @@ fn spawn_node(identity: usize, peers: &[String]) -> ProcNode {
     let mut command = Command::new(BIN);
     command
         .current_dir(workspace_root())
+        .arg("run")
+        .arg("server")
         .arg("--identity")
         .arg(identity.to_string())
         .arg("--roster-size")
         .arg(NODE_COUNT.to_string())
         .arg("--port")
+        .arg("0")
+        .arg("--http-port")
         .arg("0")
         .arg("--data-dir")
         .arg(&dir);

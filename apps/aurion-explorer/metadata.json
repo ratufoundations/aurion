@@ -1,0 +1,6 @@
+{
+  "name": "Aurion Sovereign Network Explorer",
+  "description": "AURION SOVEREIGN NETWORK — LIVE BEACON & BLOCKCHAIN EXPLORER: Live Decentralized Peer Mesh, BFT Consensus, and Block Ledger telemetry monitor.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
